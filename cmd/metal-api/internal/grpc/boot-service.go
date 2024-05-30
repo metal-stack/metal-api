@@ -144,14 +144,13 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 
 	machineHardware := metal.MachineHardware{
 		Memory:    req.Hardware.Memory,
-		CPUCores:  int(req.Hardware.CpuCores),
 		Disks:     disks,
 		Nics:      nics,
 		MetalCPUs: cpus,
 		MetalGPUs: gpus,
 	}
 
-	size, _, err := b.ds.FromHardware(machineHardware)
+	size, err := b.ds.FromHardware(machineHardware)
 	if err != nil {
 		size = metal.UnknownSize()
 		b.log.Error("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)

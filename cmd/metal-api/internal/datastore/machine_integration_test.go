@@ -4,11 +4,19 @@
 package datastore
 
 import (
+	"context"
+	"log/slog"
+	"strconv"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 type machineTestable struct{}
@@ -468,21 +476,6 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 			want: []*metal.Machine{
 				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, Hardware: metal.MachineHardware{Memory: 1000}}),
 				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, Hardware: metal.MachineHardware{Memory: 1000}}),
-			},
-			wantErr: nil,
-		},
-		{
-			name: "search by hardware cpus",
-			q: &MachineSearchQuery{
-				HardwareCPUCores: pointer.Pointer(int64(8)),
-			},
-			mock: []*metal.Machine{
-				{Base: metal.Base{ID: "1"}, Hardware: metal.MachineHardware{CPUCores: 1}},
-				{Base: metal.Base{ID: "2"}, Hardware: metal.MachineHardware{CPUCores: 2}},
-				{Base: metal.Base{ID: "3"}, Hardware: metal.MachineHardware{CPUCores: 8}},
-			},
-			want: []*metal.Machine{
-				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, Hardware: metal.MachineHardware{CPUCores: 8}}),
 			},
 			wantErr: nil,
 		},
@@ -949,4 +942,111 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 	for i := range tests {
 		tests[i].run(t, tt)
 	}
+}
+
+func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
+
+	var (
+		root  = slog.Default()
+		wg    sync.WaitGroup
+		size  = metal.Size{Base: metal.Base{ID: "1"}}
+		count int
+	)
+
+	for _, initEntity := range []struct {
+		entity metal.Entity
+		table  *r.Term
+	}{
+		{
+			table: sharedDS.machineTable(),
+			entity: &metal.Machine{
+				Base: metal.Base{
+					ID: "1",
+				},
+				PartitionID: "partition",
+				SizeID:      size.ID,
+				State: metal.MachineState{
+					Value: metal.AvailableState,
+				},
+				Waiting:      true,
+				PreAllocated: false,
+			},
+		},
+		{
+			table: sharedDS.eventTable(),
+			entity: &metal.ProvisioningEventContainer{
+				Base: metal.Base{
+					ID: "1",
+				},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+		},
+	} {
+		initEntity := initEntity
+
+		err := sharedDS.createEntity(initEntity.table, initEntity.entity)
+		require.NoError(t, err)
+
+		defer func() {
+			_, err := initEntity.table.Delete().RunWrite(sharedDS.session)
+			require.NoError(t, err)
+		}()
+	}
+
+	for i := 0; i < 100; i++ {
+		i := i
+		wg.Add(1)
+
+		log := root.With("worker", i)
+
+		go func() {
+			defer wg.Done()
+
+			for {
+				machine, err := sharedDS.FindWaitingMachine(context.Background(), "project", "partition", size, nil)
+				if err != nil {
+					if metal.IsConflict(err) {
+						t.Errorf("concurrent modification occurred, shared mutex is not working")
+						break
+					}
+
+					if strings.Contains(err.Error(), "no machine available") {
+						continue
+					}
+
+					if strings.Contains(err.Error(), "too many parallel") {
+						time.Sleep(10 * time.Millisecond)
+						continue
+					}
+
+					t.Errorf("unexpected error occurred: %s", err)
+					continue
+				}
+
+				log.Info("waiting machine found")
+
+				newMachine := *machine
+				newMachine.PreAllocated = false
+				if newMachine.Name == "" {
+					newMachine.Name = strconv.Itoa(0)
+				}
+
+				assert.Equal(t, strconv.Itoa(count), newMachine.Name, "concurrency occurred")
+				count++
+				newMachine.Name = strconv.Itoa(count)
+
+				err = sharedDS.updateEntity(sharedDS.machineTable(), &newMachine, machine)
+				if err != nil {
+					log.Error("unable to toggle back pre-allocation flag", "error", err)
+					t.Fail()
+				}
+
+				return
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	assert.Equal(t, 100, count)
 }

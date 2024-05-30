@@ -196,7 +196,7 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, _, err := tt.rs.FromHardware(tt.hw)
+			got, err := tt.rs.FromHardware(tt.hw)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FromHardware() error = %v, wantErr %v", err, tt.wantErr)
 				return

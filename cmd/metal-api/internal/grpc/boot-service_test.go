@@ -118,8 +118,15 @@ func TestBootService_Register(t *testing.T) {
 			req := &v1.BootServiceRegisterRequest{
 				Uuid: tt.uuid,
 				Hardware: &v1.MachineHardware{
-					Memory:   uint64(tt.memory),
-					CpuCores: uint32(tt.numcores),
+					Memory: uint64(tt.memory),
+
+					Cpus: []*v1.MachineCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   uint32(tt.numcores),
+							Threads: uint32(tt.numcores),
+						},
+					},
 					Nics: []*v1.MachineNic{
 						{
 							Mac: "aa", Neighbors: []*v1.MachineNic{{Mac: string(tt.neighbormac1)}},

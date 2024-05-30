@@ -10,21 +10,6 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
-// If you want to add some Test Data, add it also to the following places:
-// -- To the Mocks, ==> eof
-// -- To the corresponding lists,
-
-// Also run the Tests:
-// cd ./cloud-native/metal/metal-api/
-// go test ./...
-// -- OR
-// go test -cover ./...
-// -- OR
-// cd ./PACKAGE
-// go test -coverprofile=cover.out ./...
-// go tool cover -func=cover.out					// Console Output
-// (go tool cover -html=cover.out -o cover.html) 	// Html output
-
 var (
 	// Machines
 	M1 = metal.Machine{
@@ -44,8 +29,14 @@ var (
 			},
 		},
 		Hardware: metal.MachineHardware{
-			CPUCores: 8,
-			Memory:   1 << 30,
+			MetalCPUs: []metal.MetalCPU{
+				{
+					Model:   "Intel Xeon Silver",
+					Cores:   8,
+					Threads: 8,
+				},
+			},
+			Memory: 1 << 30,
 			Disks: []metal.BlockDevice{
 				{
 					Size: 1000,
@@ -552,6 +543,7 @@ var (
 			"1": metal.Connections{
 				metal.Connection{
 					Nic: metal.Nic{
+						Name:       "swp1",
 						MacAddress: metal.MacAddress("21:11:11:11:11:11"),
 					},
 					MachineID: "1",
@@ -670,9 +662,15 @@ var (
 
 	// MachineHardwares
 	MachineHardware1 = metal.MachineHardware{
-		Memory:   100,
-		CPUCores: 1,
-		Nics:     TestNics,
+		Memory: 100,
+		MetalCPUs: []metal.MetalCPU{
+			{
+				Model:   "Intel Xeon Silver",
+				Cores:   1,
+				Threads: 1,
+			},
+		},
+		Nics: TestNics,
 		Disks: []metal.BlockDevice{
 			{
 				Name: "blockdeviceName",
@@ -681,9 +679,15 @@ var (
 		},
 	}
 	MachineHardware2 = metal.MachineHardware{
-		Memory:   1000,
-		CPUCores: 2,
-		Nics:     TestNics,
+		Memory: 1000,
+		MetalCPUs: []metal.MetalCPU{
+			{
+				Model:   "Intel Xeon Silver",
+				Cores:   2,
+				Threads: 2,
+			},
+		},
+		Nics: TestNics,
 		Disks: []metal.BlockDevice{
 			{
 				Name: "blockdeviceName",

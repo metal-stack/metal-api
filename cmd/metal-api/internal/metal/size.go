@@ -38,13 +38,26 @@ const (
 	GPUConstraint     ConstraintType = "gpu"
 )
 
-// A Constraint describes the hardware constraints for a given size. At the moment we only
-// consider the cpu cores and the memory.
+var allConstraintTypes = []ConstraintType{CoreConstraint, MemoryConstraint, StorageConstraint, GPUConstraint}
+
+// A Constraint describes the hardware constraints for a given size.
 type Constraint struct {
 	Type       ConstraintType `rethinkdb:"type" json:"type"`
 	Min        uint64         `rethinkdb:"min" json:"min"`
 	Max        uint64         `rethinkdb:"max" json:"max"`
 	Identifier string         `rethinkdb:"identifier" json:"identifier" description:"glob of the identifier of this type"`
+}
+
+func countCPU(cpu MetalCPU) (model string, count uint64) {
+	return cpu.Model, uint64(cpu.Cores)
+}
+
+func countGPU(gpu MetalGPU) (model string, count uint64) {
+	return gpu.Model, 1
+}
+
+func countDisk(disk BlockDevice) (model string, count uint64) {
+	return disk.Name, disk.Size
 }
 
 // Sizes is a list of sizes.
@@ -72,70 +85,85 @@ func UnknownSize() *Size {
 	}
 }
 
-// Matches returns true if the given machine hardware is inside the min/max values of the
+func (c *Constraint) inRange(value uint64) bool {
+	return value >= c.Min && value <= c.Max
+}
+
+// matches returns true if the given machine hardware is inside the min/max values of the
 // constraint.
-func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
-	logentryFmt := fmt.Sprintf("%%d >= %d && %%d <= %d", c.Min, c.Max)
-	cml := ConstraintMatchingLog{Constraint: *c, Log: fmt.Sprintf("no constraint matching %q", c.Type)}
+func (c *Constraint) matches(hw MachineHardware) bool {
 	res := false
 	switch c.Type {
 	case CoreConstraint:
-		res = uint64(hw.CPUCores) >= c.Min && uint64(hw.CPUCores) <= c.Max
-		cml.Log = fmt.Sprintf(logentryFmt, hw.CPUCores, hw.CPUCores)
+		cores, _ := capacityOf(c.Identifier, hw.MetalCPUs, countCPU)
+		res = c.inRange(cores)
 	case MemoryConstraint:
-		res = hw.Memory >= c.Min && hw.Memory <= c.Max
-		cml.Log = fmt.Sprintf(logentryFmt, hw.Memory, hw.Memory)
+		res = c.inRange(hw.Memory)
 	case StorageConstraint:
-		res = hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
-		cml.Log = fmt.Sprintf(logentryFmt, hw.DiskCapacity(), hw.DiskCapacity())
+		capacity, _ := capacityOf(c.Identifier, hw.Disks, countDisk)
+		res = c.inRange(capacity)
 	case GPUConstraint:
-		for model, count := range hw.GPUModels() {
-			idMatches, err := filepath.Match(c.Identifier, model)
-			if err != nil {
-				cml.Log = fmt.Sprintf("cannot match gpu model:%v", err)
-				return cml, false
-			}
-			res = count >= c.Min && count <= c.Max && idMatches
-			if res {
-				break
-			}
-		}
-
-		cml.Log = fmt.Sprintf("existing gpus:%#v required gpus:%s count %d-%d", hw.MetalGPUs, c.Identifier, c.Min, c.Max)
+		count, _ := capacityOf(c.Identifier, hw.MetalGPUs, countGPU)
+		res = c.inRange(count)
 	}
-	cml.Match = res
-	return cml, res
+	return res
+}
+
+// matches returns true if all provided disks and later GPUs are covered with at least one constraint.
+// With this we ensure that hardware matches exhaustive against the constraints.
+func (hw *MachineHardware) matches(constraints []Constraint, constraintType ConstraintType) bool {
+	filtered := lo.Filter(constraints, func(c Constraint, _ int) bool { return c.Type == constraintType })
+	if len(filtered) == 0 {
+		return true
+	}
+
+	switch constraintType {
+	case StorageConstraint:
+		return exhaustiveMatch(filtered, hw.Disks, countDisk)
+	case GPUConstraint:
+		return exhaustiveMatch(filtered, hw.MetalGPUs, countGPU)
+	case CoreConstraint:
+		return exhaustiveMatch(filtered, hw.MetalCPUs, countCPU)
+	case MemoryConstraint:
+		// Noop because we do not have different Memory types
+		return true
+	default:
+		return true
+	}
 }
 
 // FromHardware searches a Size for given hardware specs. It will search
 // for a size where the constraints matches the given hardware.
-func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, []*SizeMatchingLog, error) {
-	var found []Size
-	matchlog := make([]*SizeMatchingLog, 0)
-	var matchedlog *SizeMatchingLog
+func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
+	var (
+		matchedSizes []Size
+	)
+
 nextsize:
 	for _, s := range sz {
-		ml := &SizeMatchingLog{Name: s.ID, Match: false}
-		matchlog = append(matchlog, ml)
 		for _, c := range s.Constraints {
-			lg, match := c.Matches(hardware)
-			ml.Constraints = append(ml.Constraints, lg)
+			match := c.matches(hardware)
 			if !match {
 				continue nextsize
 			}
 		}
-		ml.Match = true
-		matchedlog = ml
-		found = append(found, s)
+
+		for _, ct := range allConstraintTypes {
+			match := hardware.matches(s.Constraints, ct)
+			if !match {
+				continue nextsize
+			}
+		}
+		matchedSizes = append(matchedSizes, s)
 	}
 
-	if len(found) == 0 {
-		return nil, matchlog, NotFound("no size found for hardware (%s)", hardware.ReadableSpec())
+	if len(matchedSizes) == 0 {
+		return nil, NotFound("no size found for hardware (%s)", hardware.ReadableSpec())
 	}
-	if len(found) > 1 {
-		return nil, matchlog, fmt.Errorf("%d sizes found for hardware (%s)", len(found), hardware.ReadableSpec())
+	if len(matchedSizes) > 1 {
+		return nil, fmt.Errorf("%d sizes found for hardware (%s)", len(matchedSizes), hardware.ReadableSpec())
 	}
-	return &found[0], []*SizeMatchingLog{matchedlog}, nil
+	return &matchedSizes[0], nil
 }
 
 func (s *Size) overlaps(so *Size) bool {
@@ -187,15 +215,19 @@ func (c *Constraint) overlaps(other Constraint) bool {
 
 // Validate a size, returns error if a invalid size is passed
 func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
-	constraintTypes := map[ConstraintType]bool{}
+	constraintTypes := map[ConstraintType]uint{}
 	for _, c := range s.Constraints {
 		if c.Max < c.Min {
 			return fmt.Errorf("size:%q type:%q max:%d is smaller than min:%d", s.ID, c.Type, c.Max, c.Min)
 		}
 
-		_, ok := constraintTypes[c.Type]
-		if ok {
-			return fmt.Errorf("size:%q type:%q min:%d max:%d has duplicate constraint type", s.ID, c.Type, c.Min, c.Max)
+		// CPU and Memory Constraints are not allowed more than once
+		constraintTypes[c.Type]++
+		count := constraintTypes[c.Type]
+		if c.Type == CoreConstraint || c.Type == MemoryConstraint {
+			if count > 1 {
+				return fmt.Errorf("size:%q type:%q min:%d max:%d has duplicate constraint type", s.ID, c.Type, c.Min, c.Max)
+			}
 		}
 
 		// Ensure GPU Constraints always have identifier specified
@@ -203,7 +235,15 @@ func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Proj
 			return fmt.Errorf("size:%q type:%q min:%d max:%d is a gpu size but has no identifier specified", s.ID, c.Type, c.Min, c.Max)
 		}
 
-		constraintTypes[c.Type] = true
+		// Ensure Memory Constraints do not have a identifier specified
+		if c.Type == MemoryConstraint && c.Identifier != "" {
+			return fmt.Errorf("size:%q type:%q min:%d max:%d is a memory size but has a identifier specified", s.ID, c.Type, c.Min, c.Max)
+		}
+
+		if _, err := filepath.Match(c.Identifier, ""); err != nil {
+			return fmt.Errorf("size:%q type:%q min:%d max:%d identifier:%q identifier is malformed:%w", s.ID, c.Type, c.Min, c.Max, c.Identifier, err)
+		}
+
 	}
 
 	if err := s.Reservations.Validate(partitions, projects); err != nil {
@@ -292,20 +332,4 @@ func (rs *Reservations) Validate(partitions PartitionMap, projects map[string]*m
 	}
 
 	return nil
-}
-
-// A ConstraintMatchingLog is used do return a log message to the caller
-// beside the constraint itself.
-type ConstraintMatchingLog struct {
-	Constraint Constraint
-	Match      bool
-	Log        string
-}
-
-// A SizeMatchingLog returns information about a list of constraints.
-type SizeMatchingLog struct {
-	Name        string
-	Log         string
-	Match       bool
-	Constraints []ConstraintMatchingLog
 }

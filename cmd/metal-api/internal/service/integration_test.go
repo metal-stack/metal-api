@@ -85,7 +85,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, nil, nil)
+	mdc := mdm.NewMock(psc, nil, nil, nil)
 
 	go func() {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{
@@ -397,11 +397,10 @@ func (te *testEnv) machineWait(uuid string) error {
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(kacp),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	}
 
 	port := 50005
-	conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("localhost:%d", port), opts...)
+	conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
 	if err != nil {
 		return err
 	}

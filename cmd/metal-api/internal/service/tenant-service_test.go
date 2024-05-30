@@ -26,7 +26,7 @@ func NewMockedTenantService(t *testing.T, tenantServiceMock func(mock *mdmv1mock
 	if tenantServiceMock != nil {
 		tenantServiceMock(tsc)
 	}
-	mdc := mdm.NewMock(&mdmv1mock.ProjectServiceClient{}, tsc, nil)
+	mdc := mdm.NewMock(&mdmv1mock.ProjectServiceClient{}, tsc, nil, nil)
 	ws := NewTenant(slog.Default(), mdc)
 	return &MockedTenantService{
 		t:  t,

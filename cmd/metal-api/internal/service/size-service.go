@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -115,16 +114,6 @@ func (r *sizeResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/from-hardware").
-		To(r.fromHardware).
-		Operation("fromHardware").
-		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
-		Reads(v1.MachineHardware{}).
-		Returns(http.StatusOK, "OK", v1.SizeMatchingLog{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	return ws
 }
 
@@ -180,11 +169,22 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 			Identifier: model,
 		})
 	}
+
+	var cores uint64
+	for _, cpu := range m.Hardware.MetalCPUs {
+		cores += uint64(cpu.Cores)
+	}
+
+	var diskCapacity uint64
+	for _, d := range m.Hardware.Disks {
+		diskCapacity += d.Size
+	}
+
 	constraints := []v1.SizeConstraint{
 		{
 			Type: metal.CoreConstraint,
-			Min:  uint64(m.Hardware.CPUCores),
-			Max:  uint64(m.Hardware.CPUCores),
+			Min:  cores,
+			Max:  cores,
 		},
 		{
 			Type: metal.MemoryConstraint,
@@ -193,8 +193,8 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		},
 		{
 			Type: metal.StorageConstraint,
-			Min:  m.Hardware.DiskCapacity(),
-			Max:  m.Hardware.DiskCapacity(),
+			Min:  diskCapacity,
+			Max:  diskCapacity,
 		},
 	}
 
@@ -425,29 +425,6 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 	}
 
 	r.send(request, response, http.StatusOK, v1.NewSizeResponse(&newSize))
-}
-
-func (r *sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineHardware
-	err := request.ReadEntity(&requestPayload)
-	if err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
-		return
-	}
-
-	hw := v1.NewMetalMachineHardware(&requestPayload)
-	_, lg, err := r.ds.FromHardware(hw)
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
-	if len(lg) < 1 {
-		r.sendError(request, response, httperrors.UnprocessableEntity(errors.New("size matching log is empty")))
-		return
-	}
-
-	r.send(request, response, http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
 }
 
 func (r *sizeResource) listSizeReservations(request *restful.Request, response *restful.Response) {

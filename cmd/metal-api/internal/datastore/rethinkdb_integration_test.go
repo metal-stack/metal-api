@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -45,11 +46,14 @@ func startRethinkInitialized() (container testcontainers.Container, ds *RethinkS
 		panic(err)
 	}
 
-	rs := New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := New(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
 	rs.ASNPoolRangeMax = 10010
+
+	rs.sharedMutexCheckInterval = 3 * time.Second
 
 	err = rs.Connect()
 	if err != nil {

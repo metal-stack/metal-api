@@ -52,18 +52,14 @@ func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *slog.Logg
 
 // Connect or reconnect to Headscale server
 func (h *HeadscaleClient) connect(apiKey string) (err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	grpcOptions := []grpc.DialOption{
-		grpc.WithBlock(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithPerRPCCredentials(tokenAuth{
 			token: apiKey,
 		}),
 	}
 
-	h.conn, err = grpc.DialContext(ctx, h.address, grpcOptions...)
+	h.conn, err = grpc.NewClient(h.address, grpcOptions...)
 	if err != nil {
 		return fmt.Errorf("failed to connect to headscale server %s: %w", h.address, err)
 	}

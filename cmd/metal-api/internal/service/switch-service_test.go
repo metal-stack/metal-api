@@ -1386,3 +1386,35 @@ func TestToggleSwitch(t *testing.T) {
 	require.Equal(t, v1.SwitchPortStatusDown, result.Nics[0].Actual)
 	require.Equal(t, v1.SwitchPortStatusUnknown, result.Connections[0].Nic.Actual)
 }
+
+func TestToggleSwitchNicWithoutMachine(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := slog.Default()
+
+	switchservice := NewSwitch(log, ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	updateRequest := v1.SwitchPortToggleRequest{
+		NicName: testdata.Switch1.Nics[1].Name,
+		Status:  v1.SwitchPortStatusDown,
+	}
+
+	js, err := json.Marshal(updateRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/switch/"+testdata.Switch1.ID+"/port", body)
+	container = injectAdmin(log, container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode, w.Body.String())
+	var result httperrors.HTTPErrorResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, result.Message, fmt.Sprintf("switch %q does not have a connected machine at port %q", testdata.Switch1.ID, testdata.Switch1.Nics[1].Name))
+}

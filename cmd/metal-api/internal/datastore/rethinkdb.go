@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"reflect"
@@ -18,9 +19,21 @@ const (
 )
 
 var tables = []string{
-	"image", "size", "partition", "machine", "switch", "switchstatus", "event", "network", "ip", "migration", "filesystemlayout", "sizeimageconstraint",
-	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
+	"event",
+	"filesystemlayout",
+	"image",
+	"ip",
+	"machine",
+	"migration",
+	"network",
+	"partition",
+	"sharedmutex",
+	"size",
+	"sizeimageconstraint",
+	"switch",
+	"switchstatus",
+	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 }
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -40,6 +53,11 @@ type RethinkStore struct {
 	VRFPoolRangeMax uint
 	ASNPoolRangeMin uint
 	ASNPoolRangeMax uint
+
+	sharedMutexCtx           context.Context
+	sharedMutexCancel        context.CancelFunc
+	sharedMutex              *sharedMutex
+	sharedMutexCheckInterval time.Duration
 }
 
 // New creates a new rethink store.
@@ -55,6 +73,8 @@ func New(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass s
 		VRFPoolRangeMax: DefaultVRFPoolRangeMax,
 		ASNPoolRangeMin: DefaultASNPoolRangeMin,
 		ASNPoolRangeMax: DefaultASNPoolRangeMax,
+
+		sharedMutexCheckInterval: defaultSharedMutexCheckInterval,
 	}
 }
 
@@ -241,7 +261,13 @@ func (rs *RethinkStore) Close() error {
 			return err
 		}
 	}
+
+	if rs.sharedMutexCancel != nil {
+		rs.sharedMutexCancel()
+	}
+
 	rs.log.Info("Rethinkstore disconnected")
+
 	return nil
 }
 
@@ -251,6 +277,13 @@ func (rs *RethinkStore) Connect() error {
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.log.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
+	rs.sharedMutexCtx, rs.sharedMutexCancel = context.WithCancel(context.Background())
+	var err error
+	rs.sharedMutex, err = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, newMutexOptCheckInterval(rs.sharedMutexCheckInterval))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -262,8 +295,14 @@ func (rs *RethinkStore) Demote() error {
 	if err != nil {
 		return err
 	}
+
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
+	rs.sharedMutexCtx, rs.sharedMutexCancel = context.WithCancel(context.Background())
+	rs.sharedMutex, err = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, newMutexOptCheckInterval(rs.sharedMutexCheckInterval))
+	if err != nil {
+		return err
+	}
 
 	rs.log.Info("rethinkstore connected with demoted user")
 	return nil
