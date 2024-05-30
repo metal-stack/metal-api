@@ -37,14 +37,6 @@ require (
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
 
-require (
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	go.etcd.io/etcd/api/v3 v3.5.11 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.11 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.11 // indirect
-	go.uber.org/zap v1.26.0 // indirect
-)
-
 replace (
 	// Newer versions do not export base entities which are used to composite other entities.
 	// This breaks metalctl and friends
@@ -80,6 +72,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/docker v26.1.3+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
@@ -194,12 +187,16 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240424034433-3c2c7870ae76 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.11 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.11 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.11 // indirect
 	go.mongodb.org/mongo-driver v1.15.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.52.0 // indirect
 	go.opentelemetry.io/otel v1.27.0 // indirect
 	go.opentelemetry.io/otel/metric v1.27.0 // indirect
 	go.opentelemetry.io/otel/trace v1.27.0
 	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.26.0 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d
