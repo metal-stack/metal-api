@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/avast/retry-go/v4"
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
@@ -33,13 +34,12 @@ import (
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
 
+	"connectrpc.com/connect"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"connectrpc.com/connect"
 	compress "github.com/klauspost/connect-compress/v2"
+	apiv1 "github.com/metal-stack/go-ipam/api/v1"
 	"github.com/metal-stack/go-ipam/api/v1/apiv1connect"
 	"github.com/metal-stack/masterdata-api/pkg/auth"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -54,6 +54,8 @@ import (
 	httperrors "github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
 	"github.com/metal-stack/v"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type dsConnectOpt int
@@ -556,12 +558,29 @@ func initMasterData() {
 func initIpam() {
 	ipamgrpcendpoint := viper.GetString("ipam-grpc-server-endpoint")
 
-	ipamer = ipam.New(apiv1connect.NewIpamServiceClient(
+	ipamService := apiv1connect.NewIpamServiceClient(
 		http.DefaultClient,
 		ipamgrpcendpoint,
 		connect.WithGRPC(),
 		compress.WithAll(compress.LevelBalanced),
-	))
+	)
+
+	ipamer = ipam.New(ipamService)
+
+	err := retry.Do(func() error {
+		version, err := ipamService.Version(context.Background(), connect.NewRequest(&apiv1.VersionRequest{}))
+		if err != nil {
+			return err
+		}
+		logger.Info("connected to ipam service", "version", version)
+		return nil
+	})
+
+	if err != nil {
+		logger.Error("unable to connect to ipam service", "error", err)
+		os.Exit(1)
+	}
+
 	logger.Info("ipam initialized")
 }
 
