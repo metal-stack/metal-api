@@ -1043,7 +1043,7 @@ func TestSize_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErrMessage: pointer.Pointer("size:\"broken-cpu-size\" type:\"cores\" max:2 is smaller than min:8"),
+			wantErrMessage: pointer.Pointer("size \"broken-cpu-size\" is invalid: constraint at index 0 is invalid: max is smaller than min"),
 		},
 		{
 			name: "memory min and max wrong",
@@ -1059,7 +1059,7 @@ func TestSize_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErrMessage: pointer.Pointer("size:\"broken-memory-size\" type:\"memory\" max:2 is smaller than min:8"),
+			wantErrMessage: pointer.Pointer("size \"broken-memory-size\" is invalid: constraint at index 0 is invalid: max is smaller than min"),
 		},
 		{
 			name: "storage is working",
@@ -1121,7 +1121,7 @@ func TestSize_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErrMessage: pointer.Pointer("size:\"cpu-size\" type:\"cores\" min:2 max:2 has duplicate constraint type"),
+			wantErrMessage: pointer.Pointer("size \"cpu-size\" is invalid: constraint at index 1 is invalid: type duplicates are not allowed for type \"cores\""),
 		},
 		{
 			name: "gpu size without identifier",
@@ -1137,7 +1137,7 @@ func TestSize_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErrMessage: pointer.Pointer("size:\"invalid-gpu-size\" type:\"gpu\" min:2 max:8 is a gpu size but has no identifier specified"),
+			wantErrMessage: pointer.Pointer("size \"invalid-gpu-size\" is invalid: constraint at index 0 is invalid: for gpu constraints an identifier is required"),
 		},
 		{
 			name: "storage with invalid identifier",
@@ -1154,7 +1154,7 @@ func TestSize_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErrMessage: pointer.Pointer("size:\"invalid-storage-size\" type:\"storage\" min:2 max:8 identifier:\"][\" identifier is malformed:syntax error in pattern"),
+			wantErrMessage: pointer.Pointer("size \"invalid-storage-size\" is invalid: constraint at index 0 is invalid: identifier is malformed: syntax error in pattern"),
 		},
 		{
 			name: "memory with identifier",
@@ -1171,7 +1171,7 @@ func TestSize_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErrMessage: pointer.Pointer("size:\"invalid-memory-size\" type:\"memory\" min:2 max:8 is a memory size but has a identifier specified"),
+			wantErrMessage: pointer.Pointer("size \"invalid-memory-size\" is invalid: constraint at index 0 is invalid: for memory constraints an identifier is not allowed"),
 		},
 	}
 	for _, tt := range tests {
