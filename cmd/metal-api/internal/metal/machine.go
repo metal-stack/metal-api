@@ -535,19 +535,6 @@ func exhaustiveMatch[V comparable](cs []Constraint, vs []V, countFn func(v V) (m
 	return len(unmatched) == 0
 }
 
-func (hw *MachineHardware) GPUModels() map[string]uint64 {
-	models := make(map[string]uint64)
-	for _, gpu := range hw.MetalGPUs {
-		_, ok := models[gpu.Model]
-		if !ok {
-			models[gpu.Model] = 1
-		} else {
-			models[gpu.Model]++
-		}
-	}
-	return models
-}
-
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
 	diskCapacity, _ := capacityOf("*", hw.Disks, countDisk)
