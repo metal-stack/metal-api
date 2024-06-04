@@ -907,50 +907,8 @@ func TestSizes_Overlaps(t *testing.T) {
 				},
 			},
 			sizes: Sizes{
-				Size{
-					Base: Base{
-						ID: "micro",
-					},
-					Constraints: []Constraint{
-						{
-							Type: CoreConstraint,
-							Min:  1,
-							Max:  1,
-						},
-						{
-							Type: MemoryConstraint,
-							Min:  1024,
-							Max:  1024,
-						},
-						{
-							Type: StorageConstraint,
-							Min:  0,
-							Max:  1024,
-						},
-					},
-				},
-				Size{
-					Base: Base{
-						ID: "tiny",
-					},
-					Constraints: []Constraint{
-						{
-							Type: CoreConstraint,
-							Min:  1,
-							Max:  1,
-						},
-						{
-							Type: MemoryConstraint,
-							Min:  1025,
-							Max:  1077838336,
-						},
-						{
-							Type: StorageConstraint,
-							Min:  1024,
-							Max:  2048,
-						},
-					},
-				},
+				microSize,
+				tinySize,
 				Size{
 					Base: Base{
 						ID: "large",
@@ -974,7 +932,7 @@ func TestSizes_Overlaps(t *testing.T) {
 					},
 				},
 			},
-			want: &microSize,
+			want: nil,
 		},
 
 		{
