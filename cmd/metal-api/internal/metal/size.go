@@ -168,21 +168,37 @@ nextsize:
 }
 
 func (s *Size) overlaps(so *Size) bool {
-	if len(lo.FromPtr(so).Constraints) == 0 {
+	if len(lo.FromPtr(so).Constraints) == 0 || len(lo.FromPtr(s).Constraints) == 0 {
 		return false
 	}
+
 	srcTypes := lo.GroupBy(s.Constraints, func(item Constraint) ConstraintType {
 		return item.Type
 	})
 	destTypes := lo.GroupBy(so.Constraints, func(item Constraint) ConstraintType {
 		return item.Type
 	})
+
 	for t, srcConstraints := range srcTypes {
 		constraints, ok := destTypes[t]
 		if !ok {
 			return false
 		}
 		for _, sc := range srcConstraints {
+			for _, c := range constraints {
+				if !c.overlaps(sc) {
+					return false
+				}
+			}
+		}
+	}
+
+	for t, destConstraints := range destTypes {
+		constraints, ok := srcTypes[t]
+		if !ok {
+			return false
+		}
+		for _, sc := range destConstraints {
 			for _, c := range constraints {
 				if !c.overlaps(sc) {
 					return false
