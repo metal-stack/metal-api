@@ -306,7 +306,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 	}
 
 	if so := s.Overlaps(&ss); so != nil {
-		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size %q overlaps with %q", s.GetID(), so.GetID())))
 		return
 	}
 
@@ -414,7 +414,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 	}
 
 	if so := newSize.Overlaps(&ss); so != nil {
-		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size %q overlaps with %q", newSize.GetID(), so.GetID())))
 		return
 	}
 
