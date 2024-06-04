@@ -572,7 +572,7 @@ func initIpam() {
 		if err != nil {
 			return err
 		}
-		logger.Info("connected to ipam service", "version", version)
+		logger.Info("connected to ipam service", "version", version.Msg)
 		return nil
 	})
 
