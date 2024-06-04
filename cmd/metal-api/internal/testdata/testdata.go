@@ -184,6 +184,11 @@ var (
 				Min:  100,
 				Max:  100,
 			},
+			{
+				Type: metal.StorageConstraint,
+				Min:  1000000000000,
+				Max:  1000000000000,
+			},
 		},
 		Reservations: metal.Reservations{
 			{

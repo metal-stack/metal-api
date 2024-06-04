@@ -270,6 +270,11 @@ var (
 				Min:        1,
 				Max:        1,
 			},
+			{
+				Type: MemoryConstraint,
+				Min:  2048,
+				Max:  2048,
+			},
 		},
 	}
 	amdCPUSize = Size{
@@ -282,6 +287,11 @@ var (
 				Identifier: "AMD Ryzen*",
 				Min:        1,
 				Max:        1,
+			},
+			{
+				Type: MemoryConstraint,
+				Min:  2048,
+				Max:  2048,
 			},
 		},
 	}
@@ -636,6 +646,7 @@ func TestSizes_FromHardware(t *testing.T) {
 							Threads: 1,
 						},
 					},
+					Memory: 2048,
 				},
 			},
 			want:    &intelCPUSize,
@@ -656,6 +667,7 @@ func TestSizes_FromHardware(t *testing.T) {
 							Threads: 1,
 						},
 					},
+					Memory: 2048,
 				},
 			},
 			want:    &amdCPUSize,
@@ -686,6 +698,68 @@ func TestSizes_FromHardware(t *testing.T) {
 				},
 			},
 			want:    &miniLabSize,
+			wantErr: false,
+		},
+		{
+			name: "memory exhaustive check",
+			sz: Sizes{
+				{
+					Base: Base{
+						ID: "without core constraint",
+					},
+					Constraints: []Constraint{
+						{
+							Type: MemoryConstraint,
+							Min:  2147483648,
+							Max:  2147483648,
+						},
+					},
+				},
+				{
+					Base: Base{
+						ID: "with core constraint",
+					},
+					Constraints: []Constraint{
+						{
+							Type: MemoryConstraint,
+							Min:  2147483648,
+							Max:  2147483648,
+						},
+						{
+							Type: CoreConstraint,
+							Min:  1,
+							Max:  1,
+						},
+					},
+				},
+			},
+			args: args{
+				hardware: MachineHardware{
+					MetalCPUs: []MetalCPU{
+						{
+							Cores: 1,
+						},
+					},
+					Memory: 2147483648,
+				},
+			},
+			want: &Size{
+				Base: Base{
+					ID: "with core constraint",
+				},
+				Constraints: []Constraint{
+					{
+						Type: MemoryConstraint,
+						Min:  2147483648,
+						Max:  2147483648,
+					},
+					{
+						Type: CoreConstraint,
+						Min:  1,
+						Max:  1,
+					},
+				},
+			},
 			wantErr: false,
 		},
 	}

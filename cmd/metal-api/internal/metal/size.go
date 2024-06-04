@@ -61,6 +61,10 @@ func countDisk(disk BlockDevice) (model string, count uint64) {
 	return disk.Name, disk.Size
 }
 
+func countMemory(size uint64) (model string, count uint64) {
+	return "", size
+}
+
 // Sizes is a list of sizes.
 type Sizes []Size
 
@@ -114,9 +118,6 @@ func (c *Constraint) matches(hw MachineHardware) bool {
 // With this we ensure that hardware matches exhaustive against the constraints.
 func (hw *MachineHardware) matches(constraints []Constraint, constraintType ConstraintType) bool {
 	filtered := lo.Filter(constraints, func(c Constraint, _ int) bool { return c.Type == constraintType })
-	if len(filtered) == 0 {
-		return true
-	}
 
 	switch constraintType {
 	case StorageConstraint:
@@ -126,10 +127,9 @@ func (hw *MachineHardware) matches(constraints []Constraint, constraintType Cons
 	case CoreConstraint:
 		return exhaustiveMatch(filtered, hw.MetalCPUs, countCPU)
 	case MemoryConstraint:
-		// Noop because we do not have different Memory types
-		return true
+		return exhaustiveMatch(filtered, []uint64{hw.Memory}, countMemory)
 	default:
-		return true
+		return false
 	}
 }
 
