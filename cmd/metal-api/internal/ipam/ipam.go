@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-lib/rest"
 
 	"connectrpc.com/connect"
 	goipam "github.com/metal-stack/go-ipam"
@@ -26,6 +27,9 @@ type IPAMer interface {
 	DeletePrefix(ctx context.Context, prefix metal.Prefix) error
 	PrefixUsage(ctx context.Context, cidr string) (*metal.NetworkUsage, error)
 	PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error
+	// Required for healthcheck
+	Check(ctx context.Context) (rest.HealthResult, error)
+	ServiceName() string
 }
 
 type ipam struct {
@@ -191,4 +195,23 @@ func (i *ipam) PrefixUsage(ctx context.Context, cidr string) (*metal.NetworkUsag
 // PrefixesOverlapping returns an error if prefixes overlap.
 func (i *ipam) PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error {
 	return goipam.PrefixesOverlapping(existingPrefixes.String(), newPrefixes.String())
+}
+
+func (i *ipam) ServiceName() string {
+	return "ipam"
+}
+
+func (i *ipam) Check(ctx context.Context) (rest.HealthResult, error) {
+	resp, err := i.ip.Version(ctx, connect.NewRequest(&apiv1.VersionRequest{}))
+
+	if err != nil {
+		return rest.HealthResult{
+			Status: rest.HealthStatusUnhealthy,
+		}, err
+	}
+
+	return rest.HealthResult{
+		Status:  rest.HealthStatusHealthy,
+		Message: fmt.Sprintf("connected to ipam service version:%q", resp.Msg.Version),
+	}, nil
 }
