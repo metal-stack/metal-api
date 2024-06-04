@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.16.2
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/avast/retry-go/v4 v4.6.0
-	github.com/aws/aws-sdk-go v1.53.12
+	github.com/aws/aws-sdk-go v1.53.15
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/go-restful-openapi/v2 v2.10.2
 	github.com/emicklei/go-restful/v3 v3.12.1
@@ -20,14 +20,14 @@ require (
 	github.com/looplab/fsm v0.3.0
 	github.com/metal-stack/go-ipam v1.13.1-0.20240603135929-0fa620400397
 	github.com/metal-stack/masterdata-api v0.11.3
-	github.com/metal-stack/metal-lib v0.16.2
+	github.com/metal-stack/metal-lib v0.16.3
 	github.com/metal-stack/security v0.8.0
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/samber/lo v1.39.0
 	github.com/spf13/cobra v1.8.0
-	github.com/spf13/viper v1.18.2
+	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.31.0
 	github.com/undefinedlabs/go-mpatch v1.0.7
