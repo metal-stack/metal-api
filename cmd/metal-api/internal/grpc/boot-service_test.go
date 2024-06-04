@@ -119,7 +119,11 @@ func TestBootService_Register(t *testing.T) {
 				Uuid: tt.uuid,
 				Hardware: &v1.MachineHardware{
 					Memory: uint64(tt.memory),
-
+					Disks: []*v1.MachineBlockDevice{
+						{
+							Size: 1000000000000,
+						},
+					},
 					Cpus: []*v1.MachineCPU{
 						{
 							Model:   "Intel Xeon Silver",
