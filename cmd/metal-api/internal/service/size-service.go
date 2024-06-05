@@ -158,30 +158,6 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 
 		diskCapacity uint64
 		diskNames    []string
-
-		longestCommonPrefix = func(strs []string) string {
-			longestPrefix := ""
-
-			if len(strs) > 0 {
-				sort.Strings(strs)
-				first := strs[0]
-				last := strs[len(strs)-1]
-
-				for i := 0; i < len(first); i++ {
-					if last[i] != first[i] {
-						break
-					}
-
-					longestPrefix += string(last[i])
-				}
-
-				if len(last) != len(longestPrefix) {
-					longestPrefix += "*"
-				}
-			}
-
-			return longestPrefix
-		}
 	)
 
 	for _, gpu := range m.Hardware.MetalGPUs {
@@ -510,4 +486,34 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 	}
 
 	r.send(request, response, http.StatusOK, result)
+}
+
+// longestCommonPrefix finds the longest prefix of a slice of strings.
+func longestCommonPrefix(strs []string) string {
+	longestPrefix := ""
+
+	if len(strs) > 0 {
+		// by sorting the strings we can quite efficiently find the longest prefix
+		// we just need to compare the first and last element after the sort
+		sort.Strings(strs)
+		first := strs[0]
+		last := strs[len(strs)-1]
+
+		for i := 0; i < len(first); i++ {
+			// append as long as chars are equal, stop when different
+
+			if last[i] != first[i] {
+				break
+			}
+
+			longestPrefix += string(last[i])
+		}
+
+		// append * to pattern if not identical
+		if len(last) != len(longestPrefix) {
+			longestPrefix += "*"
+		}
+	}
+
+	return longestPrefix
 }

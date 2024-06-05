@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/google/go-cmp/cmp"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
@@ -21,8 +22,6 @@ import (
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/rethinkdb/rethinkdb-go.v6"
-
-	restful "github.com/emicklei/go-restful/v3"
 )
 
 func TestGetSizes(t *testing.T) {
@@ -380,5 +379,41 @@ func TestListSizeReservations(t *testing.T) {
 
 	if diff := cmp.Diff(result, want); diff != "" {
 		t.Errorf("diff (-want +got):\n%s", diff)
+	}
+}
+
+func Test_longestCommonPrefix(t *testing.T) {
+	tests := []struct {
+		name string
+		strs []string
+		want string
+	}{
+		{
+			name: "no strings",
+			strs: nil,
+			want: "",
+		},
+		{
+			name: "single string",
+			strs: []string{"foo"},
+			want: "foo",
+		},
+		{
+			name: "two same strings",
+			strs: []string{"foo", "foo"},
+			want: "foo",
+		},
+		{
+			name: "one string is longer",
+			strs: []string{"foo", "foobar", "foo"},
+			want: "foo*",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := longestCommonPrefix(tt.strs); got != tt.want {
+				t.Errorf("longestCommonPrefix() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
