@@ -408,6 +408,11 @@ func Test_longestCommonPrefix(t *testing.T) {
 			strs: []string{"foo", "foobar", "foo"},
 			want: "foo*",
 		},
+		{
+			name: "no common prefix",
+			strs: []string{"foo", "bar"},
+			want: "*",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
