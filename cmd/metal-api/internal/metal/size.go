@@ -20,10 +20,11 @@ type Size struct {
 
 // Reservation defines a reservation of a size for machine allocations
 type Reservation struct {
-	Amount       int      `rethinkdb:"amount" json:"amount"`
-	Description  string   `rethinkdb:"description" json:"description"`
-	ProjectID    string   `rethinkdb:"projectid" json:"projectid"`
-	PartitionIDs []string `rethinkdb:"partitionids" json:"partitionids"`
+	Amount       int               `rethinkdb:"amount" json:"amount"`
+	Description  string            `rethinkdb:"description" json:"description"`
+	ProjectID    string            `rethinkdb:"projectid" json:"projectid"`
+	PartitionIDs []string          `rethinkdb:"partitionids" json:"partitionids"`
+	Labels       map[string]string `rethinkdb:"labels" json:"labels"`
 }
 
 type Reservations []Reservation
