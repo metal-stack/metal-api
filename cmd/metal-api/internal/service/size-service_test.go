@@ -345,12 +345,18 @@ func TestUpdateSize(t *testing.T) {
 func TestListSizeReservations(t *testing.T) {
 	tests := []struct {
 		name          string
+		req           *v1.SizeReservationListRequest
 		dbMockFn      func(mock *rethinkdb.Mock)
 		projectMockFn func(mock *testifymock.Mock)
 		want          []*v1.SizeReservationResponse
 	}{
 		{
-			name: "size",
+			name: "list reservations",
+			req: &v1.SizeReservationListRequest{
+				SizeID:    pointer.Pointer("1"),
+				Tenant:    pointer.Pointer("t1"),
+				ProjectID: pointer.Pointer("p1"),
+			},
 			dbMockFn: func(mock *rethinkdb.Mock) {
 				mock.On(rethinkdb.DB("mockdb").Table("size").Get("1")).Return(&metal.Size{
 					Base: metal.Base{
@@ -403,12 +409,7 @@ func TestListSizeReservations(t *testing.T) {
 				projectMock = mdmv1mock.NewProjectServiceClient(t)
 				m           = mdm.NewMock(projectMock, nil, nil, nil)
 				ds, dbMock  = datastore.InitMockDB(t)
-				body        = &v1.SizeReservationListRequest{
-					SizeID:    pointer.Pointer("1"),
-					Tenant:    pointer.Pointer("t1"),
-					ProjectID: pointer.Pointer("p1"),
-				}
-				ws = NewSize(slog.Default(), ds, m)
+				ws          = NewSize(slog.Default(), ds, m)
 			)
 
 			if tt.dbMockFn != nil {
@@ -418,7 +419,7 @@ func TestListSizeReservations(t *testing.T) {
 				tt.projectMockFn(&projectMock.Mock)
 			}
 
-			code, got := genericWebRequest[[]*v1.SizeReservationResponse](t, ws, testViewUser, body, "POST", "/v1/size/reservations")
+			code, got := genericWebRequest[[]*v1.SizeReservationResponse](t, ws, testViewUser, tt.req, "POST", "/v1/size/reservations")
 			assert.Equal(t, http.StatusOK, code)
 
 			if diff := cmp.Diff(tt.want, got); diff != "" {
