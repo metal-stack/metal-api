@@ -4637,6 +4637,13 @@
           "description": "a description for this reservation",
           "type": "string"
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels associated with this size reservation.",
+          "type": "object"
+        },
         "partitionids": {
           "description": "the partitions in which this size reservation is considered, the amount is valid for every partition",
           "items": {
@@ -4651,12 +4658,20 @@
       },
       "required": [
         "amount",
+        "labels",
         "partitionids",
         "projectid"
       ]
     },
     "v1.SizeReservationResponse": {
       "properties": {
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels associated with this size reservation.",
+          "type": "object"
+        },
         "partitionid": {
           "description": "the partition id of this size reservation",
           "type": "string"
@@ -4694,6 +4709,7 @@
         }
       },
       "required": [
+        "labels",
         "partitionid",
         "projectallocations",
         "projectid",

@@ -257,6 +257,7 @@ func TestCreateSize(t *testing.T) {
 				ProjectID:    "a",
 				PartitionIDs: []string{testdata.Partition1.ID},
 				Description:  "test",
+				Labels:       map[string]string{"a": "b"},
 			},
 		},
 	}

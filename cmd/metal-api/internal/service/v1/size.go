@@ -12,10 +12,11 @@ type SizeConstraint struct {
 }
 
 type SizeReservation struct {
-	Amount       int      `json:"amount" description:"the amount of reserved machine allocations for this size"`
-	Description  string   `json:"description,omitempty" description:"a description for this reservation"`
-	ProjectID    string   `json:"projectid" description:"the project for which this size reservation is considered"`
-	PartitionIDs []string `json:"partitionids" description:"the partitions in which this size reservation is considered, the amount is valid for every partition"`
+	Amount       int               `json:"amount" description:"the amount of reserved machine allocations for this size"`
+	Description  string            `json:"description,omitempty" description:"a description for this reservation"`
+	ProjectID    string            `json:"projectid" description:"the project for which this size reservation is considered"`
+	PartitionIDs []string          `json:"partitionids" description:"the partitions in which this size reservation is considered, the amount is valid for every partition"`
+	Labels       map[string]string `json:"labels" description:"free labels associated with this size reservation."`
 }
 
 type SizeCreateRequest struct {
@@ -41,14 +42,15 @@ type SizeResponse struct {
 }
 
 type SizeReservationResponse struct {
-	SizeID             string `json:"sizeid" description:"the size id of this size reservation"`
-	PartitionID        string `json:"partitionid" description:"the partition id of this size reservation"`
-	Tenant             string `json:"tenant" description:"the tenant of this size reservation"`
-	ProjectID          string `json:"projectid" description:"the project id of this size reservation"`
-	ProjectName        string `json:"projectname" description:"the project name of this size reservation"`
-	Reservations       int    `json:"reservations" description:"the amount of reservations of this size reservation"`
-	UsedReservations   int    `json:"usedreservations" description:"the used amount of reservations of this size reservation"`
-	ProjectAllocations int    `json:"projectallocations" description:"the amount of allocations of this project referenced by this size reservation"`
+	SizeID             string            `json:"sizeid" description:"the size id of this size reservation"`
+	PartitionID        string            `json:"partitionid" description:"the partition id of this size reservation"`
+	Tenant             string            `json:"tenant" description:"the tenant of this size reservation"`
+	ProjectID          string            `json:"projectid" description:"the project id of this size reservation"`
+	ProjectName        string            `json:"projectname" description:"the project name of this size reservation"`
+	Reservations       int               `json:"reservations" description:"the amount of reservations of this size reservation"`
+	UsedReservations   int               `json:"usedreservations" description:"the used amount of reservations of this size reservation"`
+	ProjectAllocations int               `json:"projectallocations" description:"the amount of allocations of this project referenced by this size reservation"`
+	Labels             map[string]string `json:"labels" description:"free labels associated with this size reservation."`
 }
 
 type SizeSuggestRequest struct {
@@ -91,6 +93,7 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 			Description:  r.Description,
 			ProjectID:    r.ProjectID,
 			PartitionIDs: r.PartitionIDs,
+			Labels:       r.Labels,
 		}
 		reservations = append(reservations, reservation)
 	}
