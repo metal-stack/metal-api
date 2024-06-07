@@ -18,9 +18,11 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/assert"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -341,46 +343,90 @@ func TestUpdateSize(t *testing.T) {
 }
 
 func TestListSizeReservations(t *testing.T) {
-	ds, mock := datastore.InitMockDB(t)
-	testdata.InitMockDBData(mock)
-	log := slog.Default()
-
-	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
-		{Meta: &mdmv1.Meta{Id: "p1"}},
-	}}, nil)
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil)
-
-	sizeservice := NewSize(log, ds, mdc)
-	container := restful.NewContainer().Add(sizeservice)
-
-	req := httptest.NewRequest("POST", "/v1/size/reservations", nil)
-	req.Header.Add("Content-Type", "application/json")
-	container = injectAdmin(log, container, req)
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []*v1.SizeReservationResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
-	require.NoError(t, err)
-
-	want := []*v1.SizeReservationResponse{
+	tests := []struct {
+		name          string
+		dbMockFn      func(mock *rethinkdb.Mock)
+		projectMockFn func(mock *testifymock.Mock)
+		want          []*v1.SizeReservationResponse
+	}{
 		{
-			SizeID:             testdata.Sz1.ID,
-			PartitionID:        "1",
-			ProjectID:          "p1",
-			Reservations:       3,
-			UsedReservations:   1,
-			ProjectAllocations: 1,
+			name: "size",
+			dbMockFn: func(mock *rethinkdb.Mock) {
+				mock.On(rethinkdb.DB("mockdb").Table("size").Get("1")).Return(&metal.Size{
+					Base: metal.Base{
+						ID: "1",
+					},
+					Reservations: metal.Reservations{
+						{
+							Amount:       3,
+							PartitionIDs: []string{"1"},
+							ProjectID:    "p1",
+						},
+					},
+				}, nil)
+				mock.On(rethinkdb.DB("mockdb").Table("machine")).Return(metal.Machines{
+					{
+						Base: metal.Base{
+							ID: "1",
+						},
+						SizeID:      "1",
+						PartitionID: "1",
+						Allocation: &metal.MachineAllocation{
+							Project: "p1",
+						},
+					},
+				}, nil)
+			},
+			projectMockFn: func(mock *testifymock.Mock) {
+				mock.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{
+					Id:       wrapperspb.String("p1"),
+					TenantId: wrapperspb.String("t1"),
+				}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+					{Meta: &mdmv1.Meta{Id: "p1"}},
+				}}, nil)
+			},
+			want: []*v1.SizeReservationResponse{
+				{
+					SizeID:             "1",
+					PartitionID:        "1",
+					ProjectID:          "p1",
+					Reservations:       3,
+					UsedReservations:   1,
+					ProjectAllocations: 1,
+				},
+			},
 		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				projectMock = mdmv1mock.NewProjectServiceClient(t)
+				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				ds, dbMock  = datastore.InitMockDB(t)
+				body        = &v1.SizeReservationListRequest{
+					SizeID:    pointer.Pointer("1"),
+					Tenant:    pointer.Pointer("t1"),
+					ProjectID: pointer.Pointer("p1"),
+				}
+				ws = NewSize(slog.Default(), ds, m)
+			)
 
-	if diff := cmp.Diff(result, want); diff != "" {
-		t.Errorf("diff (-want +got):\n%s", diff)
+			if tt.dbMockFn != nil {
+				tt.dbMockFn(dbMock)
+			}
+			if tt.projectMockFn != nil {
+				tt.projectMockFn(&projectMock.Mock)
+			}
+
+			code, got := genericWebRequest[[]*v1.SizeReservationResponse](t, ws, testViewUser, body, "POST", "/v1/size/reservations")
+			assert.Equal(t, http.StatusOK, code)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
 	}
+
 }
 
 func Test_longestCommonPrefix(t *testing.T) {

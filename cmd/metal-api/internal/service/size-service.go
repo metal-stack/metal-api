@@ -13,6 +13,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -70,7 +71,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		Doc("get all size reservations").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Metadata(auditing.Exclude, true).
-		Reads(v1.EmptyBody{}).
+		Reads(v1.SizeReservationListRequest{}).
 		Writes([]v1.SizeReservationResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -439,13 +440,40 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 }
 
 func (r *sizeResource) listSizeReservations(request *restful.Request, response *restful.Response) {
-	ss, err := r.ds.ListSizes()
+	var requestPayload v1.SizeReservationListRequest
+	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.sendError(request, response, defaultError(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	projects, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
+	var ss metal.Sizes
+	if requestPayload.SizeID == nil {
+		ss, err = r.ds.ListSizes()
+		if err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+	} else {
+		s, err := r.ds.FindSize(*requestPayload.SizeID)
+		if err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+
+		ss = append(ss, *s)
+	}
+
+	pfr := &mdmv1.ProjectFindRequest{}
+
+	if requestPayload.ProjectID != nil {
+		pfr.Id = wrapperspb.String(*requestPayload.ProjectID)
+	}
+	if requestPayload.Tenant != nil {
+		pfr.TenantId = wrapperspb.String(*requestPayload.Tenant)
+	}
+
+	projects, err := r.mdc.Project().Find(request.Request.Context(), pfr)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return

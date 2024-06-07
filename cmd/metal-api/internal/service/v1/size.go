@@ -16,7 +16,7 @@ type SizeReservation struct {
 	Description  string            `json:"description,omitempty" description:"a description for this reservation"`
 	ProjectID    string            `json:"projectid" description:"the project for which this size reservation is considered"`
 	PartitionIDs []string          `json:"partitionids" description:"the partitions in which this size reservation is considered, the amount is valid for every partition"`
-	Labels       map[string]string `json:"labels" description:"free labels associated with this size reservation."`
+	Labels       map[string]string `json:"labels,omitempty" description:"free labels associated with this size reservation."`
 }
 
 type SizeCreateRequest struct {
@@ -50,7 +50,13 @@ type SizeReservationResponse struct {
 	Reservations       int               `json:"reservations" description:"the amount of reservations of this size reservation"`
 	UsedReservations   int               `json:"usedreservations" description:"the used amount of reservations of this size reservation"`
 	ProjectAllocations int               `json:"projectallocations" description:"the amount of allocations of this project referenced by this size reservation"`
-	Labels             map[string]string `json:"labels" description:"free labels associated with this size reservation."`
+	Labels             map[string]string `json:"labels,omitempty" description:"free labels associated with this size reservation."`
+}
+
+type SizeReservationListRequest struct {
+	SizeID    *string `json:"sizeid" description:"the size id of this size reservation"`
+	Tenant    *string `json:"tenant" description:"the tenant of this size reservation"`
+	ProjectID *string `json:"projectid" description:"the project id of this size reservation"`
 }
 
 type SizeSuggestRequest struct {
