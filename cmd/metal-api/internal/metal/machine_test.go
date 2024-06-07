@@ -24,8 +24,14 @@ func TestMachine_HasMAC(t *testing.T) {
 				SizeID:      "1",
 				Allocation:  nil,
 				Hardware: MachineHardware{
-					Memory:   100,
-					CPUCores: 1,
+					Memory: 100,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
 					Nics: Nics{
 						Nic{
 							MacAddress: "11:11:11:11:11:11",

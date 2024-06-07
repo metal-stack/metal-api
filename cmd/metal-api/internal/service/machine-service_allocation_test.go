@@ -256,8 +256,14 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 			Date:    "1970",
 		},
 		Hardware: &grpcv1.MachineHardware{
-			Memory:   4,
-			CpuCores: 4,
+			Memory: 4,
+			Cpus: []*grpcv1.MachineCPU{
+				{
+					Model:   "Intel Xeon Silver",
+					Cores:   4,
+					Threads: 4,
+				},
+			},
 			Nics: []*grpcv1.MachineNic{
 				{
 					Name: "lan0",

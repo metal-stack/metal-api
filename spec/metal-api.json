@@ -132,10 +132,6 @@
         "fru_product_serial": {
           "type": "string"
         },
-        "hardware_cpu_cores": {
-          "format": "int64",
-          "type": "integer"
-        },
         "hardware_memory": {
           "format": "int64",
           "type": "integer"
@@ -1205,10 +1201,6 @@
         },
         "fru_product_serial": {
           "type": "string"
-        },
-        "hardware_cpu_cores": {
-          "format": "int64",
-          "type": "integer"
         },
         "hardware_memory": {
           "format": "int64",
@@ -2406,10 +2398,6 @@
         "fru_product_serial": {
           "type": "string"
         },
-        "hardware_cpu_cores": {
-          "format": "int64",
-          "type": "integer"
-        },
         "hardware_memory": {
           "format": "int64",
           "type": "integer"
@@ -2974,10 +2962,6 @@
         },
         "fru_product_serial": {
           "type": "string"
-        },
-        "hardware_cpu_cores": {
-          "format": "int64",
-          "type": "integer"
         },
         "hardware_memory": {
           "format": "int64",
@@ -9502,6 +9486,12 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/v1.SwitchResponse"
+            }
+          },
+          "400": {
+            "description": "Bad input data",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           },
           "409": {

@@ -61,7 +61,6 @@ message BootServiceWaitResponse {}
 
 message MachineHardware {
   uint64 memory = 1;
-  uint32 cpu_cores = 2;
   repeated MachineBlockDevice disks = 3;
   repeated MachineNic nics = 4;
   repeated MachineCPU cpus = 5;

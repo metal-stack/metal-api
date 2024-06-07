@@ -169,11 +169,22 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 			Identifier: model,
 		})
 	}
+
+	var cores uint64
+	for _, cpu := range m.Hardware.MetalCPUs {
+		cores += uint64(cpu.Cores)
+	}
+
+	var diskCapacity uint64
+	for _, d := range m.Hardware.Disks {
+		diskCapacity += d.Size
+	}
+
 	constraints := []v1.SizeConstraint{
 		{
 			Type: metal.CoreConstraint,
-			Min:  uint64(m.Hardware.CPUCores),
-			Max:  uint64(m.Hardware.CPUCores),
+			Min:  cores,
+			Max:  cores,
 		},
 		{
 			Type: metal.MemoryConstraint,
@@ -182,8 +193,8 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		},
 		{
 			Type: metal.StorageConstraint,
-			Min:  m.Hardware.DiskCapacity(),
-			Max:  m.Hardware.DiskCapacity(),
+			Min:  diskCapacity,
+			Max:  diskCapacity,
 		},
 	}
 
@@ -295,7 +306,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 	}
 
 	if so := s.Overlaps(&ss); so != nil {
-		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size %q overlaps with %q", s.GetID(), so.GetID())))
 		return
 	}
 
@@ -403,7 +414,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 	}
 
 	if so := newSize.Overlaps(&ss); so != nil {
-		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size %q overlaps with %q", newSize.GetID(), so.GetID())))
 		return
 	}
 

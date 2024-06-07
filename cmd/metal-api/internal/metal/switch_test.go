@@ -71,9 +71,15 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 					SizeID:      "1",
 					Allocation:  nil,
 					Hardware: MachineHardware{
-						Memory:   100,
-						CPUCores: 1,
-						Nics:     testNics,
+						Memory: 100,
+						MetalCPUs: []MetalCPU{
+							{
+								Model:   "Intel Xeon Silver",
+								Cores:   1,
+								Threads: 1,
+							},
+						},
+						Nics: testNics,
 						Disks: []BlockDevice{
 							{
 								Name: "blockdeviceName",
