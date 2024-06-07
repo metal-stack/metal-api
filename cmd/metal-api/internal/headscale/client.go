@@ -111,19 +111,12 @@ func (h *HeadscaleClient) CreatePreAuthKey(ctx context.Context, user string, exp
 	return resp.PreAuthKey.Key, nil
 }
 
-type connectedMap map[string]bool
-
-func (h *HeadscaleClient) MachinesConnected(ctx context.Context) (connectedMap, error) {
+func (h *HeadscaleClient) MachinesConnected(ctx context.Context) ([]*headscalev1.Machine, error) {
 	resp, err := h.client.ListMachines(ctx, &headscalev1.ListMachinesRequest{})
 	if err != nil || resp == nil {
 		return nil, fmt.Errorf("failed to list machines: %w", err)
 	}
-	result := connectedMap{}
-	for _, m := range resp.Machines {
-		result[m.Name] = m.Online
-	}
-
-	return result, nil
+	return resp.Machines, nil
 }
 
 // DeleteMachine removes the node entry from headscale DB

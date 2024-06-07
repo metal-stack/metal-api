@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/Masterminds/semver/v3"
@@ -23,9 +24,11 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/auditing"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/rest"
 
 	nsq2 "github.com/nsqio/go-nsq"
@@ -888,7 +891,8 @@ func evaluateVPNConnected() error {
 		return err
 	}
 
-	ms, err := ds.ListMachines()
+	ms := metal.Machines{}
+	err = ds.SearchMachines(&datastore.MachineSearchQuery{AllocationRole: &metal.RoleFirewall}, &ms)
 	if err != nil {
 		return err
 	}
@@ -896,7 +900,7 @@ func evaluateVPNConnected() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	connectedMap, err := headscaleClient.MachinesConnected(ctx)
+	headscaleMachines, err := headscaleClient.MachinesConnected(ctx)
 	if err != nil {
 		return err
 	}
@@ -907,8 +911,25 @@ func evaluateVPNConnected() error {
 		if m.Allocation == nil || m.Allocation.VPN == nil {
 			continue
 		}
-		connected := connectedMap[m.ID]
+
+		connected := slices.ContainsFunc(headscaleMachines, func(headscaleMachine *headscalev1.Machine) bool {
+			if headscaleMachine.Name != m.ID {
+				return false
+			}
+
+			if pointer.SafeDeref(headscaleMachine.User).Name != m.Allocation.Project {
+				return false
+			}
+
+			if !headscaleMachine.Online {
+				return false
+			}
+
+			return true
+		})
+
 		if m.Allocation.VPN.Connected == connected {
+			logger.Info("not updating vpn because already up-to-date", "machine", m.ID, "connected", connected)
 			continue
 		}
 
@@ -920,8 +941,10 @@ func evaluateVPNConnected() error {
 			logger.Error("unable to update vpn connected state, continue anyway", "machine", m.ID, "error", err)
 			continue
 		}
+
 		logger.Info("updated vpn connected state", "machine", m.ID, "connected", connected)
 	}
+
 	return errors.Join(errs...)
 }
 
