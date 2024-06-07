@@ -267,6 +267,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 			Description:  r.Description,
 			ProjectID:    r.ProjectID,
 			PartitionIDs: r.PartitionIDs,
+			Labels:       r.Labels,
 		})
 	}
 
@@ -384,6 +385,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 				Description:  r.Description,
 				ProjectID:    r.ProjectID,
 				PartitionIDs: r.PartitionIDs,
+				Labels:       r.Labels,
 			})
 		}
 		newSize.Reservations = reservations
@@ -471,6 +473,7 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 					Reservations:       reservation.Amount,
 					UsedReservations:   min(reservation.Amount, allocations),
 					ProjectAllocations: allocations,
+					Labels:             reservation.Labels,
 				})
 			}
 		}
