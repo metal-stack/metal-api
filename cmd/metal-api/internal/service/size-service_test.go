@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/google/go-cmp/cmp"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
@@ -20,8 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	restful "github.com/emicklei/go-restful/v3"
+	"gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 func TestGetSizes(t *testing.T) {
@@ -77,50 +77,97 @@ func TestGetSize(t *testing.T) {
 }
 
 func TestSuggest(t *testing.T) {
-	ds, mock := datastore.InitMockDB(t)
-	testdata.InitMockDBData(mock)
-
-	createRequest := v1.SizeSuggestRequest{
-		MachineID: "1",
+	tests := []struct {
+		name   string
+		mockFn func(mock *rethinkdb.Mock)
+		want   []metal.Constraint
+	}{
+		{
+			name: "size",
+			mockFn: func(mock *rethinkdb.Mock) {
+				mock.On(rethinkdb.DB("mockdb").Table("machine").Get("1")).Return(&metal.Machine{
+					Hardware: metal.MachineHardware{
+						MetalCPUs: []metal.MetalCPU{
+							{
+								Model:   "Intel Xeon Silver",
+								Cores:   8,
+								Threads: 8,
+							},
+						},
+						MetalGPUs: []metal.MetalGPU{
+							{
+								Vendor: "NVIDIA Corporation",
+								Model:  "AD102GL [RTX 6000 Ada Generation]",
+							},
+						},
+						Memory: 1 << 30,
+						Disks: []metal.BlockDevice{
+							{
+								Size: 1000,
+								Name: "/dev/nvme0n1",
+							},
+							{
+								Size: 1000,
+								Name: "/dev/nvme1n1",
+							},
+							{
+								Size: 1000,
+								Name: "/dev/nvme2n1",
+							},
+						},
+					},
+				}, nil)
+			},
+			want: []metal.Constraint{
+				{
+					Type:       metal.CoreConstraint,
+					Min:        8,
+					Max:        8,
+					Identifier: "Intel Xeon Silver",
+				},
+				{
+					Type: metal.MemoryConstraint,
+					Min:  1 << 30,
+					Max:  1 << 30,
+				},
+				{
+					Type:       metal.StorageConstraint,
+					Min:        3000,
+					Max:        3000,
+					Identifier: "/dev/nvme*",
+				},
+				{
+					Type:       metal.GPUConstraint,
+					Min:        1,
+					Max:        1,
+					Identifier: "AD102GL [RTX 6000 Ada Generation]",
+				},
+			},
+		},
 	}
-	js, err := json.Marshal(createRequest)
-	require.NoError(t, err)
-	body := bytes.NewBuffer(js)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 
-	sizeservice := NewSize(slog.Default(), ds, nil)
-	container := restful.NewContainer().Add(sizeservice)
-	req := httptest.NewRequest("POST", "/v1/size/suggest", body)
-	req.Header.Add("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
+			var (
+				ds, mock = datastore.InitMockDB(t)
+				body     = &v1.SizeSuggestRequest{
+					MachineID: "1",
+				}
+				ws = NewSize(slog.Default(), ds, nil)
+			)
 
-	resp := w.Result()
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []v1.SizeConstraint
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	require.NoError(t, err)
+			if tt.mockFn != nil {
+				tt.mockFn(mock)
+			}
 
-	require.Len(t, result, 3)
+			code, got := genericWebRequest[[]metal.Constraint](t, ws, testViewUser, body, "POST", "/v1/size/suggest")
+			assert.Equal(t, http.StatusOK, code)
 
-	assert.Contains(t, result, v1.SizeConstraint{
-		Type: metal.MemoryConstraint,
-		Min:  1 << 30,
-		Max:  1 << 30,
-	})
-
-	assert.Contains(t, result, v1.SizeConstraint{
-		Type: metal.CoreConstraint,
-		Min:  8,
-		Max:  8,
-	})
-
-	assert.Contains(t, result, v1.SizeConstraint{
-		Type: metal.StorageConstraint,
-		Min:  3000,
-		Max:  3000,
-	})
-
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
 
 func TestGetSizeNotFound(t *testing.T) {
@@ -333,5 +380,46 @@ func TestListSizeReservations(t *testing.T) {
 
 	if diff := cmp.Diff(result, want); diff != "" {
 		t.Errorf("diff (-want +got):\n%s", diff)
+	}
+}
+
+func Test_longestCommonPrefix(t *testing.T) {
+	tests := []struct {
+		name string
+		strs []string
+		want string
+	}{
+		{
+			name: "no strings",
+			strs: nil,
+			want: "",
+		},
+		{
+			name: "single string",
+			strs: []string{"foo"},
+			want: "foo",
+		},
+		{
+			name: "two same strings",
+			strs: []string{"foo", "foo"},
+			want: "foo",
+		},
+		{
+			name: "one string is longer",
+			strs: []string{"foo", "foobar", "foo"},
+			want: "foo*",
+		},
+		{
+			name: "no common prefix",
+			strs: []string{"foo", "bar"},
+			want: "*",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := longestCommonPrefix(tt.strs); got != tt.want {
+				t.Errorf("longestCommonPrefix() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
