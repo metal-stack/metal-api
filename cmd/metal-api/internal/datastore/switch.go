@@ -177,9 +177,18 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 	if err != nil {
 		return err
 	}
+	dictionary, err := s1.MapPortNames(s2.OS.Vendor)
+	if err != nil {
+		return fmt.Errorf("could not create port mapping %w", err)
+	}
+
 	for _, con := range s1.MachineConnections[m.ID] {
-		if con2, has := byNicName[con.Nic.Name]; has {
-			if !con.Nic.IsNameEquivalentTo(con2.Nic.Name) {
+		name, ok := dictionary[con.Nic.Name]
+		if !ok {
+			return fmt.Errorf("could not translate port name %s to equivalent port name of switch os %s", con.Nic.Name, s1.OS.Vendor)
+		}
+		if con2, has := byNicName[name]; has {
+			if name != con2.Nic.Name {
 				return connectionMapError
 			}
 		} else {

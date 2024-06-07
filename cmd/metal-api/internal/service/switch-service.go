@@ -643,7 +643,7 @@ func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
 // copies vrf configuration and returns the new nics for the replacement switch
 func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 	newNics := metal.Nics{}
-	newNicMap, err := translateNicNames(newSwitch, twin.OS.Vendor)
+	newNicMap, err := newSwitch.TranslateNicMap(twin.OS.Vendor)
 	if err != nil {
 		return nil, err
 	}
@@ -676,7 +676,7 @@ func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 
 // adoptMachineConnections copies machine connections from twin and maps mac addresses based on the nic name
 func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap, error) {
-	newNicMap, err := translateNicNames(newSwitch, twin.OS.Vendor)
+	newNicMap, err := newSwitch.TranslateNicMap(twin.OS.Vendor)
 	if err != nil {
 		return nil, err
 	}
@@ -1002,38 +1002,4 @@ func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore) (metal.PartitionM
 	}
 
 	return p.ByID(), ips.ByProjectID(), nil
-}
-
-func translateNicNames(sw *metal.Switch, targetOS metal.SwitchOSVendor) (metal.NicMap, error) {
-	oldNicMap := sw.Nics.ByName()
-	newNicMap := make(metal.NicMap)
-
-	if sw.OS.Vendor == targetOS {
-		return oldNicMap, nil
-	}
-
-	ports := make([]string, 0)
-	for name := range oldNicMap {
-		ports = append(ports, name)
-	}
-
-	lines, err := metal.GetLinesFromPortNames(ports, sw.OS.Vendor)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, p := range ports {
-		targetPort, err := metal.MapPortName(p, sw.OS.Vendor, targetOS, lines)
-		if err != nil {
-			return nil, err
-		}
-
-		nic, ok := oldNicMap[p]
-		if !ok {
-			return nil, fmt.Errorf("an unknown error occured during port name translation")
-		}
-		newNicMap[targetPort] = nic
-	}
-
-	return newNicMap, nil
 }

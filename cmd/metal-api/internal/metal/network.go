@@ -158,28 +158,6 @@ func (n *Nic) GetIdentifier() string {
 	return string(n.MacAddress)
 }
 
-func (n *Nic) IsNameEquivalentTo(port string) bool {
-	if n.Name == port {
-		return true
-	}
-	os1, os2 := SwitchOSVendorSonic, SwitchOSVendorSonic
-	if strings.Contains(n.Name, "swp") {
-		os1 = SwitchOSVendorCumulus
-	}
-	if strings.Contains(port, "swp") {
-		os2 = SwitchOSVendorCumulus
-	}
-	line1, err := portNameToLine(n.Name, os1)
-	if err != nil {
-		return false
-	}
-	line2, err := portNameToLine(port, os2)
-	if err != nil {
-		return false
-	}
-	return line1 == line2
-}
-
 // Nics is a list of nics.
 type Nics []Nic
 
