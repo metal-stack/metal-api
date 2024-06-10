@@ -888,41 +888,7 @@ func evaluateVPNConnected() error {
 		return err
 	}
 
-	ms, err := ds.ListMachines()
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
-
-	connectedMap, err := headscaleClient.MachinesConnected(ctx)
-	if err != nil {
-		return err
-	}
-
-	var errs []error
-	for _, m := range ms {
-		m := m
-		if m.Allocation == nil || m.Allocation.VPN == nil {
-			continue
-		}
-		connected := connectedMap[m.ID]
-		if m.Allocation.VPN.Connected == connected {
-			continue
-		}
-
-		old := m
-		m.Allocation.VPN.Connected = connected
-		err := ds.UpdateMachine(&old, &m)
-		if err != nil {
-			errs = append(errs, err)
-			logger.Error("unable to update vpn connected state, continue anyway", "machine", m.ID, "error", err)
-			continue
-		}
-		logger.Info("updated vpn connected state", "machine", m.ID, "connected", connected)
-	}
-	return errors.Join(errs...)
+	return service.EvaluateVPNConnected(logger, ds, headscaleClient)
 }
 
 // might return (nil, nil) if auditing is disabled!
