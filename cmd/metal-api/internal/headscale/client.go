@@ -116,6 +116,7 @@ func (h *HeadscaleClient) MachinesConnected(ctx context.Context) ([]*headscalev1
 	if err != nil || resp == nil {
 		return nil, fmt.Errorf("failed to list machines: %w", err)
 	}
+
 	return resp.Machines, nil
 }
 
