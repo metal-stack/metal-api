@@ -131,7 +131,7 @@ func EvaluateVPNConnected(log *slog.Logger, ds *datastore.RethinkStore, lister h
 			continue
 		}
 
-		connected := slices.ContainsFunc(headscaleMachines, func(hm *headscalev1.Machine) bool {
+		index := slices.IndexFunc(headscaleMachines, func(hm *headscalev1.Machine) bool {
 			if hm.Name != m.ID {
 				return false
 			}
@@ -140,12 +140,14 @@ func EvaluateVPNConnected(log *slog.Logger, ds *datastore.RethinkStore, lister h
 				return false
 			}
 
-			if !hm.Online {
-				return false
-			}
-
 			return true
 		})
+
+		if index < 0 {
+			continue
+		}
+
+		connected := headscaleMachines[index].Online
 
 		if m.Allocation.VPN.Connected == connected {
 			log.Info("not updating vpn because already up-to-date", "machine", m.ID, "connected", connected)
