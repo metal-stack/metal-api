@@ -97,6 +97,8 @@ func Test_EvaluateVPNConnected(t *testing.T) {
 			if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
 				t.Errorf("error diff (-want +got):\n%s", diff)
 			}
+
+			mock.AssertExpectations(t)
 		})
 	}
 }
