@@ -891,8 +891,7 @@ func evaluateVPNConnected() error {
 		return err
 	}
 
-	ms := metal.Machines{}
-	err = ds.SearchMachines(&datastore.MachineSearchQuery{AllocationRole: &metal.RoleFirewall}, &ms)
+	ms, err := ds.ListMachines()
 	if err != nil {
 		return err
 	}
