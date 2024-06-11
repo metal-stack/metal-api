@@ -1,18 +1,23 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 
 	"github.com/emicklei/go-restful/v3"
 
+	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 type vpnResource struct {
@@ -99,4 +104,72 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	}
 
 	r.send(request, response, http.StatusOK, authKeyResp)
+}
+
+type headscaleMachineLister interface {
+	MachinesConnected(ctx context.Context) ([]*headscalev1.Machine, error)
+}
+
+func EvaluateVPNConnected(log *slog.Logger, ds *datastore.RethinkStore, lister headscaleMachineLister) error {
+	ms, err := ds.ListMachines()
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	headscaleMachines, err := lister.MachinesConnected(ctx)
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+	for _, m := range ms {
+		m := m
+		if m.Allocation == nil || m.Allocation.VPN == nil {
+			continue
+		}
+
+		index := slices.IndexFunc(headscaleMachines, func(hm *headscalev1.Machine) bool {
+			if hm.Name != m.ID {
+				return false
+			}
+
+			if pointer.SafeDeref(hm.User).Name != m.Allocation.Project {
+				return false
+			}
+
+			return true
+		})
+
+		if index < 0 {
+			continue
+		}
+
+		connected := headscaleMachines[index].Online
+
+		if m.Allocation.VPN.Connected == connected {
+			log.Info("not updating vpn because already up-to-date", "machine", m.ID, "connected", connected)
+			continue
+		}
+
+		old := m
+		m.Allocation.VPN.Connected = connected
+
+		err := ds.UpdateMachine(&old, &m)
+		if err != nil {
+			errs = append(errs, err)
+			log.Error("unable to update vpn connected state, continue anyway", "machine", m.ID, "error", err)
+			continue
+		}
+
+		log.Info("updated vpn connected state", "machine", m.ID, "connected", connected)
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors occurred when evaluating machine vpn connections")
+	}
+
+	return nil
 }
