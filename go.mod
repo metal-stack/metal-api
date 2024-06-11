@@ -18,7 +18,7 @@ require (
 	github.com/juanfont/headscale v0.22.3
 	github.com/klauspost/connect-compress/v2 v2.0.0
 	github.com/looplab/fsm v0.3.0
-	github.com/metal-stack/go-ipam v1.13.1-0.20240603135929-0fa620400397
+	github.com/metal-stack/go-ipam v1.14.0
 	github.com/metal-stack/masterdata-api v0.11.3
 	github.com/metal-stack/metal-lib v0.16.3
 	github.com/metal-stack/security v0.8.0
