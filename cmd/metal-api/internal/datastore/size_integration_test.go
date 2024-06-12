@@ -155,7 +155,9 @@ func TestRethinkStore_SearchSizes(t *testing.T) {
 		{
 			name: "search reservation project",
 			q: &SizeSearchQuery{
-				ReservationsProject: pointer.Pointer("2"),
+				Reservation: Reservation{
+					Project: pointer.Pointer("2"),
+				},
 			},
 			mock: []*metal.Size{
 				{Base: metal.Base{ID: "1"}, Reservations: metal.Reservations{{ProjectID: "1"}}},
@@ -170,7 +172,9 @@ func TestRethinkStore_SearchSizes(t *testing.T) {
 		{
 			name: "search reservation partition",
 			q: &SizeSearchQuery{
-				ReservationsPartition: pointer.Pointer("p1"),
+				Reservation: Reservation{
+					Partition: pointer.Pointer("p1"),
+				},
 			},
 			mock: []*metal.Size{
 				{Base: metal.Base{ID: "1"}, Reservations: metal.Reservations{{PartitionIDs: []string{"p1"}}}},

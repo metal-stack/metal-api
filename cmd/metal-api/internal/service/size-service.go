@@ -449,9 +449,11 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 
 	ss := metal.Sizes{}
 	err = r.ds.SearchSizes(&datastore.SizeSearchQuery{
-		ID:                    requestPayload.SizeID,
-		ReservationsPartition: requestPayload.PartitionID,
-		ReservationsProject:   requestPayload.ProjectID,
+		ID: requestPayload.SizeID,
+		Reservation: datastore.Reservation{
+			Partition: requestPayload.PartitionID,
+			Project:   requestPayload.ProjectID,
+		},
 	}, &ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))

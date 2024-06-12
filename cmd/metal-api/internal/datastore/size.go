@@ -9,11 +9,15 @@ import (
 
 // SizeSearchQuery can be used to search sizes.
 type SizeSearchQuery struct {
-	ID                    *string           `json:"id" optional:"true"`
-	Name                  *string           `json:"name" optional:"true"`
-	Labels                map[string]string `json:"labels" optional:"true"`
-	ReservationsPartition *string           `json:"reservations_partition" optional:"true"`
-	ReservationsProject   *string           `json:"reservations_project" optional:"true"`
+	ID          *string           `json:"id" optional:"true"`
+	Name        *string           `json:"name" optional:"true"`
+	Labels      map[string]string `json:"labels" optional:"true"`
+	Reservation Reservation       `json:"reservation" optional:"true"`
+}
+
+type Reservation struct {
+	Partition *string `json:"partition" optional:"true"`
+	Project   *string `json:"project" optional:"true"`
 }
 
 // GenerateTerm generates the project search query term.
@@ -40,18 +44,18 @@ func (s *SizeSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		})
 	}
 
-	if s.ReservationsProject != nil {
+	if s.Reservation.Project != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("reservations").Contains(func(p r.Term) r.Term {
-				return p.Field("projectid").Eq(r.Expr(*s.ReservationsProject))
+				return p.Field("projectid").Eq(r.Expr(*s.Reservation.Project))
 			})
 		})
 	}
 
-	if s.ReservationsPartition != nil {
+	if s.Reservation.Partition != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("reservations").Contains(func(p r.Term) r.Term {
-				return p.Field("partitionids").Contains(r.Expr(*s.ReservationsPartition))
+				return p.Field("partitionids").Contains(r.Expr(*s.Reservation.Partition))
 			})
 		})
 	}
