@@ -447,21 +447,15 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 		return
 	}
 
-	var ss metal.Sizes
-	if requestPayload.SizeID == nil {
-		ss, err = r.ds.ListSizes()
-		if err != nil {
-			r.sendError(request, response, defaultError(err))
-			return
-		}
-	} else {
-		s, err := r.ds.FindSize(*requestPayload.SizeID)
-		if err != nil {
-			r.sendError(request, response, defaultError(err))
-			return
-		}
-
-		ss = append(ss, *s)
+	ss := metal.Sizes{}
+	err = r.ds.SearchSizes(&datastore.SizeSearchQuery{
+		ID:                    requestPayload.SizeID,
+		ReservationsPartition: requestPayload.PartitionID,
+		ReservationsProject:   requestPayload.ProjectID,
+	}, &ss)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
 	}
 
 	pfr := &mdmv1.ProjectFindRequest{}
@@ -479,7 +473,10 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 		return
 	}
 
-	ms, err := r.ds.ListMachines()
+	ms := metal.Machines{}
+	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{
+		PartitionID: requestPayload.PartitionID,
+	}, &ms)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -499,6 +496,11 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 
 			for _, partitionID := range reservation.PartitionIDs {
 				project := pointer.SafeDeref(projectsByID[reservation.ProjectID])
+
+				if requestPayload.Tenant != nil && project.TenantId != *requestPayload.Tenant {
+					continue
+				}
+
 				allocations := len(machinesByProjectID[reservation.ProjectID].WithPartition(partitionID).WithSize(size.ID))
 
 				result = append(result, &v1.SizeReservationResponse{

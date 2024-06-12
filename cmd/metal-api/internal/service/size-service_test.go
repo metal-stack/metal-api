@@ -23,7 +23,7 @@ import (
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"gopkg.in/rethinkdb/rethinkdb-go.v6"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 func TestGetSizes(t *testing.T) {
@@ -81,13 +81,13 @@ func TestGetSize(t *testing.T) {
 func TestSuggest(t *testing.T) {
 	tests := []struct {
 		name   string
-		mockFn func(mock *rethinkdb.Mock)
+		mockFn func(mock *r.Mock)
 		want   []metal.Constraint
 	}{
 		{
 			name: "size",
-			mockFn: func(mock *rethinkdb.Mock) {
-				mock.On(rethinkdb.DB("mockdb").Table("machine").Get("1")).Return(&metal.Machine{
+			mockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("machine").Get("1")).Return(&metal.Machine{
 					Hardware: metal.MachineHardware{
 						MetalCPUs: []metal.MetalCPU{
 							{
@@ -346,37 +346,40 @@ func TestListSizeReservations(t *testing.T) {
 	tests := []struct {
 		name          string
 		req           *v1.SizeReservationListRequest
-		dbMockFn      func(mock *rethinkdb.Mock)
+		dbMockFn      func(mock *r.Mock)
 		projectMockFn func(mock *testifymock.Mock)
 		want          []*v1.SizeReservationResponse
 	}{
 		{
 			name: "list reservations",
 			req: &v1.SizeReservationListRequest{
-				SizeID:    pointer.Pointer("1"),
-				Tenant:    pointer.Pointer("t1"),
-				ProjectID: pointer.Pointer("p1"),
+				SizeID:      pointer.Pointer("1"),
+				Tenant:      pointer.Pointer("t1"),
+				ProjectID:   pointer.Pointer("p1"),
+				PartitionID: pointer.Pointer("a"),
 			},
-			dbMockFn: func(mock *rethinkdb.Mock) {
-				mock.On(rethinkdb.DB("mockdb").Table("size").Get("1")).Return(&metal.Size{
-					Base: metal.Base{
-						ID: "1",
-					},
-					Reservations: metal.Reservations{
-						{
-							Amount:       3,
-							PartitionIDs: []string{"1"},
-							ProjectID:    "p1",
+			dbMockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("size").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.Sizes{
+					{
+						Base: metal.Base{
+							ID: "1",
+						},
+						Reservations: metal.Reservations{
+							{
+								Amount:       3,
+								PartitionIDs: []string{"a"},
+								ProjectID:    "p1",
+							},
 						},
 					},
 				}, nil)
-				mock.On(rethinkdb.DB("mockdb").Table("machine")).Return(metal.Machines{
+				mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return(metal.Machines{
 					{
 						Base: metal.Base{
 							ID: "1",
 						},
 						SizeID:      "1",
-						PartitionID: "1",
+						PartitionID: "a",
 						Allocation: &metal.MachineAllocation{
 							Project: "p1",
 						},
@@ -388,13 +391,14 @@ func TestListSizeReservations(t *testing.T) {
 					Id:       wrapperspb.String("p1"),
 					TenantId: wrapperspb.String("t1"),
 				}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
-					{Meta: &mdmv1.Meta{Id: "p1"}},
+					{Meta: &mdmv1.Meta{Id: "p1"}, TenantId: "t1"},
 				}}, nil)
 			},
 			want: []*v1.SizeReservationResponse{
 				{
 					SizeID:             "1",
-					PartitionID:        "1",
+					PartitionID:        "a",
+					Tenant:             "t1",
 					ProjectID:          "p1",
 					Reservations:       3,
 					UsedReservations:   1,
