@@ -287,7 +287,7 @@ func TestPartitionCapacity(t *testing.T) {
 	c := result[0].ServerCapacities[0]
 	require.Equal(t, "1", c.Size)
 	require.Equal(t, 5, c.Total)
-	require.Equal(t, -1, c.Free)
+	require.Equal(t, 0, c.Free)
 	require.Equal(t, 3, c.Reservations)
 	require.Equal(t, 1, c.UsedReservations)
 }

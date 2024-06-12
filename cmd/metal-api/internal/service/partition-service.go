@@ -466,9 +466,10 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 			size := sizesByID[cap.Size]
 
 			for _, reservation := range size.Reservations.ForPartition(pc.ID) {
+				reservation := reservation
+
 				cap.Reservations += reservation.Amount
 				cap.UsedReservations += min(len(machinesByProject[reservation.ProjectID].WithSize(size.ID).WithPartition(pc.ID)), reservation.Amount)
-				cap.Free -= cap.UsedReservations
 			}
 		}
 
