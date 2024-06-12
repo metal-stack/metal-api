@@ -54,9 +54,9 @@ type SizeReservationResponse struct {
 }
 
 type SizeReservationListRequest struct {
-	SizeID    *string `json:"sizeid" description:"the size id of this size reservation"`
-	Tenant    *string `json:"tenant" description:"the tenant of this size reservation"`
-	ProjectID *string `json:"projectid" description:"the project id of this size reservation"`
+	SizeID    *string `json:"sizeid,omitempty" description:"the size id of this size reservation"`
+	Tenant    *string `json:"tenant,omitempty" description:"the tenant of this size reservation"`
+	ProjectID *string `json:"projectid,omitempty" description:"the project id of this size reservation"`
 }
 
 type SizeSuggestRequest struct {

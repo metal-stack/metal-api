@@ -4676,12 +4676,7 @@
           "description": "the tenant of this size reservation",
           "type": "string"
         }
-      },
-      "required": [
-        "projectid",
-        "sizeid",
-        "tenant"
-      ]
+      }
     },
     "v1.SizeReservationResponse": {
       "properties": {
