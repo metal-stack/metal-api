@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sort"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -151,6 +152,12 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 	var (
 		gpus           = make(map[string]uint64)
 		gpuconstraints []v1.SizeConstraint
+
+		cores       uint64
+		coresModels []string
+
+		diskCapacity uint64
+		diskNames    []string
 	)
 
 	for _, gpu := range m.Hardware.MetalGPUs {
@@ -170,21 +177,22 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		})
 	}
 
-	var cores uint64
 	for _, cpu := range m.Hardware.MetalCPUs {
 		cores += uint64(cpu.Cores)
+		coresModels = append(coresModels, cpu.Model)
 	}
 
-	var diskCapacity uint64
 	for _, d := range m.Hardware.Disks {
 		diskCapacity += d.Size
+		diskNames = append(diskNames, d.Name)
 	}
 
 	constraints := []v1.SizeConstraint{
 		{
-			Type: metal.CoreConstraint,
-			Min:  cores,
-			Max:  cores,
+			Type:       metal.CoreConstraint,
+			Min:        cores,
+			Max:        cores,
+			Identifier: longestCommonPrefix(coresModels),
 		},
 		{
 			Type: metal.MemoryConstraint,
@@ -192,9 +200,10 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 			Max:  m.Hardware.Memory,
 		},
 		{
-			Type: metal.StorageConstraint,
-			Min:  diskCapacity,
-			Max:  diskCapacity,
+			Type:       metal.StorageConstraint,
+			Min:        diskCapacity,
+			Max:        diskCapacity,
+			Identifier: longestCommonPrefix(diskNames),
 		},
 	}
 
@@ -267,6 +276,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 			Description:  r.Description,
 			ProjectID:    r.ProjectID,
 			PartitionIDs: r.PartitionIDs,
+			Labels:       r.Labels,
 		})
 	}
 
@@ -384,6 +394,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 				Description:  r.Description,
 				ProjectID:    r.ProjectID,
 				PartitionIDs: r.PartitionIDs,
+				Labels:       r.Labels,
 			})
 		}
 		newSize.Reservations = reservations
@@ -471,10 +482,41 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 					Reservations:       reservation.Amount,
 					UsedReservations:   min(reservation.Amount, allocations),
 					ProjectAllocations: allocations,
+					Labels:             reservation.Labels,
 				})
 			}
 		}
 	}
 
 	r.send(request, response, http.StatusOK, result)
+}
+
+// longestCommonPrefix finds the longest prefix of a slice of strings.
+func longestCommonPrefix(strs []string) string {
+	longestPrefix := ""
+
+	if len(strs) > 0 {
+		// by sorting the strings we can quite efficiently find the longest prefix
+		// we just need to compare the first and last element after the sort
+		sort.Strings(strs)
+		first := strs[0]
+		last := strs[len(strs)-1]
+
+		for i := 0; i < len(first); i++ {
+			// append as long as chars are equal, stop when different
+
+			if last[i] != first[i] {
+				break
+			}
+
+			longestPrefix += string(last[i])
+		}
+
+		// append * to pattern if not identical
+		if len(last) != len(longestPrefix) {
+			longestPrefix += "*"
+		}
+	}
+
+	return longestPrefix
 }

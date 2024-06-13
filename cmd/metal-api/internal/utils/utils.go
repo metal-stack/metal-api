@@ -21,13 +21,6 @@ func SplitCIDR(cidr string) (string, *int) {
 	return cidr, nil
 }
 
-func StrValueDefault(ptr *string, fallback string) string {
-	if ptr == nil {
-		return fallback
-	}
-	return *ptr
-}
-
 // GetOsAndSemverFromImage parses a imageID to OS and Semver, or returns an error
 // the last part must be the semantic version, valid ids are:
 // ubuntu-19.04                 os: ubuntu version: 19.04
