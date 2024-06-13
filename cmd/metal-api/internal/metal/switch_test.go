@@ -283,7 +283,7 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 	}
 }
 
-func Test_translateNicNames(t *testing.T) {
+func TestSwitch_TranslateNicNames(t *testing.T) {
 	tests := []struct {
 		name     string
 		sw       *Switch
