@@ -270,7 +270,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 					Mac:  fmt.Sprintf("aa:ba:%d", i),
 					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name: fmt.Sprintf("swp-%d", i),
+							Name: fmt.Sprintf("swp%d", i),
 							Mac:  fmt.Sprintf("%s:%d", swp1MacPrefix, i),
 						},
 					},
@@ -280,7 +280,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 					Mac:  fmt.Sprintf("aa:bb:%d", i),
 					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name: fmt.Sprintf("swp-%d", i),
+							Name: fmt.Sprintf("swp%d", i),
 							Mac:  fmt.Sprintf("%s:%d", swp2MacPrefix, i),
 						},
 					},
@@ -381,19 +381,19 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	sw2nics := metal.Nics{}
 	for j := range machineCount {
 		sw1nic := metal.Nic{
-			Name:       fmt.Sprintf("swp-%d", j),
+			Name:       fmt.Sprintf("swp%d", j),
 			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp1MacPrefix, j)),
 		}
 		sw2nic := metal.Nic{
-			Name:       fmt.Sprintf("swp-%d", j),
+			Name:       fmt.Sprintf("swp%d", j),
 			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp2MacPrefix, j)),
 		}
 		sw1nics = append(sw1nics, sw1nic)
 		sw2nics = append(sw2nics, sw2nic)
 	}
-	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw1"}, PartitionID: "p1", Nics: sw1nics, MachineConnections: metal.ConnectionMap{}})
+	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw1"}, OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus}, PartitionID: "p1", Nics: sw1nics, MachineConnections: metal.ConnectionMap{}})
 	require.NoError(t, err)
-	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw2"}, PartitionID: "p1", Nics: sw2nics, MachineConnections: metal.ConnectionMap{}})
+	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw2"}, OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus}, PartitionID: "p1", Nics: sw2nics, MachineConnections: metal.ConnectionMap{}})
 	require.NoError(t, err)
 	err = rs.CreateFilesystemLayout(&metal.FilesystemLayout{Base: metal.Base{ID: "fsl1"}, Constraints: metal.FilesystemLayoutConstraints{Sizes: []string{"s1"}, Images: map[string]string{"i": "*"}}})
 	require.NoError(t, err)
