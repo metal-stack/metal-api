@@ -45,14 +45,8 @@ func New(ip apiv1connect.IpamServiceClient) IPAMer {
 
 // AllocateChildPrefix creates a child prefix from a parent prefix in the IPAM.
 func (i *ipam) AllocateChildPrefix(ctx context.Context, parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error) {
-	ipamParentPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
-		Cidr: parentPrefix.String(),
-	}))
-	if err != nil {
-		return nil, err
-	}
 	ipamPrefix, err := i.ip.AcquireChildPrefix(ctx, connect.NewRequest(&apiv1.AcquireChildPrefixRequest{
-		Cidr:   ipamParentPrefix.Msg.Prefix.Cidr,
+		Cidr:   parentPrefix.String(),
 		Length: uint32(childLength),
 	}))
 	if err != nil {
@@ -69,15 +63,8 @@ func (i *ipam) AllocateChildPrefix(ctx context.Context, parentPrefix metal.Prefi
 
 // ReleaseChildPrefix release a child prefix from a parent prefix in the IPAM.
 func (i *ipam) ReleaseChildPrefix(ctx context.Context, childPrefix metal.Prefix) error {
-	ipamChildPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
+	_, err := i.ip.ReleaseChildPrefix(ctx, connect.NewRequest(&apiv1.ReleaseChildPrefixRequest{
 		Cidr: childPrefix.String(),
-	}))
-	if err != nil {
-		return fmt.Errorf("invalid child prefix: %w", err)
-	}
-
-	_, err = i.ip.ReleaseChildPrefix(ctx, connect.NewRequest(&apiv1.ReleaseChildPrefixRequest{
-		Cidr: ipamChildPrefix.Msg.Prefix.Cidr,
 	}))
 	if err != nil {
 		return fmt.Errorf("error releasing child prefix in ipam: %w", err)
@@ -110,15 +97,8 @@ func (i *ipam) DeletePrefix(ctx context.Context, prefix metal.Prefix) error {
 
 // AllocateIP an ip in the IPAM and returns the allocated IP as a string.
 func (i *ipam) AllocateIP(ctx context.Context, prefix metal.Prefix) (string, error) {
-	ipamPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
-		Cidr: prefix.String(),
-	}))
-	if err != nil {
-		return "", fmt.Errorf("unable to find prefix:%q %w", prefix, err)
-	}
-
 	ipamIP, err := i.ip.AcquireIP(ctx, connect.NewRequest(&apiv1.AcquireIPRequest{
-		PrefixCidr: ipamPrefix.Msg.Prefix.Cidr,
+		PrefixCidr: prefix.String(),
 		Ip:         nil,
 	}))
 	if err != nil {
@@ -133,15 +113,8 @@ func (i *ipam) AllocateIP(ctx context.Context, prefix metal.Prefix) (string, err
 
 // AllocateSpecificIP a specific ip in the IPAM and returns the allocated IP as a string.
 func (i *ipam) AllocateSpecificIP(ctx context.Context, prefix metal.Prefix, specificIP string) (string, error) {
-	ipamPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
-		Cidr: prefix.String(),
-	}))
-	if err != nil {
-		return "", err
-	}
-
 	ipamIP, err := i.ip.AcquireIP(ctx, connect.NewRequest(&apiv1.AcquireIPRequest{
-		PrefixCidr: ipamPrefix.Msg.Prefix.Cidr,
+		PrefixCidr: prefix.String(),
 		Ip:         &specificIP,
 	}))
 	if err != nil {
@@ -156,15 +129,8 @@ func (i *ipam) AllocateSpecificIP(ctx context.Context, prefix metal.Prefix, spec
 
 // ReleaseIP an ip in the IPAM.
 func (i *ipam) ReleaseIP(ctx context.Context, ip metal.IP) error {
-	ipamPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
-		Cidr: ip.ParentPrefixCidr,
-	}))
-	if err != nil {
-		return err
-	}
-
-	_, err = i.ip.ReleaseIP(ctx, connect.NewRequest(&apiv1.ReleaseIPRequest{
-		PrefixCidr: ipamPrefix.Msg.Prefix.Cidr,
+	_, err := i.ip.ReleaseIP(ctx, connect.NewRequest(&apiv1.ReleaseIPRequest{
+		PrefixCidr: ip.ParentPrefixCidr,
 		Ip:         ip.IPAddress,
 	}))
 	if err != nil {
