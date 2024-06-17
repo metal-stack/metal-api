@@ -31,7 +31,7 @@ func TestGetImagesIntegration(t *testing.T) {
 
 	log := slog.Default()
 
-	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	ds := datastore.NewRethinkStore(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000
 	ds.ASNPoolRangeMax = 1000
 

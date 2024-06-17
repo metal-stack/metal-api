@@ -252,6 +252,9 @@ func (n *Network) FindPrefix(cidr string) *Prefix {
 	}
 	return found
 }
+func (n *Network) TableName() string {
+	return "network"
+}
 
 // ContainsIP checks whether the given ip is included in the networks prefixes
 func (n *MachineNetwork) ContainsIP(ip string) bool {

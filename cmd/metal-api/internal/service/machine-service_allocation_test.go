@@ -296,7 +296,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	_, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 
-	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := datastore.NewRethinkStore(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMax = 1000
 	rs.ASNPoolRangeMax = 1000
 

@@ -265,6 +265,10 @@ func (f FilesystemLayout) Validate() error {
 	return nil
 }
 
+func (f FilesystemLayout) TableName() string {
+	return "filesystemlayout"
+}
+
 func validateCreateOptions(opts []string) error {
 	var errs []error
 	for _, opt := range opts {

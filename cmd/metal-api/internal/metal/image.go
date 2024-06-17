@@ -92,6 +92,10 @@ func (ii Images) ByID() ImageMap {
 	return res
 }
 
+func (i *Image) TableName() string {
+	return "image"
+}
+
 // HasFeature returns true if this image has given feature enabled, otherwise false.
 func (i *Image) HasFeature(feature ImageFeatureType) bool {
 	return i.Features[feature]

@@ -30,3 +30,7 @@ func (sz Partitions) ByID() PartitionMap {
 	}
 	return res
 }
+
+func (p *Partition) TableName() string {
+	return "partition"
+}

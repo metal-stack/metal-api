@@ -61,7 +61,7 @@ type RethinkStore struct {
 }
 
 // New creates a new rethink store.
-func New(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
+func NewRethinkStore(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
 	return &RethinkStore{
 		log:    log,
 		dbhost: dbhost,
@@ -344,6 +344,14 @@ tryAgain:
 		goto tryAgain
 	}
 	return s
+}
+
+func (rs *RethinkStore) DBName() string {
+	return rs.dbname
+}
+
+func (rs *RethinkStore) QueryExecutor() r.QueryExecutor {
+	return rs.session
 }
 
 func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id string) error {

@@ -110,3 +110,7 @@ func (c *ProvisioningEventContainer) Validate() error {
 
 	return nil
 }
+
+func (c *ProvisioningEventContainer) TableName() string {
+	return "event"
+}

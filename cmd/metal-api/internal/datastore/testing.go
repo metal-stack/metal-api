@@ -19,7 +19,7 @@ Return Values:
 - Mock 			// The Mock endpoint (Used for mocks)
 */
 func InitMockDB(t *testing.T) (*RethinkStore, *r.Mock) {
-	rs := New(
+	rs := NewRethinkStore(
 		slog.Default(),
 		"db-addr",
 		"mockdb",

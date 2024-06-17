@@ -97,6 +97,8 @@ type Entity interface {
 	GetCreated() time.Time
 	// SetCreated sets the entity's creation time
 	SetCreated(created time.Time)
+
+	TableName() string
 }
 
 // GetID returns the ID of the entity
