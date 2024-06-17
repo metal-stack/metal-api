@@ -1,9 +1,12 @@
 package datastore
 
 import (
+	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/generic-datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 )
@@ -11,24 +14,24 @@ import (
 func TestRethinkStore_FindIPByID(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
-
+	is := generic.NewDatastore(slog.Default(), ds.DBName(), ds.QueryExecutor()).IP()
 	tests := []struct {
 		name    string
-		rs      *RethinkStore
+		is      generic.Storage[*metal.IP]
 		id      string
 		want    *metal.IP
 		wantErr bool
 	}{
 		{
 			name:    "TestRethinkStore_FindIP Test 1",
-			rs:      ds,
+			is:      is,
 			id:      "1.2.3.4",
 			want:    &testdata.IP1,
 			wantErr: false,
 		},
 		{
 			name:    "TestRethinkStore_FindIP Test 2",
-			rs:      ds,
+			is:      is,
 			id:      "2.3.4.5",
 			want:    &testdata.IP2,
 			wantErr: false,
@@ -37,7 +40,7 @@ func TestRethinkStore_FindIPByID(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindIPByID(tt.id)
+			got, err := tt.is.Get(context.Background(), tt.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindIP() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -52,16 +55,17 @@ func TestRethinkStore_FindIPByID(t *testing.T) {
 func TestRethinkStore_ListIPs(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	is := generic.NewDatastore(slog.Default(), ds.DBName(), ds.QueryExecutor()).IP()
 
 	tests := []struct {
 		name    string
-		rs      *RethinkStore
+		is      generic.Storage[*metal.IP]
 		want    metal.IPs
 		wantErr bool
 	}{
 		{
 			name:    "TestRethinkStore_ListIPs Test 1",
-			rs:      ds,
+			is:      is,
 			want:    testdata.TestIPs,
 			wantErr: false,
 		},
@@ -69,7 +73,7 @@ func TestRethinkStore_ListIPs(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.ListIPs()
+			got, err := tt.is.List(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.ListIPs() error = %v, wantErr %v", err, tt.wantErr)
 				return
