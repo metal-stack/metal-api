@@ -566,6 +566,14 @@ func (r *switchResource) replaceSwitch(old, new *metal.Switch) error {
 		return err
 	}
 
+	if old.OS.Vendor != s.OS.Vendor {
+		nicMap, err := s.TranslateNicMap(old.OS.Vendor)
+		if err != nil {
+			return err
+		}
+		r.adjustMachineConnections(s, nicMap)
+	}
+
 	return r.ds.UpdateSwitch(old, s)
 }
 
@@ -621,13 +629,14 @@ func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
 		s.Mode = metal.SwitchOperational
 		return &s, nil
 	}
+	changeOS := old.OS.Vendor != new.OS.Vendor
 
-	newNics, err := adoptNics(twin, new)
+	newNics, err := adoptNics(twin, new, changeOS)
 	if err != nil {
 		return nil, fmt.Errorf("could not adopt nic configuration from twin, err: %w", err)
 	}
 
-	newMachineConnections, err := adoptMachineConnections(twin, new)
+	newMachineConnections, err := adoptMachineConnections(twin, new, changeOS)
 	if err != nil {
 		return nil, err
 	}
@@ -641,11 +650,15 @@ func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
 
 // adoptNics checks whether new switch has all nics of its twin switch
 // copies vrf configuration and returns the new nics for the replacement switch
-func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
+func adoptNics(twin, newSwitch *metal.Switch, changeOS bool) (metal.Nics, error) {
 	newNics := metal.Nics{}
-	newNicMap, err := newSwitch.TranslateNicMap(twin.OS.Vendor)
-	if err != nil {
-		return nil, err
+	newNicMap := newSwitch.Nics.ByName()
+	if changeOS {
+		nicMap, err := newSwitch.TranslateNicMap(twin.OS.Vendor)
+		if err != nil {
+			return nil, err
+		}
+		newNicMap = nicMap
 	}
 	missingNics := []string{}
 	twinNicsByName := twin.Nics.ByName()
@@ -675,10 +688,14 @@ func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 }
 
 // adoptMachineConnections copies machine connections from twin and maps mac addresses based on the nic name
-func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap, error) {
-	newNicMap, err := newSwitch.TranslateNicMap(twin.OS.Vendor)
-	if err != nil {
-		return nil, err
+func adoptMachineConnections(twin, newSwitch *metal.Switch, changeOS bool) (metal.ConnectionMap, error) {
+	newNicMap := newSwitch.Nics.ByName()
+	if changeOS {
+		nicMap, err := newSwitch.TranslateNicMap(twin.OS.Vendor)
+		if err != nil {
+			return nil, err
+		}
+		newNicMap = nicMap
 	}
 	newConnectionMap := metal.ConnectionMap{}
 	missingNics := []string{}
@@ -705,6 +722,43 @@ func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap
 	}
 
 	return newConnectionMap, nil
+}
+
+// adjustMachineConnections updates the neighbor entries for all machines connected to the switch
+func (r *switchResource) adjustMachineConnections(sw *metal.Switch, nicMap metal.NicMap) error {
+	for mid := range sw.MachineConnections {
+		m, err := r.ds.FindMachineByID(mid)
+		if err != nil {
+			return err
+		}
+
+		newNics := make([]metal.Nic, 0)
+		for _, nic := range m.Hardware.Nics {
+			newNic := nic
+			newNeighbors := make([]metal.Nic, 0)
+			for _, neigh := range nic.Neighbors {
+				if neigh.Hostname == sw.ID {
+					n, ok := nicMap[neigh.Name]
+					if !ok {
+						return fmt.Errorf("unable to find corresponding new neighbor nic")
+					}
+					newNeighbors = append(newNeighbors, *n)
+				} else {
+					newNeighbors = append(newNeighbors, neigh)
+				}
+			}
+			newNic.Neighbors = newNeighbors
+			newNics = append(newNics, newNic)
+		}
+		newMachine := *m
+		newMachine.Hardware.Nics = newNics
+
+		err = r.ds.UpdateMachine(m, &newMachine)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections metal.ConnectionMap) (metal.Nics, error) {

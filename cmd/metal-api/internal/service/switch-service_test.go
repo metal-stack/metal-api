@@ -935,6 +935,7 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 	type args struct {
 		twin      *metal.Switch
 		newSwitch *metal.Switch
+		changeOS  bool
 	}
 	tests := []struct {
 		name    string
@@ -1032,6 +1033,7 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 		{
 			name: "switch os from cumulus to sonic",
 			args: args{
+				changeOS: true,
 				twin: &metal.Switch{
 					OS: &metal.SwitchOS{
 						Vendor: metal.SwitchOSVendorCumulus,
@@ -1096,7 +1098,7 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := adoptNics(tt.args.twin, tt.args.newSwitch)
+			got, err := adoptNics(tt.args.twin, tt.args.newSwitch, tt.args.changeOS)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("adoptNics() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1112,6 +1114,7 @@ func Test_adoptMachineConnections(t *testing.T) {
 	type args struct {
 		twin      *metal.Switch
 		newSwitch *metal.Switch
+		changeOS  bool
 	}
 	tests := []struct {
 		name    string
@@ -1208,6 +1211,7 @@ func Test_adoptMachineConnections(t *testing.T) {
 		{
 			name: "adopt from twin with different switch os",
 			args: args{
+				changeOS: true,
 				twin: &metal.Switch{
 					OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 					MachineConnections: metal.ConnectionMap{
@@ -1268,7 +1272,7 @@ func Test_adoptMachineConnections(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := adoptMachineConnections(tt.args.twin, tt.args.newSwitch)
+			got, err := adoptMachineConnections(tt.args.twin, tt.args.newSwitch, tt.args.changeOS)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("adoptMachineConnections() error = %v, wantErr %v", err, tt.wantErr)
 				return

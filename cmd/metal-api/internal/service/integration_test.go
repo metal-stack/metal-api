@@ -366,6 +366,10 @@ func (te *testEnv) switchGet(t *testing.T, swid string, response interface{}) in
 	return webRequestGet(t, te.switchService, &testUserDirectory.admin, emptyBody{}, "/v1/switch/"+swid, response)
 }
 
+func (te *testEnv) switchUpdate(t *testing.T, sur v1.SwitchUpdateRequest, response interface{}) int {
+	return webRequestPost(t, te.switchService, &testUserDirectory.admin, sur, "/v1/switch/", response)
+}
+
 func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response interface{}) int {
 	return webRequestPut(t, te.imageService, &testUserDirectory.admin, icr, "/v1/image/", response)
 }
@@ -380,6 +384,10 @@ func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, resp
 
 func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, response interface{}) int {
 	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nar, "/v1/network/allocate", response)
+}
+
+func (te *testEnv) machineGet(t *testing.T, mid string, response interface{}) int {
+	return webRequestGet(t, te.machineService, &testUserDirectory.admin, emptyBody{}, "/v1/machine/"+mid, response)
 }
 
 func (te *testEnv) machineAllocate(t *testing.T, mar v1.MachineAllocateRequest, response interface{}) int {
