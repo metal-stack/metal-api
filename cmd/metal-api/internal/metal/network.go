@@ -198,8 +198,8 @@ func (p Prefixes) String() []string {
 	return result
 }
 
-// Equals returns true when prefixes have the same cidr.
-func (p *Prefix) Equals(other *Prefix) bool {
+// equals returns true when prefixes have the same cidr.
+func (p *Prefix) equals(other *Prefix) bool {
 	return p.String() == other.String()
 }
 
@@ -275,7 +275,7 @@ func (n *Network) SubtractPrefixes(prefixes ...Prefix) []Prefix {
 	for _, p := range n.Prefixes {
 		contains := false
 		for i := range prefixes {
-			if p.Equals(&prefixes[i]) {
+			if p.equals(&prefixes[i]) {
 				contains = true
 				break
 			}
