@@ -61,7 +61,7 @@ type RethinkStore struct {
 }
 
 // New creates a new rethink store.
-func NewRethinkStore(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
+func New(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
 	return &RethinkStore{
 		log:    log,
 		dbhost: dbhost,

@@ -53,7 +53,7 @@ func TestNew(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewRethinkStore(tt.args.log, tt.args.dbhost, tt.args.dbname, tt.args.dbuser, tt.args.dbpass)
+			got := New(tt.args.log, tt.args.dbhost, tt.args.dbname, tt.args.dbuser, tt.args.dbpass)
 			if diff := cmp.Diff(got, tt.want, testcommon.IgnoreUnexported(), cmpopts.IgnoreTypes(slog.Logger{})); diff != "" {
 				t.Errorf("New() mismatch (-want +got):\n%s", diff)
 			}

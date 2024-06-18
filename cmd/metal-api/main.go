@@ -459,7 +459,7 @@ func waitForPartitions() metal.Partitions {
 func connectDataStore(opts ...dsConnectOpt) error {
 	dbAdapter := viper.GetString("db")
 	if dbAdapter == "rethinkdb" {
-		ds = datastore.NewRethinkStore(
+		ds = datastore.New(
 			logger.WithGroup("datastore"),
 			viper.GetString("db-addr"),
 			viper.GetString("db-name"),
