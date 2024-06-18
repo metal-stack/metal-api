@@ -48,17 +48,17 @@ type Datastore struct {
 
 func New(log *slog.Logger, dbname string, queryExecutor r.QueryExecutor) *Datastore {
 	return &Datastore{
-		event:               newStorage(log, dbname, "event", queryExecutor, &metal.ProvisioningEventContainer{}),
-		filesystemlayout:    newStorage(log, dbname, "filesystemlayout", queryExecutor, &metal.FilesystemLayout{}),
-		image:               newStorage(log, dbname, "image", queryExecutor, &metal.Image{}),
-		ip:                  newStorage(log, dbname, "ip", queryExecutor, &metal.IP{}),
-		machine:             newStorage(log, dbname, "machine", queryExecutor, &metal.Machine{}),
-		network:             newStorage(log, dbname, "network", queryExecutor, &metal.Network{}),
-		partition:           newStorage(log, dbname, "partition", queryExecutor, &metal.Partition{}),
-		size:                newStorage(log, dbname, "size", queryExecutor, &metal.Size{}),
-		sizeimageConstraint: newStorage(log, dbname, "sizeimageconstraint", queryExecutor, &metal.SizeImageConstraint{}),
-		sw:                  newStorage(log, dbname, "switch", queryExecutor, &metal.Switch{}),
-		switchStatus:        newStorage(log, dbname, "switchstatus", queryExecutor, &metal.SwitchStatus{}),
+		event:               newStorage[*metal.ProvisioningEventContainer](log, dbname, "event", queryExecutor),
+		filesystemlayout:    newStorage[*metal.FilesystemLayout](log, dbname, "filesystemlayout", queryExecutor),
+		image:               newStorage[*metal.Image](log, dbname, "image", queryExecutor),
+		ip:                  newStorage[*metal.IP](log, dbname, "ip", queryExecutor),
+		machine:             newStorage[*metal.Machine](log, dbname, "machine", queryExecutor),
+		network:             newStorage[*metal.Network](log, dbname, "network", queryExecutor),
+		partition:           newStorage[*metal.Partition](log, dbname, "partition", queryExecutor),
+		size:                newStorage[*metal.Size](log, dbname, "size", queryExecutor),
+		sizeimageConstraint: newStorage[*metal.SizeImageConstraint](log, dbname, "sizeimageconstraint", queryExecutor),
+		sw:                  newStorage[*metal.Switch](log, dbname, "switch", queryExecutor),
+		switchStatus:        newStorage[*metal.SwitchStatus](log, dbname, "switchstatus", queryExecutor),
 	}
 }
 
@@ -98,7 +98,7 @@ func (d *Datastore) SwitchStatus() Storage[*metal.SwitchStatus] {
 }
 
 // newStorage creates a new Storage which uses the given database abstraction.
-func newStorage[E metal.Entity](log *slog.Logger, dbname, tableName string, queryExecutor r.QueryExecutor, e E) Storage[E] {
+func newStorage[E metal.Entity](log *slog.Logger, dbname, tableName string, queryExecutor r.QueryExecutor) Storage[E] {
 	ds := &rethinkStore[E]{
 		log:           log,
 		queryExecutor: queryExecutor,
