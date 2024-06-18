@@ -742,7 +742,7 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 		log.Fatal(err)
 	}
 
-	healthService, err := rest.NewHealth(logger, service.BasePath, ds, ipamer) // FIXME
+	healthService, err := rest.NewHealth(logger, service.BasePath, ds, ipamer)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -822,7 +822,7 @@ func initHeadscale() error {
 
 func dumpSwaggerJSON() {
 
-	// This is total fuckup
+	// This is required to make dump work
 	ipamer = ipam.New(nil)
 	cfg := initRestServices(nil, false, metal.DisabledIPMISuperUser())
 	actual := restfulspec.BuildSwagger(*cfg)
