@@ -132,10 +132,6 @@ func (m *Machine) IsFirewall() bool {
 	return false
 }
 
-func (m *Machine) TableName() string {
-	return "machine"
-}
-
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
 	Creator          string            `rethinkdb:"creator" json:"creator"`

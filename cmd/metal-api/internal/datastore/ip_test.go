@@ -14,7 +14,7 @@ import (
 func TestRethinkStore_FindIPByID(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	is := generic.NewDatastore(slog.Default(), ds.DBName(), ds.QueryExecutor()).IP()
+	is := generic.New(slog.Default(), ds.DBName(), ds.QueryExecutor()).IP()
 	tests := []struct {
 		name    string
 		is      generic.Storage[*metal.IP]
@@ -55,7 +55,7 @@ func TestRethinkStore_FindIPByID(t *testing.T) {
 func TestRethinkStore_ListIPs(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	is := generic.NewDatastore(slog.Default(), ds.DBName(), ds.QueryExecutor()).IP()
+	is := generic.New(slog.Default(), ds.DBName(), ds.QueryExecutor()).IP()
 
 	tests := []struct {
 		name    string

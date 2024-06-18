@@ -144,11 +144,3 @@ func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
 	}
 	s.Nics = nics
 }
-
-func (s *Switch) TableName() string {
-	return "switch"
-}
-
-func (s *SwitchStatus) TableName() string {
-	return "switchstatus"
-}

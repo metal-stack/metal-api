@@ -14,7 +14,7 @@ import (
 func TestRethinkStore_FindPartition(t *testing.T) {
 	ds, mock := InitMockDB(t)
 
-	ps := generic.NewDatastore(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
+	ps := generic.New(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {
@@ -57,7 +57,7 @@ func TestRethinkStore_FindPartition(t *testing.T) {
 func TestRethinkStore_ListPartitions(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	ps := generic.NewDatastore(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
+	ps := generic.New(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
 
 	tests := []struct {
 		name    string
@@ -90,7 +90,7 @@ func TestRethinkStore_ListPartitions(t *testing.T) {
 func TestRethinkStore_CreatePartition(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	ps := generic.NewDatastore(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
+	ps := generic.New(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
 
 	tests := []struct {
 		name    string
@@ -118,7 +118,7 @@ func TestRethinkStore_CreatePartition(t *testing.T) {
 func TestRethinkStore_DeletePartition(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	ps := generic.NewDatastore(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
+	ps := generic.New(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
 
 	tests := []struct {
 		name    string
@@ -154,7 +154,7 @@ func TestRethinkStore_DeletePartition(t *testing.T) {
 func TestRethinkStore_UpdatePartition(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	ps := generic.NewDatastore(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
+	ps := generic.New(slog.Default(), ds.DBName(), ds.QueryExecutor()).Partition()
 
 	tests := []struct {
 		name         string

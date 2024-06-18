@@ -33,28 +33,32 @@ type rethinkStore[E metal.Entity] struct {
 }
 
 type Datastore struct {
-	event            Storage[*metal.ProvisioningEventContainer]
-	filesystemlayout Storage[*metal.FilesystemLayout]
-	image            Storage[*metal.Image]
-	ip               Storage[*metal.IP]
-	machine          Storage[*metal.Machine]
-	network          Storage[*metal.Network]
-	partition        Storage[*metal.Partition]
-	size             Storage[*metal.Size]
-	sw               Storage[*metal.Switch]
+	event               Storage[*metal.ProvisioningEventContainer]
+	filesystemlayout    Storage[*metal.FilesystemLayout]
+	image               Storage[*metal.Image]
+	ip                  Storage[*metal.IP]
+	machine             Storage[*metal.Machine]
+	network             Storage[*metal.Network]
+	partition           Storage[*metal.Partition]
+	size                Storage[*metal.Size]
+	sizeimageConstraint Storage[*metal.SizeImageConstraint]
+	sw                  Storage[*metal.Switch]
+	switchStatus        Storage[*metal.SwitchStatus]
 }
 
-func NewDatastore(log *slog.Logger, dbname string, queryExecutor r.QueryExecutor) *Datastore {
+func New(log *slog.Logger, dbname string, queryExecutor r.QueryExecutor) *Datastore {
 	return &Datastore{
-		event:            New(log, dbname, queryExecutor, &metal.ProvisioningEventContainer{}),
-		filesystemlayout: New(log, dbname, queryExecutor, &metal.FilesystemLayout{}),
-		image:            New(log, dbname, queryExecutor, &metal.Image{}),
-		ip:               New(log, dbname, queryExecutor, &metal.IP{}),
-		machine:          New(log, dbname, queryExecutor, &metal.Machine{}),
-		network:          New(log, dbname, queryExecutor, &metal.Network{}),
-		partition:        New(log, dbname, queryExecutor, &metal.Partition{}),
-		size:             New(log, dbname, queryExecutor, &metal.Size{}),
-		sw:               New(log, dbname, queryExecutor, &metal.Switch{}),
+		event:               newStorage(log, dbname, "event", queryExecutor, &metal.ProvisioningEventContainer{}),
+		filesystemlayout:    newStorage(log, dbname, "filesystemlayout", queryExecutor, &metal.FilesystemLayout{}),
+		image:               newStorage(log, dbname, "image", queryExecutor, &metal.Image{}),
+		ip:                  newStorage(log, dbname, "ip", queryExecutor, &metal.IP{}),
+		machine:             newStorage(log, dbname, "machine", queryExecutor, &metal.Machine{}),
+		network:             newStorage(log, dbname, "network", queryExecutor, &metal.Network{}),
+		partition:           newStorage(log, dbname, "partition", queryExecutor, &metal.Partition{}),
+		size:                newStorage(log, dbname, "size", queryExecutor, &metal.Size{}),
+		sizeimageConstraint: newStorage(log, dbname, "sizeimageconstraint", queryExecutor, &metal.SizeImageConstraint{}),
+		sw:                  newStorage(log, dbname, "switch", queryExecutor, &metal.Switch{}),
+		switchStatus:        newStorage(log, dbname, "switchstatus", queryExecutor, &metal.SwitchStatus{}),
 	}
 }
 
@@ -83,18 +87,24 @@ func (d *Datastore) Partition() Storage[*metal.Partition] {
 func (d *Datastore) Size() Storage[*metal.Size] {
 	return d.size
 }
+func (d *Datastore) SizeImageConstraint() Storage[*metal.SizeImageConstraint] {
+	return d.sizeimageConstraint
+}
 func (d *Datastore) Switch() Storage[*metal.Switch] {
 	return d.sw
 }
+func (d *Datastore) SwitchStatus() Storage[*metal.SwitchStatus] {
+	return d.switchStatus
+}
 
-// New creates a new Storage which uses the given database abstraction.
-func New[E metal.Entity](log *slog.Logger, dbname string, queryExecutor r.QueryExecutor, e E) Storage[E] {
+// newStorage creates a new Storage which uses the given database abstraction.
+func newStorage[E metal.Entity](log *slog.Logger, dbname, tableName string, queryExecutor r.QueryExecutor, e E) Storage[E] {
 	ds := &rethinkStore[E]{
 		log:           log,
 		queryExecutor: queryExecutor,
 		dbname:        dbname,
-		table:         r.DB(dbname).Table(e.TableName()),
-		tableName:     e.TableName(),
+		table:         r.DB(dbname).Table(tableName),
+		tableName:     tableName,
 	}
 	return ds
 }

@@ -81,10 +81,6 @@ func (sz Sizes) ByID() SizeMap {
 	return res
 }
 
-func (s *Size) TableName() string {
-	return "size"
-}
-
 // UnknownSize is the size to use, when someone requires a size we do not know.
 func UnknownSize() *Size {
 	return &Size{

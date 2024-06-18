@@ -36,9 +36,6 @@ func (scs *SizeImageConstraints) Validate() error {
 	}
 	return nil
 }
-func (sc *SizeImageConstraint) TableName() string {
-	return "sizeimageconstraint"
-}
 
 func (sc *SizeImageConstraint) Validate() error {
 	for os, vc := range sc.Images {
