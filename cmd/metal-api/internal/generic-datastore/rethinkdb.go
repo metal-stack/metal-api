@@ -13,14 +13,18 @@ import (
 
 const entityAlreadyModifiedErrorMessage = "the entity was changed from another, please retry"
 
+type EntityQuery interface {
+	Query(q r.Term) r.Term
+}
+
 type Storage[E metal.Entity] interface {
 	Create(ctx context.Context, e E) error
 	Update(ctx context.Context, new, old E) error
 	Upsert(ctx context.Context, e E) error
 	Delete(ctx context.Context, e E) error
 	Get(ctx context.Context, id string) (E, error)
-	Find(ctx context.Context, filter *r.Term) (E, error)
-	Search(ctx context.Context, filter *r.Term) ([]E, error)
+	Find(ctx context.Context, query EntityQuery) (E, error)
+	Search(ctx context.Context, query EntityQuery) ([]E, error)
 	List(ctx context.Context) ([]E, error)
 }
 
@@ -140,9 +144,9 @@ func (rs *rethinkStore[E]) Delete(ctx context.Context, e E) error {
 }
 
 // Find implements Storage.
-func (rs *rethinkStore[E]) Find(ctx context.Context, filter *r.Term) (E, error) {
+func (rs *rethinkStore[E]) Find(ctx context.Context, query EntityQuery) (E, error) {
 	var zero E
-	res, err := filter.Run(rs.queryExecutor, r.RunOpts{Context: ctx})
+	res, err := query.Query(rs.table).Run(rs.queryExecutor, r.RunOpts{Context: ctx})
 	if err != nil {
 		return zero, fmt.Errorf("cannot find %v in database: %w", rs.tableName, err)
 	}
@@ -166,8 +170,8 @@ func (rs *rethinkStore[E]) Find(ctx context.Context, filter *r.Term) (E, error) 
 	return *e, nil
 }
 
-func (rs *rethinkStore[E]) Search(ctx context.Context, filter *r.Term) ([]E, error) {
-	res, err := filter.Run(rs.queryExecutor, r.RunOpts{Context: ctx})
+func (rs *rethinkStore[E]) Search(ctx context.Context, query EntityQuery) ([]E, error) {
+	res, err := query.Query(rs.table).Run(rs.queryExecutor, r.RunOpts{Context: ctx})
 	if err != nil {
 		return nil, fmt.Errorf("cannot search %v in database: %w", rs.tableName, err)
 	}
