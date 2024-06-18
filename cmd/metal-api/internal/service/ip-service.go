@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/netip"
+	"strings"
 
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -421,6 +422,10 @@ func allocateSpecificIP(ctx context.Context, parent *metal.Network, specificIP s
 
 		ipAddress, err = ipamer.AllocateSpecificIP(ctx, prefix, specificIP)
 		if err != nil && errors.Is(err, goipam.ErrAlreadyAllocated) {
+			return "", "", metal.Conflict("ip already allocated")
+		}
+		// This is actually the most simple solution because with grpc we cannot get the underlying error type.
+		if err != nil && strings.Contains(strings.ToLower(err.Error()), strings.ToLower(goipam.ErrAlreadyAllocated.Error())) {
 			return "", "", metal.Conflict("ip already allocated")
 		}
 		if err != nil {

@@ -232,6 +232,19 @@ func TestAllocateIP(t *testing.T) {
 			wantedIP:     "10.0.0.5",
 		},
 		{
+			name: "allocate a specific ip which is already allocated",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+				},
+			},
+			specificIP:   "10.0.0.5",
+			wantedStatus: http.StatusConflict,
+			wantErr:      errors.New("Conflict ip already allocated"),
+		},
+		{
 			name: "allocate a static specific ip outside prefix",
 			allocateRequest: v1.IPAllocateRequest{
 				Describable: v1.Describable{},
