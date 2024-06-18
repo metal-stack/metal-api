@@ -571,7 +571,10 @@ func (r *switchResource) replaceSwitch(old, new *metal.Switch) error {
 		if err != nil {
 			return err
 		}
-		r.adjustMachineConnections(s, nicMap)
+		err = r.adjustMachineConnections(old.MachineConnections, nicMap)
+		if err != nil {
+			return err
+		}
 	}
 
 	return r.ds.UpdateSwitch(old, s)
@@ -725,40 +728,57 @@ func adoptMachineConnections(twin, newSwitch *metal.Switch, changeOS bool) (meta
 }
 
 // adjustMachineConnections updates the neighbor entries for all machines connected to the switch
-func (r *switchResource) adjustMachineConnections(sw *metal.Switch, nicMap metal.NicMap) error {
-	for mid := range sw.MachineConnections {
+func (r *switchResource) adjustMachineConnections(oldConnections metal.ConnectionMap, nicMap metal.NicMap) error {
+	for mid, cons := range oldConnections {
 		m, err := r.ds.FindMachineByID(mid)
 		if err != nil {
 			return err
 		}
-
-		newNics := make([]metal.Nic, 0)
-		for _, nic := range m.Hardware.Nics {
-			newNic := nic
-			newNeighbors := make([]metal.Nic, 0)
-			for _, neigh := range nic.Neighbors {
-				if neigh.Hostname == sw.ID {
-					n, ok := nicMap[neigh.Name]
-					if !ok {
-						return fmt.Errorf("unable to find corresponding new neighbor nic")
-					}
-					newNeighbors = append(newNeighbors, *n)
-				} else {
-					newNeighbors = append(newNeighbors, neigh)
-				}
-			}
-			newNic.Neighbors = newNeighbors
-			newNics = append(newNics, newNic)
+		newNics, err := adjustMachineNics(m.Hardware.Nics, cons, nicMap)
+		if err != nil {
+			return err
 		}
 		newMachine := *m
 		newMachine.Hardware.Nics = newNics
-
 		err = r.ds.UpdateMachine(m, &newMachine)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func adjustMachineNics(nics metal.Nics, connections metal.Connections, nicMap metal.NicMap) (metal.Nics, error) {
+	newNics := make(metal.Nics, 0)
+
+	for _, nic := range nics {
+		newNic := nic
+		newNeighbors := make([]metal.Nic, 0)
+		for _, neigh := range nic.Neighbors {
+			if nicInConnections(neigh.Name, neigh.MacAddress, connections) {
+				n, ok := nicMap[neigh.Name]
+				if !ok {
+					return nil, fmt.Errorf("unable to find corresponding new neighbor nic")
+				}
+				newNeighbors = append(newNeighbors, *n)
+			} else {
+				newNeighbors = append(newNeighbors, neigh)
+			}
+		}
+		newNic.Neighbors = newNeighbors
+		newNics = append(newNics, newNic)
+	}
+
+	return newNics, nil
+}
+
+func nicInConnections(name string, mac metal.MacAddress, connections metal.Connections) bool {
+	for _, con := range connections {
+		if con.Nic.Name == name && con.Nic.MacAddress == mac {
+			return true
+		}
+	}
+	return false
 }
 
 func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections metal.ConnectionMap) (metal.Nics, error) {

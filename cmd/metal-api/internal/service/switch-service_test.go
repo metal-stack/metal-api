@@ -611,6 +611,9 @@ func Test_adoptFromTwin(t *testing.T) {
 			name: "adopt machine connections and nic configuration from twin",
 			args: args{
 				old: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					Mode: metal.SwitchReplace,
 				},
 				twin: &metal.Switch{
@@ -805,6 +808,9 @@ func Test_adoptFromTwin(t *testing.T) {
 			name: "adopt machine connections and nic configuration from twin with different switch os",
 			args: args{
 				old: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					Mode: metal.SwitchReplace,
 				},
 				twin: &metal.Switch{
@@ -1690,4 +1696,186 @@ func TestToggleSwitchNicWithoutMachine(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, result.Message, fmt.Sprintf("switch %q does not have a connected machine at port %q", testdata.Switch1.ID, testdata.Switch1.Nics[1].Name))
+}
+
+func Test_adjustNics(t *testing.T) {
+	tests := []struct {
+		name        string
+		nics        metal.Nics
+		connections metal.Connections
+		nicMap      metal.NicMap
+		want        metal.Nics
+		wantErr     bool
+	}{
+		{
+			name: "nothing to adjust",
+			nics: []metal.Nic{
+				{
+					Name:       "eth0",
+					MacAddress: "11:11:11:11:11:11",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:aa",
+						},
+					},
+				},
+				{
+					Name:       "eth1",
+					MacAddress: "11:11:11:11:11:22",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:bb",
+						},
+					},
+				},
+			},
+			connections: []metal.Connection{
+				{
+					Nic: metal.Nic{
+						Name:       "swp1",
+						MacAddress: "cc:cc:cc:cc:cc:cc",
+					},
+				},
+			},
+			want: []metal.Nic{
+				{
+					Name:       "eth0",
+					MacAddress: "11:11:11:11:11:11",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:aa",
+						},
+					},
+				},
+				{
+					Name:       "eth1",
+					MacAddress: "11:11:11:11:11:22",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:bb",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "unrealistic error case",
+			nics: []metal.Nic{
+				{
+					Name:       "eth0",
+					MacAddress: "11:11:11:11:11:11",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:aa",
+						},
+					},
+				},
+				{
+					Name:       "eth1",
+					MacAddress: "11:11:11:11:11:22",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:bb",
+						},
+					},
+				},
+			},
+			connections: []metal.Connection{
+				{
+					Nic: metal.Nic{
+						Name:       "swp1",
+						MacAddress: "aa:aa:aa:aa:aa:aa",
+					},
+				},
+			},
+			nicMap: map[string]*metal.Nic{
+				"swp0": {
+					Name:       "Ethernet0",
+					MacAddress: "dd:dd:dd:dd:dd:dd",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "adjust nics from cumulus to sonic",
+			nics: []metal.Nic{
+				{
+					Name:       "eth0",
+					MacAddress: "11:11:11:11:11:11",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:aa",
+						},
+					},
+				},
+				{
+					Name:       "eth1",
+					MacAddress: "11:11:11:11:11:22",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:bb",
+						},
+					},
+				},
+			},
+			connections: []metal.Connection{
+				{
+					Nic: metal.Nic{
+						Name:       "swp1",
+						MacAddress: "aa:aa:aa:aa:aa:aa",
+					},
+				},
+			},
+			nicMap: map[string]*metal.Nic{
+				"swp1": {
+					Name:       "Ethernet4",
+					MacAddress: "dd:dd:dd:dd:dd:dd",
+				},
+			},
+			want: []metal.Nic{
+				{
+					Name:       "eth0",
+					MacAddress: "11:11:11:11:11:11",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "Ethernet4",
+							MacAddress: "dd:dd:dd:dd:dd:dd",
+						},
+					},
+				},
+				{
+					Name:       "eth1",
+					MacAddress: "11:11:11:11:11:22",
+					Neighbors: []metal.Nic{
+						{
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:bb",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := adjustMachineNics(tt.nics, tt.connections, tt.nicMap)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("adjustMachineNics() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("adjustMachineNics() diff = %v", diff)
+			}
+		})
+	}
 }
