@@ -27,120 +27,11 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-type testService struct {
-	partitionService *restful.WebService
-	switchService    *restful.WebService
-	machineService   *restful.WebService
-	ds               *datastore.RethinkStore
-	ctx              context.Context
-	rethinkContainer testcontainers.Container
-}
-
-func (ts *testService) terminate() {
-	_ = ts.rethinkContainer.Terminate(ts.ctx)
-}
-
-func createTestService(t *testing.T) testService {
-	ipamer := ipam.InitTestIpam(t)
-	rethinkContainer, c, err := test.StartRethink(t)
-	require.NoError(t, err)
-
-	log := slog.Default()
-	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
-	ds.VRFPoolRangeMax = 1000
-	ds.ASNPoolRangeMax = 1000
-
-	err = ds.Connect()
-	require.NoError(t, err)
-	err = ds.Initialize()
-	require.NoError(t, err)
-
-	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
-		Meta: &mdmv1.Meta{
-			Id: "test-project-1",
-		},
-	}}, nil)
-	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
-		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
-	}}, nil)
-	mdc := mdm.NewMock(psc, nil, nil, nil)
-
-	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
-	usergetter := security.NewCreds(security.WithHMAC(hma))
-	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
-	require.NoError(t, err)
-	switchService := NewSwitch(log, ds)
-	require.NoError(t, err)
-	partitionService := NewPartition(log, ds, &emptyPublisher{})
-	require.NoError(t, err)
-
-	ts := testService{
-		partitionService: partitionService,
-		switchService:    switchService,
-		machineService:   machineService,
-		ds:               ds,
-		ctx:              context.TODO(),
-		rethinkContainer: rethinkContainer,
-	}
-	return ts
-}
-
-func (ts *testService) partitionCreate(t *testing.T, icr v1.PartitionCreateRequest, response interface{}) int {
-	return webRequestPut(t, ts.partitionService, &testUserDirectory.admin, icr, "/v1/partition/", response)
-}
-
-func (ts *testService) switchRegister(t *testing.T, srr v1.SwitchRegisterRequest, response interface{}) int {
-	return webRequestPost(t, ts.switchService, &testUserDirectory.admin, srr, "/v1/switch/register", response)
-}
-
-func (ts *testService) switchGet(t *testing.T, swid string, response interface{}) int {
-	return webRequestGet(t, ts.switchService, &testUserDirectory.admin, emptyBody{}, "/v1/switch/"+swid, response)
-}
-
-func (ts *testService) switchUpdate(t *testing.T, sur v1.SwitchUpdateRequest, response interface{}) int {
-	return webRequestPost(t, ts.switchService, &testUserDirectory.admin, sur, "/v1/switch/", response)
-}
-
-func (ts *testService) machineGet(t *testing.T, mid string, response interface{}) int {
-	return webRequestGet(t, ts.machineService, &testUserDirectory.admin, emptyBody{}, "/v1/machine/"+mid, response)
-}
-
 func TestSwitchReplacementIntegration(t *testing.T) {
 	ts := createTestService(t)
 	defer ts.terminate()
 
-	// create partition
-	partitionName := "test-partition"
-	partitionDesc := "Test Partition"
-
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "I am a downloadable content")
-	}))
-	defer s.Close()
-
-	downloadableFile := s.URL
-	partition := v1.PartitionCreateRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: "test-partition",
-			},
-			Describable: v1.Describable{
-				Name:        &partitionName,
-				Description: &partitionDesc,
-			},
-		},
-		PartitionBootConfiguration: v1.PartitionBootConfiguration{
-			ImageURL:  &downloadableFile,
-			KernelURL: &downloadableFile,
-		},
-	}
-	var createdPartition v1.PartitionResponse
-	status := ts.partitionCreate(t, partition, &createdPartition)
-	require.Equal(t, http.StatusCreated, status)
-	require.NotNil(t, createdPartition)
-	require.Equal(t, partition.Name, createdPartition.Name)
-	require.NotEmpty(t, createdPartition.ID)
+	ts.createPartition("test-partition", "Test Partition")
 
 	// register switches
 	var res v1.SwitchResponse
@@ -165,7 +56,7 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		},
 	}
 
-	status = ts.switchRegister(t, srr, &res)
+	status := ts.switchRegister(t, srr, &res)
 	require.Equal(t, http.StatusCreated, status)
 	require.NotNil(t, res)
 	require.Equal(t, srr.ID, res.ID)
@@ -373,4 +264,116 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 	require.Len(t, nic.Neighbors, 1)
 	require.Equal(t, "cc:cc:cc:cc:cc:cc", nic.Neighbors[0].MacAddress)
 	require.Equal(t, "Ethernet4", nic.Neighbors[0].Name)
+}
+
+type testService struct {
+	partitionService *restful.WebService
+	switchService    *restful.WebService
+	machineService   *restful.WebService
+	ds               *datastore.RethinkStore
+	rethinkContainer testcontainers.Container
+	ctx              context.Context
+	t                *testing.T
+}
+
+func (ts *testService) terminate() {
+	_ = ts.rethinkContainer.Terminate(ts.ctx)
+}
+
+func createTestService(t *testing.T) testService {
+	ipamer := ipam.InitTestIpam(t)
+	rethinkContainer, c, err := test.StartRethink(t)
+	require.NoError(t, err)
+
+	log := slog.Default()
+	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	ds.VRFPoolRangeMax = 1000
+	ds.ASNPoolRangeMax = 1000
+
+	err = ds.Connect()
+	require.NoError(t, err)
+	err = ds.Initialize()
+	require.NoError(t, err)
+
+	psc := &mdmv1mock.ProjectServiceClient{}
+	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
+		Meta: &mdmv1.Meta{
+			Id: "test-project-1",
+		},
+	}}, nil)
+	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
+	}}, nil)
+	mdc := mdm.NewMock(psc, nil, nil, nil)
+
+	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
+	usergetter := security.NewCreds(security.WithHMAC(hma))
+	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
+	require.NoError(t, err)
+	switchService := NewSwitch(log, ds)
+	require.NoError(t, err)
+	partitionService := NewPartition(log, ds, &emptyPublisher{})
+	require.NoError(t, err)
+
+	ts := testService{
+		partitionService: partitionService,
+		switchService:    switchService,
+		machineService:   machineService,
+		ds:               ds,
+		rethinkContainer: rethinkContainer,
+		ctx:              context.TODO(),
+		t:                t,
+	}
+	return ts
+}
+
+func (ts *testService) partitionCreate(t *testing.T, icr v1.PartitionCreateRequest, response interface{}) int {
+	return webRequestPut(t, ts.partitionService, &testUserDirectory.admin, icr, "/v1/partition/", response)
+}
+
+func (ts *testService) switchRegister(t *testing.T, srr v1.SwitchRegisterRequest, response interface{}) int {
+	return webRequestPost(t, ts.switchService, &testUserDirectory.admin, srr, "/v1/switch/register", response)
+}
+
+func (ts *testService) switchGet(t *testing.T, swid string, response interface{}) int {
+	return webRequestGet(t, ts.switchService, &testUserDirectory.admin, emptyBody{}, "/v1/switch/"+swid, response)
+}
+
+func (ts *testService) switchUpdate(t *testing.T, sur v1.SwitchUpdateRequest, response interface{}) int {
+	return webRequestPost(t, ts.switchService, &testUserDirectory.admin, sur, "/v1/switch/", response)
+}
+
+func (ts *testService) machineGet(t *testing.T, mid string, response interface{}) int {
+	return webRequestGet(t, ts.machineService, &testUserDirectory.admin, emptyBody{}, "/v1/machine/"+mid, response)
+}
+
+func (ts *testService) createPartition(name, description string) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "I am a downloadable content")
+	}))
+	defer s.Close()
+
+	downloadableFile := s.URL
+	partition := v1.PartitionCreateRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: "test-partition",
+			},
+			Describable: v1.Describable{
+				Name:        &partitionName,
+				Description: &partitionDesc,
+			},
+		},
+		PartitionBootConfiguration: v1.PartitionBootConfiguration{
+			ImageURL:  &downloadableFile,
+			KernelURL: &downloadableFile,
+		},
+	}
+	var createdPartition v1.PartitionResponse
+	status := ts.partitionCreate(t, partition, &createdPartition)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, createdPartition)
+	require.Equal(t, partition.Name, createdPartition.Name)
+	require.NotEmpty(t, createdPartition.ID)
+
 }
