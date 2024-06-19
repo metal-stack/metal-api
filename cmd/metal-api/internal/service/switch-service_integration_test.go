@@ -6,64 +6,228 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"testing"
-	"time"
 
+	"github.com/emicklei/go-restful/v3"
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
-	"github.com/stretchr/testify/assert"
+	"github.com/metal-stack/metal-api/test"
+	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/security"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"github.com/testcontainers/testcontainers-go"
 )
 
+type testService struct {
+	partitionService *restful.WebService
+	switchService    *restful.WebService
+	machineService   *restful.WebService
+	ds               *datastore.RethinkStore
+	ctx              context.Context
+	rethinkContainer testcontainers.Container
+}
+
+func (ts *testService) terminate() {
+	_ = ts.rethinkContainer.Terminate(ts.ctx)
+}
+
+func createTestService(t *testing.T) testService {
+	ipamer := ipam.InitTestIpam(t)
+	rethinkContainer, c, err := test.StartRethink(t)
+	require.NoError(t, err)
+
+	log := slog.Default()
+	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	ds.VRFPoolRangeMax = 1000
+	ds.ASNPoolRangeMax = 1000
+
+	err = ds.Connect()
+	require.NoError(t, err)
+	err = ds.Initialize()
+	require.NoError(t, err)
+
+	psc := &mdmv1mock.ProjectServiceClient{}
+	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
+		Meta: &mdmv1.Meta{
+			Id: "test-project-1",
+		},
+	}}, nil)
+	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
+	}}, nil)
+	mdc := mdm.NewMock(psc, nil, nil, nil)
+
+	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
+	usergetter := security.NewCreds(security.WithHMAC(hma))
+	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
+	require.NoError(t, err)
+	switchService := NewSwitch(log, ds)
+	require.NoError(t, err)
+	partitionService := NewPartition(log, ds, &emptyPublisher{})
+	require.NoError(t, err)
+
+	ts := testService{
+		partitionService: partitionService,
+		switchService:    switchService,
+		machineService:   machineService,
+		ds:               ds,
+		ctx:              context.TODO(),
+		rethinkContainer: rethinkContainer,
+	}
+	return ts
+}
+
+func (ts *testService) partitionCreate(t *testing.T, icr v1.PartitionCreateRequest, response interface{}) int {
+	return webRequestPut(t, ts.partitionService, &testUserDirectory.admin, icr, "/v1/partition/", response)
+}
+
+func (ts *testService) switchRegister(t *testing.T, srr v1.SwitchRegisterRequest, response interface{}) int {
+	return webRequestPost(t, ts.switchService, &testUserDirectory.admin, srr, "/v1/switch/register", response)
+}
+
+func (ts *testService) switchGet(t *testing.T, swid string, response interface{}) int {
+	return webRequestGet(t, ts.switchService, &testUserDirectory.admin, emptyBody{}, "/v1/switch/"+swid, response)
+}
+
+func (ts *testService) switchUpdate(t *testing.T, sur v1.SwitchUpdateRequest, response interface{}) int {
+	return webRequestPost(t, ts.switchService, &testUserDirectory.admin, sur, "/v1/switch/", response)
+}
+
+func (ts *testService) machineGet(t *testing.T, mid string, response interface{}) int {
+	return webRequestGet(t, ts.machineService, &testUserDirectory.admin, emptyBody{}, "/v1/machine/"+mid, response)
+}
+
 func TestSwitchReplacementIntegration(t *testing.T) {
-	te := createTestEnvironment(t)
-	defer te.teardown()
+	ts := createTestService(t)
+	defer ts.terminate()
 
-	mrr := &grpcv1.BootServiceRegisterRequest{
-		Uuid: "test-uuid",
-		Bios: &grpcv1.MachineBIOS{
-			Version: "a",
-			Vendor:  "metal",
-			Date:    "1970",
-		},
-		Hardware: &grpcv1.MachineHardware{
-			Cpus: []*grpcv1.MachineCPU{
-				{
-					Model:   "Intel Xeon Silver",
-					Cores:   8,
-					Threads: 8,
-				},
-			}, Memory: 1500,
-			Disks: []*grpcv1.MachineBlockDevice{
-				{
-					Name: "sda",
-					Size: 2500,
-				},
+	// create partition
+	partitionName := "test-partition"
+	partitionDesc := "Test Partition"
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "I am a downloadable content")
+	}))
+	defer s.Close()
+
+	downloadableFile := s.URL
+	partition := v1.PartitionCreateRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: "test-partition",
 			},
-			Nics: []*grpcv1.MachineNic{
+			Describable: v1.Describable{
+				Name:        &partitionName,
+				Description: &partitionDesc,
+			},
+		},
+		PartitionBootConfiguration: v1.PartitionBootConfiguration{
+			ImageURL:  &downloadableFile,
+			KernelURL: &downloadableFile,
+		},
+	}
+	var createdPartition v1.PartitionResponse
+	status := ts.partitionCreate(t, partition, &createdPartition)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, createdPartition)
+	require.Equal(t, partition.Name, createdPartition.Name)
+	require.NotEmpty(t, createdPartition.ID)
+
+	// register switches
+	var res v1.SwitchResponse
+	srr := v1.SwitchRegisterRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: "test-switch01",
+			},
+		},
+		Nics: []v1.SwitchNic{
+			{
+				MacAddress: "aa:aa:aa:aa:aa:aa",
+				Name:       "swp1",
+			},
+		},
+		PartitionID: "test-partition",
+		SwitchBase: v1.SwitchBase{
+			RackID: "test-rack",
+			OS: &v1.SwitchOS{
+				Vendor: metal.SwitchOSVendorCumulus,
+			},
+		},
+	}
+
+	status = ts.switchRegister(t, srr, &res)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, res)
+	require.Equal(t, srr.ID, res.ID)
+	require.Len(t, res.Nics, 1)
+	require.Equal(t, srr.Nics[0].Name, res.Nics[0].Name)
+	require.Equal(t, srr.Nics[0].MacAddress, res.Nics[0].MacAddress)
+
+	srr = v1.SwitchRegisterRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: "test-switch02",
+			},
+		},
+		Nics: []v1.SwitchNic{
+			{
+				MacAddress: "bb:bb:bb:bb:bb:bb",
+				Name:       "swp1",
+			},
+		},
+		PartitionID: "test-partition",
+		SwitchBase: v1.SwitchBase{
+			RackID: "test-rack",
+			OS: &v1.SwitchOS{
+				Vendor: metal.SwitchOSVendorCumulus,
+			},
+		},
+	}
+
+	status = ts.switchRegister(t, srr, &res)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, res)
+	require.Equal(t, srr.ID, res.ID)
+	require.Len(t, res.Nics, 1)
+	require.Equal(t, srr.Nics[0].Name, res.Nics[0].Name)
+	require.Equal(t, srr.Nics[0].MacAddress, res.Nics[0].MacAddress)
+
+	// create machine
+	m := metal.Machine{
+		Base: metal.Base{
+			ID: "test-machine",
+		},
+		PartitionID: "test-partition",
+		RackID:      "test-rack",
+		Hardware: metal.MachineHardware{
+			Nics: []metal.Nic{
 				{
-					Name: "eth0",
-					Mac:  "aa:aa:aa:aa:aa:aa",
-					Neighbors: []*grpcv1.MachineNic{
+					Name:       "eth0",
+					MacAddress: "11:11:11:11:11:11",
+					Neighbors: []metal.Nic{
 						{
-							Name:     "swp1",
-							Mac:      "bb:aa:aa:aa:aa:aa",
-							Hostname: "test-switch01",
+							Name:       "swp1",
+							MacAddress: "aa:aa:aa:aa:aa:aa",
 						},
 					},
 				},
 				{
-					Name: "eth1",
-					Mac:  "aa:aa:aa:aa:aa:aa",
-					Neighbors: []*grpcv1.MachineNic{
+					Name:       "eth1",
+					MacAddress: "22:22:22:22:22:22",
+					Neighbors: []metal.Nic{
 						{
-							Name:     "swp1",
-							Mac:      "aa:bb:aa:aa:aa:aa",
-							Hostname: "test-switch02",
+							Name:       "swp1",
+							MacAddress: "bb:bb:bb:bb:bb:bb",
 						},
 					},
 				},
@@ -71,26 +235,18 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		},
 	}
 
-	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	port := 50005
-	conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
+	err := ts.ds.CreateMachine(&m)
+	require.NoError(t, err)
+	err = ts.ds.ConnectMachineWithSwitches(&m)
 	require.NoError(t, err)
 
-	c := grpcv1.NewBootServiceClient(conn)
-
-	registeredMachine, err := c.Register(ctx, mrr)
+	err = ts.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
+		Base:       metal.Base{ID: m.ID},
+		Liveliness: metal.MachineLivelinessAlive,
+	})
 	require.NoError(t, err)
-	require.NotNil(t, registeredMachine)
-	assert.Len(t, mrr.Hardware.Nics, 2)
 
 	// replace first switch
-
 	sur := v1.SwitchUpdateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
@@ -102,12 +258,11 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		},
 	}
 
-	var res v1.SwitchResponse
-	status := te.switchUpdate(t, sur, &res)
+	status = ts.switchUpdate(t, sur, &res)
 	require.Equal(t, http.StatusOK, status)
 	require.Equal(t, string(metal.SwitchReplace), res.SwitchBase.Mode)
 
-	srr := v1.SwitchRegisterRequest{
+	srr = v1.SwitchRegisterRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
 				ID: "test-switch01",
@@ -115,7 +270,7 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		},
 		Nics: []v1.SwitchNic{
 			{
-				MacAddress: "aa:aa:bb:aa:aa:aa",
+				MacAddress: "dd:dd:dd:dd:dd:dd",
 				Name:       "Ethernet4",
 			},
 		},
@@ -126,22 +281,22 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		},
 	}
 
-	status = te.switchRegister(t, srr, &res)
+	status = ts.switchRegister(t, srr, &res)
 	require.Equal(t, http.StatusOK, status)
 
-	status = te.switchGet(t, "test-switch01", &res)
+	status = ts.switchGet(t, "test-switch01", &res)
 	require.Equal(t, http.StatusOK, status)
 	require.Len(t, res.Nics, 1)
 	require.Equal(t, srr.Nics[0].Name, res.Nics[0].Name)
 	require.Equal(t, srr.Nics[0].MacAddress, res.Nics[0].MacAddress)
 	require.Equal(t, string(metal.SwitchOperational), res.Mode)
 	require.Len(t, res.Connections, 1)
-	require.Equal(t, "test-uuid", res.Connections[0].MachineID)
+	require.Equal(t, "test-machine", res.Connections[0].MachineID)
 	require.Equal(t, "Ethernet4", res.Connections[0].Nic.Name)
-	require.Equal(t, "aa:aa:bb:aa:aa:aa", res.Connections[0].Nic.MacAddress)
+	require.Equal(t, "dd:dd:dd:dd:dd:dd", res.Connections[0].Nic.MacAddress)
 
 	var mres v1.MachineResponse
-	status = te.machineGet(t, mrr.Uuid, &mres)
+	status = ts.machineGet(t, m.ID, &mres)
 	require.Equal(t, http.StatusOK, status)
 	require.Len(t, mres.Hardware.Nics, 2)
 
@@ -153,11 +308,10 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 	}
 	require.Equal(t, "eth0", nic.Name)
 	require.Len(t, nic.Neighbors, 1)
-	require.Equal(t, "aa:aa:bb:aa:aa:aa", nic.Neighbors[0].MacAddress)
+	require.Equal(t, "dd:dd:dd:dd:dd:dd", nic.Neighbors[0].MacAddress)
 	require.Equal(t, "Ethernet4", nic.Neighbors[0].Name)
 
 	// replace second switch
-
 	sur = v1.SwitchUpdateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
@@ -169,7 +323,7 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		},
 	}
 
-	status = te.switchUpdate(t, sur, &res)
+	status = ts.switchUpdate(t, sur, &res)
 	require.Equal(t, http.StatusOK, status)
 	require.Equal(t, string(metal.SwitchReplace), res.SwitchBase.Mode)
 
@@ -181,7 +335,7 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		},
 		Nics: []v1.SwitchNic{
 			{
-				MacAddress: "aa:aa:aa:bb:aa:aa",
+				MacAddress: "cc:cc:cc:cc:cc:cc",
 				Name:       "Ethernet4",
 			},
 		},
@@ -192,21 +346,21 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		},
 	}
 
-	status = te.switchRegister(t, srr, &res)
+	status = ts.switchRegister(t, srr, &res)
 	require.Equal(t, http.StatusOK, status)
 
-	status = te.switchGet(t, "test-switch02", &res)
+	status = ts.switchGet(t, "test-switch02", &res)
 	require.Equal(t, http.StatusOK, status)
 	require.Len(t, res.Nics, 1)
 	require.Equal(t, srr.Nics[0].Name, res.Nics[0].Name)
 	require.Equal(t, srr.Nics[0].MacAddress, res.Nics[0].MacAddress)
 	require.Equal(t, string(metal.SwitchOperational), res.Mode)
 	require.Len(t, res.Connections, 1)
-	require.Equal(t, mrr.Uuid, res.Connections[0].MachineID)
+	require.Equal(t, m.ID, res.Connections[0].MachineID)
 	require.Equal(t, "Ethernet4", res.Connections[0].Nic.Name)
-	require.Equal(t, "aa:aa:aa:bb:aa:aa", res.Connections[0].Nic.MacAddress)
+	require.Equal(t, "cc:cc:cc:cc:cc:cc", res.Connections[0].Nic.MacAddress)
 
-	status = te.machineGet(t, mrr.Uuid, &mres)
+	status = ts.machineGet(t, m.ID, &mres)
 	require.Equal(t, http.StatusOK, status)
 	require.Len(t, mres.Hardware.Nics, 2)
 
@@ -217,6 +371,6 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 	}
 	require.Equal(t, "eth1", nic.Name)
 	require.Len(t, nic.Neighbors, 1)
-	require.Equal(t, "aa:aa:aa:bb:aa:aa", nic.Neighbors[0].MacAddress)
+	require.Equal(t, "cc:cc:cc:cc:cc:cc", nic.Neighbors[0].MacAddress)
 	require.Equal(t, "Ethernet4", nic.Neighbors[0].Name)
 }
