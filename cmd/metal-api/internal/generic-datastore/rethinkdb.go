@@ -13,42 +13,61 @@ import (
 
 const entityAlreadyModifiedErrorMessage = "the entity was changed from another, please retry"
 
-type EntityQuery interface {
-	Query(q r.Term) r.Term
-}
+type (
+	// Entity is an interface that allows metal entities to be created and stored
+	// into the database with the generic creation and update functions.
+	Entity interface {
+		// GetID returns the entity's id
+		GetID() string
+		// SetID sets the entity's id
+		SetID(id string)
+		// GetChanged returns the entity's changed time
+		GetChanged() time.Time
+		// SetChanged sets the entity's changed time
+		SetChanged(changed time.Time)
+		// GetCreated sets the entity's creation time
+		GetCreated() time.Time
+		// SetCreated sets the entity's creation time
+		SetCreated(created time.Time)
+	}
 
-type Storage[E metal.Entity] interface {
-	Create(ctx context.Context, e E) error
-	Update(ctx context.Context, new, old E) error
-	Upsert(ctx context.Context, e E) error
-	Delete(ctx context.Context, e E) error
-	Get(ctx context.Context, id string) (E, error)
-	Find(ctx context.Context, query EntityQuery) (E, error)
-	Search(ctx context.Context, query EntityQuery) ([]E, error)
-	List(ctx context.Context) ([]E, error)
-}
+	EntityQuery interface {
+		Query(q r.Term) *r.Term
+	}
 
-type rethinkStore[E metal.Entity] struct {
-	log           *slog.Logger
-	queryExecutor r.QueryExecutor
-	dbname        string
-	table         r.Term
-	tableName     string
-}
+	Storage[E Entity] interface {
+		Create(ctx context.Context, e E) error
+		Update(ctx context.Context, new, old E) error
+		Upsert(ctx context.Context, e E) error
+		Delete(ctx context.Context, e E) error
+		Get(ctx context.Context, id string) (E, error)
+		Find(ctx context.Context, query EntityQuery) (E, error)
+		Search(ctx context.Context, query EntityQuery) ([]E, error)
+		List(ctx context.Context) ([]E, error)
+	}
 
-type Datastore struct {
-	event               Storage[*metal.ProvisioningEventContainer]
-	filesystemlayout    Storage[*metal.FilesystemLayout]
-	image               Storage[*metal.Image]
-	ip                  Storage[*metal.IP]
-	machine             Storage[*metal.Machine]
-	network             Storage[*metal.Network]
-	partition           Storage[*metal.Partition]
-	size                Storage[*metal.Size]
-	sizeimageConstraint Storage[*metal.SizeImageConstraint]
-	sw                  Storage[*metal.Switch]
-	switchStatus        Storage[*metal.SwitchStatus]
-}
+	Datastore struct {
+		event               Storage[*metal.ProvisioningEventContainer]
+		filesystemlayout    Storage[*metal.FilesystemLayout]
+		image               Storage[*metal.Image]
+		ip                  Storage[*metal.IP]
+		machine             Storage[*metal.Machine]
+		network             Storage[*metal.Network]
+		partition           Storage[*metal.Partition]
+		size                Storage[*metal.Size]
+		sizeimageConstraint Storage[*metal.SizeImageConstraint]
+		sw                  Storage[*metal.Switch]
+		switchStatus        Storage[*metal.SwitchStatus]
+	}
+
+	rethinkStore[E Entity] struct {
+		log           *slog.Logger
+		queryExecutor r.QueryExecutor
+		dbname        string
+		table         r.Term
+		tableName     string
+	}
+)
 
 func New(log *slog.Logger, dbname string, queryExecutor r.QueryExecutor) *Datastore {
 	return &Datastore{
@@ -102,7 +121,7 @@ func (d *Datastore) SwitchStatus() Storage[*metal.SwitchStatus] {
 }
 
 // newStorage creates a new Storage which uses the given database abstraction.
-func newStorage[E metal.Entity](log *slog.Logger, dbname, tableName string, queryExecutor r.QueryExecutor) Storage[E] {
+func newStorage[E Entity](log *slog.Logger, dbname, tableName string, queryExecutor r.QueryExecutor) Storage[E] {
 	ds := &rethinkStore[E]{
 		log:           log,
 		queryExecutor: queryExecutor,
