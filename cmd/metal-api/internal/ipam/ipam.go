@@ -2,6 +2,7 @@ package ipam
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -133,6 +134,12 @@ func (i *ipam) ReleaseIP(ctx context.Context, ip metal.IP) error {
 		PrefixCidr: ip.ParentPrefixCidr,
 		Ip:         ip.IPAddress,
 	}))
+	var connectErr *connect.Error
+	if errors.As(err, &connectErr) {
+		if connectErr.Code() == connect.CodeNotFound {
+			return metal.NotFound("ip not found")
+		}
+	}
 	if err != nil {
 		return fmt.Errorf("error release ip %s in prefix %s: %w", ip.IPAddress, ip.ParentPrefixCidr, err)
 	}

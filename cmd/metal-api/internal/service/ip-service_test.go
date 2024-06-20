@@ -138,7 +138,7 @@ func TestDeleteIP(t *testing.T) {
 		{
 			name:         "free an cluster-ip should fail",
 			ip:           testdata.IP2.IPAddress,
-			wantedStatus: http.StatusUnprocessableEntity,
+			wantedStatus: http.StatusNotFound,
 		},
 	}
 	for i := range tests {

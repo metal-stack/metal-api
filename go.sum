@@ -31,8 +31,8 @@ github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3d
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/avast/retry-go/v4 v4.6.0 h1:K9xNA+KeB8HHc2aWFuLb25Offp+0iVRXEvFx8IinRJA=
 github.com/avast/retry-go/v4 v4.6.0/go.mod h1:gvWlPhBVsvBbLkVGDg/KwvBv0bEkCOLRRSHKIr2PyOE=
-github.com/aws/aws-sdk-go v1.54.3 h1:Bk+EXoq6v5I1xmHR9GQGpsMWZZFXs+FD+5uPyEmfgX0=
-github.com/aws/aws-sdk-go v1.54.3/go.mod h1:eRwEWoyTWFMVYVQzKMNHWP5/RV4xIUGMQfXQHfHkpNU=
+github.com/aws/aws-sdk-go v1.54.5 h1:uOYrME3NWf7/J7orDdhZbF8IQCNkE7OZHATdzWS0ok0=
+github.com/aws/aws-sdk-go v1.54.5/go.mod h1:eRwEWoyTWFMVYVQzKMNHWP5/RV4xIUGMQfXQHfHkpNU=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
@@ -295,10 +295,10 @@ github.com/mdlayher/socket v0.5.1 h1:VZaqt6RkGkt2OE9l3GcC6nZkqD3xKeQLyfleW/uBcos
 github.com/mdlayher/socket v0.5.1/go.mod h1:TjPLHI1UgwEv5J1B5q0zTZq12A/6H7nKmtTanQE37IQ=
 github.com/meilisearch/meilisearch-go v0.26.3 h1:EYt+C1n7IvjKzgXM3xqce5iJzNBq33F7ayZOKx96TKY=
 github.com/meilisearch/meilisearch-go v0.26.3/go.mod h1:SxuSqDcPBIykjWz1PX+KzsYzArNLSCadQodWs8extS0=
-github.com/metal-stack/go-ipam v1.14.0 h1:rz2sJkDt+ugzrT6JylD+NfCN/f6eZuG+WVqbcxNIglM=
-github.com/metal-stack/go-ipam v1.14.0/go.mod h1:zwqaFJWzMs3iMY5v0+h9UeTAq6MHqAzPNnkKxNpwCqY=
-github.com/metal-stack/masterdata-api v0.11.3 h1:sWD7nEII4/4U6LnwK6F9jaYO8fPf21OLno+MXcgEjvQ=
-github.com/metal-stack/masterdata-api v0.11.3/go.mod h1:a97Bj57mgqr8llkLQWTLkKYcq6u8gWa88SUH0yxx7M8=
+github.com/metal-stack/go-ipam v1.14.1-0.20240620102049-09a62dc5333b h1:d2LTXRzHo15dTMlSdAGCiKT8vLC2U69zGZP3jK1hyvs=
+github.com/metal-stack/go-ipam v1.14.1-0.20240620102049-09a62dc5333b/go.mod h1:0KqCwF1nTB3SZGED+Z+bxdZwXQjP7CiLPcjGDLMKn3s=
+github.com/metal-stack/masterdata-api v0.11.4 h1:bgRk7PbD5BjYbmAReaV7gTKKKrW5x/ZzCwj98VSWoJk=
+github.com/metal-stack/masterdata-api v0.11.4/go.mod h1:fD0AtsoNNaOLqRMBeZzDFljiQW9RlrOnxeZ20Pqhxas=
 github.com/metal-stack/metal-lib v0.17.0 h1:0fCRUtYweJ5wbUwiEalFGiHkEz0mZwTWQUIIo3Npzkw=
 github.com/metal-stack/metal-lib v0.17.0/go.mod h1:nyNGI4DZFOcWbSoq2Y6V3SHpFxuXBIqYBZHTb6cy//s=
 github.com/metal-stack/security v0.8.0 h1:tVaSDB9m5clwYrnLyaXfPy7mQlJTnmeoHscG+RUy/xo=

@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.16.2
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/avast/retry-go/v4 v4.6.0
-	github.com/aws/aws-sdk-go v1.54.3
+	github.com/aws/aws-sdk-go v1.54.5
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/go-restful-openapi/v2 v2.10.2
 	github.com/emicklei/go-restful/v3 v3.12.1
@@ -18,8 +18,8 @@ require (
 	github.com/juanfont/headscale v0.22.3
 	github.com/klauspost/connect-compress/v2 v2.0.0
 	github.com/looplab/fsm v0.3.0
-	github.com/metal-stack/go-ipam v1.14.0
-	github.com/metal-stack/masterdata-api v0.11.3
+	github.com/metal-stack/go-ipam v1.14.1-0.20240620102049-09a62dc5333b
+	github.com/metal-stack/masterdata-api v0.11.4
 	github.com/metal-stack/metal-lib v0.17.0
 	github.com/metal-stack/security v0.8.0
 	github.com/metal-stack/v v1.0.3
