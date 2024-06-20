@@ -31,75 +31,50 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 	ts := createTestService(t)
 	defer ts.terminate()
 
-	ts.createPartition("test-partition", "Test Partition")
+	testPartitionID := "test-partition"
+	testRackID := "test-rack"
+	ts.createPartition(testPartitionID, testPartitionID, "Test Partition")
 
-	// register switches
-	var res v1.SwitchResponse
-	srr := v1.SwitchRegisterRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: "test-switch01",
-			},
+	cumulus1 := metal.Switch{
+		Base: metal.Base{
+			ID:   "test-switch01",
+			Name: "",
 		},
-		Nics: []v1.SwitchNic{
+		Nics: []metal.Nic{
 			{
 				MacAddress: "aa:aa:aa:aa:aa:aa",
 				Name:       "swp1",
 			},
 		},
-		PartitionID: "test-partition",
-		SwitchBase: v1.SwitchBase{
-			RackID: "test-rack",
-			OS: &v1.SwitchOS{
-				Vendor: metal.SwitchOSVendorCumulus,
-			},
-		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
+	ts.registerSwitch(cumulus1, true)
 
-	status := ts.switchRegister(t, srr, &res)
-	require.Equal(t, http.StatusCreated, status)
-	require.NotNil(t, res)
-	require.Equal(t, srr.ID, res.ID)
-	require.Len(t, res.Nics, 1)
-	require.Equal(t, srr.Nics[0].Name, res.Nics[0].Name)
-	require.Equal(t, srr.Nics[0].MacAddress, res.Nics[0].MacAddress)
-
-	srr = v1.SwitchRegisterRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: "test-switch02",
-			},
+	cumulus2 := metal.Switch{
+		Base: metal.Base{
+			ID:   "test-switch02",
+			Name: "",
 		},
-		Nics: []v1.SwitchNic{
+		Nics: []metal.Nic{
 			{
 				MacAddress: "bb:bb:bb:bb:bb:bb",
 				Name:       "swp1",
 			},
 		},
-		PartitionID: "test-partition",
-		SwitchBase: v1.SwitchBase{
-			RackID: "test-rack",
-			OS: &v1.SwitchOS{
-				Vendor: metal.SwitchOSVendorCumulus,
-			},
-		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
+	ts.registerSwitch(cumulus2, true)
 
-	status = ts.switchRegister(t, srr, &res)
-	require.Equal(t, http.StatusCreated, status)
-	require.NotNil(t, res)
-	require.Equal(t, srr.ID, res.ID)
-	require.Len(t, res.Nics, 1)
-	require.Equal(t, srr.Nics[0].Name, res.Nics[0].Name)
-	require.Equal(t, srr.Nics[0].MacAddress, res.Nics[0].MacAddress)
-
-	// create machine
-	m := metal.Machine{
+	m := &metal.Machine{
 		Base: metal.Base{
 			ID: "test-machine",
 		},
-		PartitionID: "test-partition",
-		RackID:      "test-rack",
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
 		Hardware: metal.MachineHardware{
 			Nics: []metal.Nic{
 				{
@@ -107,8 +82,8 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 					MacAddress: "11:11:11:11:11:11",
 					Neighbors: []metal.Nic{
 						{
-							Name:       "swp1",
-							MacAddress: "aa:aa:aa:aa:aa:aa",
+							Name:       cumulus1.Nics[0].Name,
+							MacAddress: cumulus1.Nics[0].MacAddress,
 						},
 					},
 				},
@@ -117,153 +92,117 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 					MacAddress: "22:22:22:22:22:22",
 					Neighbors: []metal.Nic{
 						{
-							Name:       "swp1",
-							MacAddress: "bb:bb:bb:bb:bb:bb",
+							Name:       cumulus2.Nics[0].Name,
+							MacAddress: cumulus2.Nics[0].MacAddress,
 						},
 					},
 				},
 			},
 		},
 	}
+	ts.createMachine(m)
 
-	err := ts.ds.CreateMachine(&m)
-	require.NoError(t, err)
-	err = ts.ds.ConnectMachineWithSwitches(&m)
-	require.NoError(t, err)
-
-	err = ts.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
-		Base:       metal.Base{ID: m.ID},
-		Liveliness: metal.MachineLivelinessAlive,
-	})
-	require.NoError(t, err)
-
-	// replace first switch
-	sur := v1.SwitchUpdateRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: "test-switch01",
-			},
+	sonic1 := metal.Switch{
+		Base: metal.Base{
+			ID: cumulus1.ID,
 		},
-		SwitchBase: v1.SwitchBase{
-			Mode: string(metal.SwitchReplace),
-		},
-	}
-
-	status = ts.switchUpdate(t, sur, &res)
-	require.Equal(t, http.StatusOK, status)
-	require.Equal(t, string(metal.SwitchReplace), res.SwitchBase.Mode)
-
-	srr = v1.SwitchRegisterRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: "test-switch01",
-			},
-		},
-		Nics: []v1.SwitchNic{
-			{
-				MacAddress: "dd:dd:dd:dd:dd:dd",
-				Name:       "Ethernet4",
-			},
-		},
-		PartitionID: "test-partition",
-		SwitchBase: v1.SwitchBase{
-			RackID: "test-rack",
-			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
-		},
-	}
-
-	status = ts.switchRegister(t, srr, &res)
-	require.Equal(t, http.StatusOK, status)
-
-	status = ts.switchGet(t, "test-switch01", &res)
-	require.Equal(t, http.StatusOK, status)
-	require.Len(t, res.Nics, 1)
-	require.Equal(t, srr.Nics[0].Name, res.Nics[0].Name)
-	require.Equal(t, srr.Nics[0].MacAddress, res.Nics[0].MacAddress)
-	require.Equal(t, string(metal.SwitchOperational), res.Mode)
-	require.Len(t, res.Connections, 1)
-	require.Equal(t, "test-machine", res.Connections[0].MachineID)
-	require.Equal(t, "Ethernet4", res.Connections[0].Nic.Name)
-	require.Equal(t, "dd:dd:dd:dd:dd:dd", res.Connections[0].Nic.MacAddress)
-
-	var mres v1.MachineResponse
-	status = ts.machineGet(t, m.ID, &mres)
-	require.Equal(t, http.StatusOK, status)
-	require.Len(t, mres.Hardware.Nics, 2)
-
-	var nic v1.MachineNic
-	for _, n := range mres.Hardware.Nics {
-		if n.Name == "eth0" {
-			nic = n
-		}
-	}
-	require.Equal(t, "eth0", nic.Name)
-	require.Len(t, nic.Neighbors, 1)
-	require.Equal(t, "dd:dd:dd:dd:dd:dd", nic.Neighbors[0].MacAddress)
-	require.Equal(t, "Ethernet4", nic.Neighbors[0].Name)
-
-	// replace second switch
-	sur = v1.SwitchUpdateRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: "test-switch02",
-			},
-		},
-		SwitchBase: v1.SwitchBase{
-			Mode: string(metal.SwitchReplace),
-		},
-	}
-
-	status = ts.switchUpdate(t, sur, &res)
-	require.Equal(t, http.StatusOK, status)
-	require.Equal(t, string(metal.SwitchReplace), res.SwitchBase.Mode)
-
-	srr = v1.SwitchRegisterRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: "test-switch02",
-			},
-		},
-		Nics: []v1.SwitchNic{
+		Nics: []metal.Nic{
 			{
 				MacAddress: "cc:cc:cc:cc:cc:cc",
 				Name:       "Ethernet4",
 			},
 		},
-		PartitionID: "test-partition",
-		SwitchBase: v1.SwitchBase{
-			RackID: "test-rack",
-			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
+	}
+	wantConnections := metal.ConnectionMap{
+		m.ID: metal.Connections{
+			{
+				Nic: metal.Nic{
+					Name:       sonic1.Nics[0].Name,
+					MacAddress: sonic1.Nics[0].MacAddress,
+				},
+				MachineID: m.ID,
+			},
 		},
 	}
+	ts.replaceSwitch(sonic1, wantConnections)
 
-	status = ts.switchRegister(t, srr, &res)
-	require.Equal(t, http.StatusOK, status)
-
-	status = ts.switchGet(t, "test-switch02", &res)
-	require.Equal(t, http.StatusOK, status)
-	require.Len(t, res.Nics, 1)
-	require.Equal(t, srr.Nics[0].Name, res.Nics[0].Name)
-	require.Equal(t, srr.Nics[0].MacAddress, res.Nics[0].MacAddress)
-	require.Equal(t, string(metal.SwitchOperational), res.Mode)
-	require.Len(t, res.Connections, 1)
-	require.Equal(t, m.ID, res.Connections[0].MachineID)
-	require.Equal(t, "Ethernet4", res.Connections[0].Nic.Name)
-	require.Equal(t, "cc:cc:cc:cc:cc:cc", res.Connections[0].Nic.MacAddress)
-
-	status = ts.machineGet(t, m.ID, &mres)
-	require.Equal(t, http.StatusOK, status)
-	require.Len(t, mres.Hardware.Nics, 2)
-
-	for _, n := range mres.Hardware.Nics {
-		if n.Name == "eth1" {
-			nic = n
-		}
+	wantMachineNics := metal.Nics{
+		{
+			Name:       m.Hardware.Nics[0].Name,
+			MacAddress: m.Hardware.Nics[0].MacAddress,
+			Neighbors: []metal.Nic{
+				{
+					Name:       sonic1.Nics[0].Name,
+					MacAddress: sonic1.Nics[0].MacAddress,
+				},
+			},
+		},
+		{
+			Name:       m.Hardware.Nics[1].Name,
+			MacAddress: m.Hardware.Nics[1].MacAddress,
+			Neighbors: []metal.Nic{
+				{
+					Name:       cumulus2.Nics[0].Name,
+					MacAddress: cumulus2.Nics[0].MacAddress,
+				},
+			},
+		},
 	}
-	require.Equal(t, "eth1", nic.Name)
-	require.Len(t, nic.Neighbors, 1)
-	require.Equal(t, "cc:cc:cc:cc:cc:cc", nic.Neighbors[0].MacAddress)
-	require.Equal(t, "Ethernet4", nic.Neighbors[0].Name)
+	ts.checkMachineNics(m.ID, wantMachineNics)
+
+	sonic2 := metal.Switch{
+		Base: metal.Base{
+			ID: cumulus2.ID,
+		},
+		Nics: []metal.Nic{
+			{
+				MacAddress: "dd:dd:dd:dd:dd:dd",
+				Name:       "Ethernet4",
+			},
+		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
+	}
+	wantConnections = metal.ConnectionMap{
+		m.ID: metal.Connections{
+			{
+				Nic: metal.Nic{
+					Name:       sonic2.Nics[0].Name,
+					MacAddress: sonic2.Nics[0].MacAddress,
+				},
+				MachineID: m.ID,
+			},
+		},
+	}
+	ts.replaceSwitch(sonic2, wantConnections)
+
+	wantMachineNics = metal.Nics{
+		{
+			Name:       m.Hardware.Nics[0].Name,
+			MacAddress: m.Hardware.Nics[0].MacAddress,
+			Neighbors: []metal.Nic{
+				{
+					Name:       sonic1.Nics[0].Name,
+					MacAddress: sonic1.Nics[0].MacAddress,
+				},
+			},
+		},
+		{
+			Name:       m.Hardware.Nics[1].Name,
+			MacAddress: m.Hardware.Nics[1].MacAddress,
+			Neighbors: []metal.Nic{
+				{
+					Name:       sonic2.Nics[0].Name,
+					MacAddress: sonic2.Nics[0].MacAddress,
+				},
+			},
+		},
+	}
+	ts.checkMachineNics(m.ID, wantMachineNics)
 }
 
 type testService struct {
@@ -347,17 +286,19 @@ func (ts *testService) machineGet(t *testing.T, mid string, response interface{}
 	return webRequestGet(t, ts.machineService, &testUserDirectory.admin, emptyBody{}, "/v1/machine/"+mid, response)
 }
 
-func (ts *testService) createPartition(name, description string) {
+func (ts *testService) createPartition(id, name, description string) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "I am a downloadable content")
 	}))
 	defer s.Close()
 
 	downloadableFile := s.URL
+	partitionName := name
+	partitionDesc := description
 	partition := v1.PartitionCreateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
-				ID: "test-partition",
+				ID: id,
 			},
 			Describable: v1.Describable{
 				Name:        &partitionName,
@@ -370,10 +311,196 @@ func (ts *testService) createPartition(name, description string) {
 		},
 	}
 	var createdPartition v1.PartitionResponse
-	status := ts.partitionCreate(t, partition, &createdPartition)
-	require.Equal(t, http.StatusCreated, status)
-	require.NotNil(t, createdPartition)
-	require.Equal(t, partition.Name, createdPartition.Name)
-	require.NotEmpty(t, createdPartition.ID)
+	status := ts.partitionCreate(ts.t, partition, &createdPartition)
+	require.Equal(ts.t, http.StatusCreated, status)
+	require.NotNil(ts.t, createdPartition)
+	require.Equal(ts.t, partition.Name, createdPartition.Name)
+	require.NotEmpty(ts.t, createdPartition.ID)
 
+}
+
+func (ts *testService) registerSwitch(sw metal.Switch, isNewId bool) {
+	nics := make([]v1.SwitchNic, 0)
+	for _, nic := range sw.Nics {
+		nic := v1.SwitchNic{
+			MacAddress: string(nic.MacAddress),
+			Name:       nic.Name,
+		}
+		nics = append(nics, nic)
+	}
+
+	srr := v1.SwitchRegisterRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: sw.ID,
+			},
+		},
+		Nics:        nics,
+		PartitionID: sw.PartitionID,
+		SwitchBase: v1.SwitchBase{
+			RackID: sw.RackID,
+			OS: &v1.SwitchOS{
+				Vendor: sw.OS.Vendor,
+			},
+		},
+	}
+
+	wantStatus := http.StatusOK
+	if isNewId {
+		wantStatus = http.StatusCreated
+	}
+	var res v1.SwitchResponse
+	status := ts.switchRegister(ts.t, srr, &res)
+	require.Equal(ts.t, wantStatus, status)
+	ts.checkSwitchResponse(sw, &res)
+}
+
+func (ts *testService) createMachine(m *metal.Machine) {
+	err := ts.ds.CreateMachine(m)
+	require.NoError(ts.t, err)
+	err = ts.ds.ConnectMachineWithSwitches(m)
+	require.NoError(ts.t, err)
+
+	err = ts.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
+		Base:       metal.Base{ID: m.ID},
+		Liveliness: metal.MachineLivelinessAlive,
+	})
+	require.NoError(ts.t, err)
+}
+
+func (ts *testService) replaceSwitch(newSwitch metal.Switch, wantConnections metal.ConnectionMap) {
+	ts.setReplaceMode(newSwitch.ID)
+	ts.registerSwitch(newSwitch, false)
+	wantSwitch := newSwitch
+	wantSwitch.Mode = metal.SwitchOperational
+	wantSwitch.MachineConnections = wantConnections
+
+	var res v1.SwitchResponse
+	status := ts.switchGet(ts.t, wantSwitch.ID, &res)
+	require.Equal(ts.t, http.StatusOK, status)
+	ts.checkSwitchResponse(wantSwitch, &res)
+}
+
+func (ts *testService) setReplaceMode(id string) {
+	var res v1.SwitchResponse
+
+	sur := v1.SwitchUpdateRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: id,
+			},
+		},
+		SwitchBase: v1.SwitchBase{
+			Mode: string(metal.SwitchReplace),
+		},
+	}
+
+	status := ts.switchUpdate(ts.t, sur, &res)
+	require.Equal(ts.t, http.StatusOK, status)
+	require.Equal(ts.t, string(metal.SwitchReplace), res.SwitchBase.Mode)
+}
+
+func (ts *testService) checkSwitchResponse(sw metal.Switch, res *v1.SwitchResponse) {
+	require.NotNil(ts.t, res)
+	require.Equal(ts.t, sw.Mode, metal.SwitchMode(res.Mode))
+
+	require.Len(ts.t, res.Nics, len(sw.Nics))
+	for _, nic := range sw.Nics {
+		n := findNicByNameInSwitchNics(nic.Name, res.Nics)
+		ts.checkCorrectNic(n, nic)
+	}
+
+	require.Len(ts.t, res.Connections, len(sw.MachineConnections))
+	connectionsByNicName, err := sw.MachineConnections.ByNicName()
+	require.NoError(ts.t, err)
+	for nicName, con := range connectionsByNicName {
+		c, found := findMachineConnection(nicName, res.Connections)
+		require.True(ts.t, found)
+		require.Equal(ts.t, con.MachineID, c.MachineID)
+		require.Equal(ts.t, con.Nic.Name, c.Nic.Name)
+		require.Equal(ts.t, con.Nic.MacAddress, c.Nic.MacAddress)
+	}
+}
+
+func (ts *testService) checkMachineNics(mid string, wantNics metal.Nics) {
+	var m v1.MachineResponse
+	status := ts.machineGet(ts.t, mid, &m)
+	require.Equal(ts.t, http.StatusOK, status)
+	require.NotNil(ts.t, m)
+
+	for _, wantNic := range wantNics {
+		nic := findNicByNameInMachineNics(wantNic.Name, m.Hardware.Nics)
+		ts.checkCorrectNic(nic, wantNic)
+		for _, wantNeigh := range wantNic.Neighbors {
+			neigh := findNicByName(wantNeigh.Name, nic.Neighbors)
+			ts.checkCorrectNic(neigh, wantNeigh)
+		}
+	}
+}
+
+func (ts *testService) checkCorrectNic(nic *metal.Nic, wantNic metal.Nic) {
+	require.NotNil(ts.t, wantNic)
+	require.Equal(ts.t, wantNic.Name, nic.Name)
+	require.Equal(ts.t, wantNic.MacAddress, nic.MacAddress)
+}
+
+func findNicByName(name string, nics metal.Nics) *metal.Nic {
+	for _, nic := range nics {
+		n := nic
+		if nic.Name == name {
+			return &n
+		}
+	}
+	return nil
+}
+
+func findNicByNameInSwitchNics(name string, nics v1.SwitchNics) *metal.Nic {
+	for _, nic := range nics {
+		if nic.Name == name {
+			n := &metal.Nic{
+				Name:       nic.Name,
+				MacAddress: metal.MacAddress(nic.MacAddress),
+			}
+			return n
+		}
+	}
+	return nil
+}
+
+func findNicByNameInMachineNics(name string, nics v1.MachineNics) *metal.Nic {
+	for _, nic := range nics {
+		if nic.Name == name {
+			neighbors := make(metal.Nics, 0)
+			for _, neigh := range nic.Neighbors {
+				n := metal.Nic{
+					Name:       neigh.Name,
+					MacAddress: metal.MacAddress(neigh.MacAddress),
+				}
+				neighbors = append(neighbors, n)
+			}
+			n := &metal.Nic{
+				Name:       nic.Name,
+				MacAddress: metal.MacAddress(nic.MacAddress),
+				Neighbors:  neighbors,
+			}
+			return n
+		}
+	}
+	return nil
+}
+
+func findMachineConnection(nicName string, connections []v1.SwitchConnection) (*metal.Connection, bool) {
+	for _, con := range connections {
+		if con.Nic.Name == nicName {
+			c := &metal.Connection{
+				Nic: metal.Nic{
+					Name:       con.Nic.Name,
+					MacAddress: metal.MacAddress(con.Nic.MacAddress),
+				},
+				MachineID: con.MachineID,
+			}
+			return c, true
+		}
+	}
+	return nil, false
 }
