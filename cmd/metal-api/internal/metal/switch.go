@@ -157,6 +157,14 @@ func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
 }
 
 // TranslateNicMap creates a NicMap where the keys are translated to the naming convention of the target OS
+// example mapping from cumulus to sonic for one single port:
+//
+//	map[string]Nic {
+//		"swp0s1": Nic{
+//			Name: "Ethernet1",
+//			MacAddress: ""
+//		}
+//	}
 func (s *Switch) TranslateNicMap(targetOS SwitchOSVendor) (NicMap, error) {
 	nicMap := s.Nics.ByName()
 	translatedNicMap := make(NicMap)
