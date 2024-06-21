@@ -16,6 +16,8 @@ const entityAlreadyModifiedErrorMessage = "the entity was changed from another, 
 type (
 	// Entity is an interface that allows metal entities to be created and stored
 	// into the database with the generic creation and update functions.
+	//
+	// see https://go.googlesource.com/proposal/+/HEAD/design/43651-type-parameters.md#pointer-method-example for possible solution to prevent slices of pointers.
 	Entity interface {
 		// GetID returns the entity's id
 		GetID() string
