@@ -41,15 +41,3 @@ func GetOsAndSemverFromImage(id string) (string, *semver.Version, error) {
 	}
 	return os, v, nil
 }
-
-func ErrorsAreEqual(err1, err2 error) bool {
-	if err1 == nil && err2 == nil {
-		return true
-	}
-
-	if err1 != nil && err2 == nil || err1 == nil && err2 != nil {
-		return false
-	}
-
-	return err1.Error() == err2.Error()
-}

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 )
 
 var (
@@ -512,7 +511,7 @@ func Test_mapPortName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := mapPortName(tt.port, tt.sourceOS, tt.targetOS, tt.allLines)
-			if !utils.ErrorsAreEqual(err, tt.wantErr) {
+			if !errorsAreEqual(err, tt.wantErr) {
 				t.Errorf("MapPortName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
@@ -624,7 +623,7 @@ func Test_sonicPortNameToLine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := sonicPortNameToLine(tt.port)
-			if !utils.ErrorsAreEqual(err, tt.wantErr) {
+			if !errorsAreEqual(err, tt.wantErr) {
 				t.Errorf("sonicPortNameToLine() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
@@ -697,7 +696,7 @@ func Test_cumulusPortNameToLine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := cumulusPortNameToLine(tt.port)
-			if !utils.ErrorsAreEqual(err, tt.wantErr) {
+			if !errorsAreEqual(err, tt.wantErr) {
 				t.Errorf("cumulusPortNameToLine() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
