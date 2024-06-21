@@ -538,6 +538,7 @@ var (
 		Base: metal.Base{
 			ID: "switch1",
 		},
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		PartitionID: "1",
 		RackID:      "1",
 		Nics: []metal.Nic{
@@ -566,6 +567,7 @@ var (
 		Base: metal.Base{
 			ID: "switch2",
 		},
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		PartitionID: "1",
 		RackID:      "1",
 		Nics: []metal.Nic{
@@ -577,6 +579,7 @@ var (
 		Base: metal.Base{
 			ID: "switch3",
 		},
+		OS:                 &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		PartitionID:        "1",
 		RackID:             "3",
 		MachineConnections: metal.ConnectionMap{},
@@ -585,6 +588,7 @@ var (
 		Base: metal.Base{
 			ID: "switch1",
 		},
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		PartitionID: "1",
 		RackID:      "1",
 		Nics: []metal.Nic{
@@ -607,7 +611,7 @@ var (
 	// Nics
 	Nic1 = metal.Nic{
 		MacAddress: metal.MacAddress("11:11:11:11:11:11"),
-		Name:       "eth0",
+		Name:       "swp0",
 		Neighbors: []metal.Nic{
 			{
 				MacAddress: "21:11:11:11:11:11",
