@@ -566,15 +566,13 @@ func (r *switchResource) replaceSwitch(old, new *metal.Switch) error {
 		return err
 	}
 
-	if old.OS.Vendor != s.OS.Vendor {
-		nicMap, err := s.TranslateNicMap(old.OS.Vendor)
-		if err != nil {
-			return err
-		}
-		err = r.adjustMachineConnections(old.MachineConnections, nicMap)
-		if err != nil {
-			return err
-		}
+	nicMap, err := s.TranslateNicMap(old.OS.Vendor)
+	if err != nil {
+		return err
+	}
+	err = r.adjustMachineConnections(old.MachineConnections, nicMap)
+	if err != nil {
+		return err
 	}
 
 	return r.ds.UpdateSwitch(old, s)
