@@ -102,7 +102,7 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("prefixes").Map(func(p r.Term) r.Term {
 				return p.Field("ip")
-			}).Contains(r.Expr(ip))
+			}).Contains(r.Expr(ip.String()))
 		})
 
 		q = q.Filter(func(row r.Term) r.Term {
@@ -123,7 +123,7 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
 				return dp.Field("ip")
-			}).Contains(r.Expr(ip))
+			}).Contains(r.Expr(ip.String()))
 		})
 
 		q = q.Filter(func(row r.Term) r.Term {

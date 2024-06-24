@@ -380,6 +380,10 @@ func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, r
 	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nar, "/v1/network/allocate", response)
 }
 
+func (te *testEnv) networkFind(t *testing.T, nfr v1.NetworkFindRequest, response interface{}) int {
+	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nfr, "/v1/network/find", response)
+}
+
 func (te *testEnv) machineAllocate(t *testing.T, mar v1.MachineAllocateRequest, response interface{}) int {
 	return webRequestPost(t, te.machineService, &testUserDirectory.admin, mar, "/v1/machine/allocate", response)
 }
