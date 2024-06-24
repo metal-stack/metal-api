@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.16.2
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/avast/retry-go/v4 v4.6.0
-	github.com/aws/aws-sdk-go v1.54.5
+	github.com/aws/aws-sdk-go v1.54.6
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/go-restful-openapi/v2 v2.10.2
 	github.com/emicklei/go-restful/v3 v3.12.1
@@ -18,7 +18,7 @@ require (
 	github.com/juanfont/headscale v0.22.3
 	github.com/klauspost/connect-compress/v2 v2.0.0
 	github.com/looplab/fsm v0.3.0
-	github.com/metal-stack/go-ipam v1.14.1-0.20240620102049-09a62dc5333b
+	github.com/metal-stack/go-ipam v1.14.1
 	github.com/metal-stack/masterdata-api v0.11.4
 	github.com/metal-stack/metal-lib v0.17.0
 	github.com/metal-stack/security v0.8.0
@@ -80,7 +80,7 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/glebarez/sqlite v1.11.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect

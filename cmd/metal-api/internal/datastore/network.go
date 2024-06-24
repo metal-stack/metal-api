@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"fmt"
 	"net/netip"
 	"strconv"
 
@@ -25,7 +26,7 @@ type NetworkSearchQuery struct {
 }
 
 // GenerateTerm generates the project search query term.
-func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
+func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 	q := *rs.networkTable()
 
 	if p.ID != nil {
@@ -93,7 +94,7 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	for _, prefix := range p.Prefixes {
 		pfx, err := netip.ParsePrefix(prefix)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("unable to parse prefix %w", err)
 		}
 		ip := pfx.Addr()
 		length := pfx.Bits()
@@ -114,7 +115,7 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	for _, destPrefix := range p.DestinationPrefixes {
 		pfx, err := netip.ParsePrefix(destPrefix)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("unable to parse prefix %w", err)
 		}
 		ip := pfx.Addr()
 		length := pfx.Bits()
@@ -132,7 +133,7 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		})
 	}
 
-	return &q
+	return &q, nil
 }
 
 // FindNetworkByID returns an network of a given id.
@@ -147,12 +148,20 @@ func (rs *RethinkStore) FindNetworkByID(id string) (*metal.Network, error) {
 
 // FindNetwork returns a machine by the given query, fails if there is no record or multiple records found.
 func (rs *RethinkStore) FindNetwork(q *NetworkSearchQuery, n *metal.Network) error {
-	return rs.findEntity(q.generateTerm(rs), &n)
+	term, err := q.generateTerm(rs)
+	if err != nil {
+		return err
+	}
+	return rs.findEntity(term, &n)
 }
 
 // SearchNetworks returns the networks that match the given properties
 func (rs *RethinkStore) SearchNetworks(q *NetworkSearchQuery, ns *metal.Networks) error {
-	return rs.searchEntities(q.generateTerm(rs), ns)
+	term, err := q.generateTerm(rs)
+	if err != nil {
+		return err
+	}
+	return rs.searchEntities(term, ns)
 }
 
 // ListNetworks returns all networks.
