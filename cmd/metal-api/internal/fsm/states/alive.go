@@ -1,6 +1,7 @@
 package states
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/looplab/fsm"
@@ -21,7 +22,7 @@ func newAlive(c *StateConfig) *AliveState {
 	}
 }
 
-func (p *AliveState) OnTransition(e *fsm.Event) {
+func (p *AliveState) OnTransition(ctx context.Context, e *fsm.Event) {
 	updateTimeAndLiveliness(p.event, p.container)
 	p.log.Debug("received provisioning alive event", "id", p.container.ID)
 }

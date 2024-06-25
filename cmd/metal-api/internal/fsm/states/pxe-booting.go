@@ -1,6 +1,8 @@
 package states
 
 import (
+	"context"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
@@ -17,7 +19,7 @@ func newPXEBooting(c *StateConfig) *PXEBootingState {
 	}
 }
 
-func (p *PXEBootingState) OnTransition(e *fsm.Event) {
+func (p *PXEBootingState) OnTransition(ctx context.Context, e *fsm.Event) {
 	p.container.FailedMachineReclaim = false
 
 	if e.Src == PXEBooting.String() {

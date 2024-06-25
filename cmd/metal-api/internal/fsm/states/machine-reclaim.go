@@ -1,6 +1,8 @@
 package states
 
 import (
+	"context"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
@@ -17,7 +19,7 @@ func newMachineReclaim(c *StateConfig) *MachineReclaimState {
 	}
 }
 
-func (p *MachineReclaimState) OnTransition(e *fsm.Event) {
+func (p *MachineReclaimState) OnTransition(ctx context.Context, e *fsm.Event) {
 	p.container.CrashLoop = false
 	appendEventToContainer(p.event, p.container)
 }
