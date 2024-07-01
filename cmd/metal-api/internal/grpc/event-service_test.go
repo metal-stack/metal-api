@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"log/slog"
+	"os"
 	"reflect"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 func TestEventService_Send(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
 		name    string
@@ -36,7 +38,7 @@ func TestEventService_Send(t *testing.T) {
 				},
 			},
 			ds:  ds,
-			log: slog.Default(),
+			log: log,
 			want: &v1.EventServiceSendResponse{
 				Events: uint64(1),
 				Failed: []string{},

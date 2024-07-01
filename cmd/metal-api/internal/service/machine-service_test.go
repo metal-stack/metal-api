@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/emicklei/go-restful/v3"
@@ -422,7 +423,7 @@ func TestSearchMachine(t *testing.T) {
 }
 
 func TestOnMachine(t *testing.T) {
-	log := slog.Default()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
 		cmd      metal.MachineCommand

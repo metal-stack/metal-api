@@ -351,7 +351,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), metalIPAMer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
-	container.Filter(rest.UserAuth(usergetter, slog.Default()))
+	container.Filter(rest.UserAuth(usergetter, log))
 	return rs, container
 }
 

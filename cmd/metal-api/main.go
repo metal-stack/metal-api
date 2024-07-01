@@ -540,10 +540,12 @@ func initMasterData() {
 		log.Fatal("no masterdata-port given")
 	}
 
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
 	var err error
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, false, slog.Default())
+		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, false, log)
 		if err == nil {
 			cancel()
 			break
