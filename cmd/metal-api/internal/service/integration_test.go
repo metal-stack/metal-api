@@ -381,6 +381,7 @@ func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, r
 	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nar, "/v1/network/allocate", response)
 }
 
+//nolint:unused
 func (te *testEnv) networkFind(t *testing.T, nfr v1.NetworkFindRequest, response interface{}) int {
 	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nfr, "/v1/network/find", response)
 }
