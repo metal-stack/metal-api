@@ -70,14 +70,13 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	e, _ := errgroup.WithContext(context.Background())
 	for i := range machineCount {
 		e.Go(func() error {
-			var ma *grpcv1.BootServiceRegisterResponse
 			mr := createMachineRegisterRequest(i)
 			err := retry.Do(
 				func() error {
 					var err2 error
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					defer cancel()
-					ma, err2 = c.Register(ctx, mr)
+					_, err2 = c.Register(ctx, mr)
 					if err2 != nil {
 						t.Logf("machine registration failed, retrying:%v", err2.Error())
 						return err2
@@ -92,8 +91,6 @@ func TestMachineAllocationIntegration(t *testing.T) {
 			if err != nil {
 				return err
 			}
-
-			t.Logf("machine:%s registered", ma.Uuid)
 			return nil
 		})
 	}
@@ -154,7 +151,6 @@ func TestMachineAllocationIntegration(t *testing.T) {
 			}
 			ips[ip] = ma.ID
 			mu.Unlock()
-			t.Logf("machine:%s allocated", ma.ID)
 			return nil
 		})
 	}
@@ -168,7 +164,6 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	for _, id := range ips {
 		id := id
 		f.Go(func() error {
-			var ma v1.MachineResponse
 			err := retry.Do(
 				func() error {
 					// TODO add switch config in testdata to have switch updates covered
@@ -188,8 +183,6 @@ func TestMachineAllocationIntegration(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			t.Logf("machine:%s freed", ma.ID)
-
 			return nil
 		})
 	}
@@ -295,7 +288,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 }
 
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	_, c, err := test.StartRethink(t)
 	require.NoError(t, err)

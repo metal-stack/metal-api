@@ -6,6 +6,7 @@ package datastore
 import (
 	"context"
 	"log/slog"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -947,7 +948,7 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 
 	var (
-		root  = slog.Default()
+		root  = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 		wg    sync.WaitGroup
 		size  = metal.Size{Base: metal.Base{ID: "1"}}
 		count int
@@ -1023,7 +1024,7 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 					continue
 				}
 
-				log.Info("waiting machine found")
+				log.Debug("waiting machine found")
 
 				newMachine := *machine
 				newMachine.PreAllocated = false
