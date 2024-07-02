@@ -13,6 +13,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -70,7 +71,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		Doc("get all size reservations").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Metadata(auditing.Exclude, true).
-		Reads(v1.EmptyBody{}).
+		Reads(v1.SizeReservationListRequest{}).
 		Writes([]v1.SizeReservationResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -439,19 +440,45 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 }
 
 func (r *sizeResource) listSizeReservations(request *restful.Request, response *restful.Response) {
-	ss, err := r.ds.ListSizes()
+	var requestPayload v1.SizeReservationListRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	ss := metal.Sizes{}
+	err = r.ds.SearchSizes(&datastore.SizeSearchQuery{
+		ID: requestPayload.SizeID,
+		Reservation: datastore.Reservation{
+			Partition: requestPayload.PartitionID,
+			Project:   requestPayload.ProjectID,
+		},
+	}, &ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	projects, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
+	pfr := &mdmv1.ProjectFindRequest{}
+
+	if requestPayload.ProjectID != nil {
+		pfr.Id = wrapperspb.String(*requestPayload.ProjectID)
+	}
+	if requestPayload.Tenant != nil {
+		pfr.TenantId = wrapperspb.String(*requestPayload.Tenant)
+	}
+
+	projects, err := r.mdc.Project().Find(request.Request.Context(), pfr)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	ms, err := r.ds.ListMachines()
+	ms := metal.Machines{}
+	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{
+		PartitionID: requestPayload.PartitionID,
+	}, &ms)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -471,6 +498,11 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 
 			for _, partitionID := range reservation.PartitionIDs {
 				project := pointer.SafeDeref(projectsByID[reservation.ProjectID])
+
+				if requestPayload.Tenant != nil && project.TenantId != *requestPayload.Tenant {
+					continue
+				}
+
 				allocations := len(machinesByProjectID[reservation.ProjectID].WithPartition(partitionID).WithSize(size.ID))
 
 				result = append(result, &v1.SizeReservationResponse{

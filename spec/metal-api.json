@@ -4658,10 +4658,29 @@
       },
       "required": [
         "amount",
-        "labels",
         "partitionids",
         "projectid"
       ]
+    },
+    "v1.SizeReservationListRequest": {
+      "properties": {
+        "partitionid": {
+          "description": "the partition id of this size reservation",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project id of this size reservation",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id of this size reservation",
+          "type": "string"
+        },
+        "tenant": {
+          "description": "the tenant of this size reservation",
+          "type": "string"
+        }
+      }
     },
     "v1.SizeReservationResponse": {
       "properties": {
@@ -4709,7 +4728,6 @@
         }
       },
       "required": [
-        "labels",
         "partitionid",
         "projectallocations",
         "projectid",
@@ -9043,7 +9061,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.EmptyBody"
+              "$ref": "#/definitions/v1.SizeReservationListRequest"
             }
           }
         ],
