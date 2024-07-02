@@ -1,6 +1,6 @@
 version: v2
 plugins:
-  - remote: buf.build/protocolbuffers/go:v1.34.1
+  - remote: buf.build/protocolbuffers/go:v1.34.2
     out: ../pkg/api
   - remote: buf.build/grpc/go:v1.3.0
     out: ../pkg/api

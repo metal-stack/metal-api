@@ -3962,7 +3962,7 @@
           "type": "integer"
         },
         "available_prefixes": {
-          "description": "the total available Prefixes",
+          "description": "the total available 2 bit Prefixes",
           "format": "integer",
           "type": "integer"
         },

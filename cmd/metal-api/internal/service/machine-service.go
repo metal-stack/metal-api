@@ -1273,7 +1273,7 @@ func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.Ret
 	if err != nil {
 		return nil, rollbackOnError(fmt.Errorf("unable to gather networks:%w", err))
 	}
-	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
+	err = makeNetworks(ctx, ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
 		return nil, rollbackOnError(fmt.Errorf("unable to make networks:%w", err))
 	}
@@ -1394,9 +1394,9 @@ func findWaitingMachine(ctx context.Context, ds *datastore.RethinkStore, allocat
 // makeNetworks creates network entities and ip addresses as specified in the allocation network map.
 // created networks are added to the machine allocation directly after their creation. This way, the rollback mechanism
 // is enabled to clean up networks that were already created.
-func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
+func makeNetworks(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
 	for _, n := range networks {
-		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
+		machineNetwork, err := makeMachineNetwork(ctx, ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return err
 		}
@@ -1610,9 +1610,9 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 	}, nil
 }
 
-func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
+func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
-		ipAddress, ipParentCidr, err := allocateRandomIP(n.network, ipamer)
+		ipAddress, ipParentCidr, err := allocateRandomIP(ctx, n.network, ipamer)
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 		}

@@ -2,6 +2,7 @@ package eventbus
 
 import (
 	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -15,7 +16,7 @@ func TestNewNSQ(t *testing.T) {
 		HTTPEndpoint: "rest",
 	}
 	publisher := bus.NewPublisher
-	logger := slog.Default()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	actual := NewNSQ(cfg, logger, publisher)
 
 	assert.NotNil(t, actual)

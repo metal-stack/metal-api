@@ -216,8 +216,9 @@ func (a *asyncActor) releaseIP(ip metal.IP) error {
 
 	// now the IP should not exist any more in our datastore
 	// so cleanup the ipam
-
-	err = a.ReleaseIP(ip)
+	
+	ctx := context.Background()
+	err = a.ReleaseIP(ctx, ip)
 	if err != nil {
 		if errors.Is(err, ipamer.ErrNotFound) {
 			return nil
