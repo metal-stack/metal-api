@@ -230,7 +230,7 @@ type NetworkMap map[string]Network
 type NetworkUsage struct {
 	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
 	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available Prefixes" readonly:"true"`
+	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
