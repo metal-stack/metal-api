@@ -185,6 +185,6 @@ func (i *ipam) Check(ctx context.Context) (rest.HealthResult, error) {
 
 	return rest.HealthResult{
 		Status:  rest.HealthStatusHealthy,
-		Message: fmt.Sprintf("connected to ipam service version:%q", resp.Msg.Version),
+		Message: fmt.Sprintf("connected to ipam service version:%q", resp.Msg.Revision),
 	}, nil
 }
