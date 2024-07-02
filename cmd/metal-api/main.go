@@ -247,6 +247,8 @@ func init() {
 	rootCmd.PersistentFlags().StringP("db-user", "", "", "the database user to use")
 	rootCmd.PersistentFlags().StringP("db-password", "", "", "the database password to use")
 
+	rootCmd.Flags().String("ipam-grpc-server-endpoint", "http://ipam:9090", "the ipam grpc server endpoint")
+
 	rootCmd.Flags().StringP("metrics-server-bind-addr", "", ":2112", "the bind addr of the metrics server")
 
 	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "", "the TCP address of the nsqd")
