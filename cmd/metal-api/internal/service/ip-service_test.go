@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -84,6 +85,40 @@ func TestGetIP(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testdata.IP1.IPAddress, result.IPAddress)
 	require.Equal(t, testdata.IP1.Name, *result.Name)
+}
+
+func TestFindIPs(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+
+	logger := slog.Default()
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
+	container := restful.NewContainer().Add(ipservice)
+
+	js, err := json.Marshal(v1.IPFindRequest{IPSearchQuery: datastore.IPSearchQuery{
+		IPAddress: pointer.Pointer("1.2.3.4"),
+	}})
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+
+	req := httptest.NewRequest("POST", "/v1/ip/find", body)
+	req.Header.Add("Content-Type", "application/json")
+	container = injectViewer(logger, container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result []v1.IPResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	found := result[0]
+	require.Equal(t, testdata.IP1.IPAddress, found.IPAddress)
+	require.Equal(t, testdata.IP1.Name, *found.Name)
 }
 
 func TestGetIPNotFound(t *testing.T) {
