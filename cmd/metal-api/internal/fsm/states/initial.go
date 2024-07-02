@@ -1,6 +1,7 @@
 package states
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/looplab/fsm"
@@ -19,6 +20,6 @@ func newInitial(c *StateConfig) *InitialState {
 	}
 }
 
-func (p *InitialState) OnTransition(e *fsm.Event) {
+func (p *InitialState) OnTransition(ctx context.Context, e *fsm.Event) {
 	e.Err = fmt.Errorf("unexpected transition back to initial state")
 }
