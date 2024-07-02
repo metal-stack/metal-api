@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"errors"
 	"fmt"
 	"net/netip"
 	"strconv"
@@ -23,6 +24,26 @@ type NetworkSearchQuery struct {
 	Vrf                 *int64            `json:"vrf" optional:"true"`
 	ParentNetworkID     *string           `json:"parentnetworkid" optional:"true"`
 	Labels              map[string]string `json:"labels" optional:"true"`
+}
+
+func (p *NetworkSearchQuery) Validate() error {
+	var errs []error
+	for _, prefix := range p.Prefixes {
+		_, err := netip.ParsePrefix(prefix)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	for _, prefix := range p.DestinationPrefixes {
+		_, err := netip.ParsePrefix(prefix)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) == 0 {
+		return nil
+	}
+	return errors.Join(errs...)
 }
 
 // GenerateTerm generates the project search query term.

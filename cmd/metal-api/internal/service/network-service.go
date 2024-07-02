@@ -183,6 +183,11 @@ func (r *networkResource) findNetworks(request *restful.Request, response *restf
 		return
 	}
 
+	if err := requestPayload.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	var nws metal.Networks
 	err = r.ds.SearchNetworks(&requestPayload, &nws)
 	if err != nil {

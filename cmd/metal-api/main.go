@@ -247,13 +247,6 @@ func init() {
 	rootCmd.PersistentFlags().StringP("db-user", "", "", "the database user to use")
 	rootCmd.PersistentFlags().StringP("db-password", "", "", "the database password to use")
 
-	rootCmd.Flags().StringP("ipam-db", "", "postgres", "the database adapter to use")
-	rootCmd.Flags().StringP("ipam-db-name", "", "metal-ipam", "the database name to use")
-	rootCmd.Flags().StringP("ipam-db-addr", "", "", "the database address string to use")
-	rootCmd.Flags().StringP("ipam-db-port", "", "5432", "the database port string to use")
-	rootCmd.Flags().StringP("ipam-db-user", "", "", "the database user to use")
-	rootCmd.Flags().StringP("ipam-db-password", "", "", "the database password to use")
-
 	rootCmd.Flags().StringP("metrics-server-bind-addr", "", ":2112", "the bind addr of the metrics server")
 
 	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "", "the TCP address of the nsqd")
