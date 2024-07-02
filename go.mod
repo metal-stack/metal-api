@@ -17,7 +17,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/juanfont/headscale v0.22.3
 	github.com/klauspost/connect-compress/v2 v2.0.0
-	github.com/looplab/fsm v0.3.0
+	github.com/looplab/fsm v1.0.2
 	github.com/metal-stack/go-ipam v1.14.1
 	github.com/metal-stack/masterdata-api v0.11.4
 	github.com/metal-stack/metal-lib v0.17.0
