@@ -140,6 +140,10 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	if err != nil {
 		return err
 	}
+	_, err = r.DB("rethinkdb").Grant(DemotedUser, map[string]interface{}{"read": true}).RunWrite(rs.session)
+	if err != nil {
+		return err
+	}
 
 	// integer pools
 	err = rs.GetVRFPool().initIntegerPool(rs.log)

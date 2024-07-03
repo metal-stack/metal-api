@@ -40,7 +40,7 @@ func (rs *RethinkStore) Check(ctx context.Context) (rest.HealthResult, error) {
 		return returnStatus(err)
 	}
 
-	cursor, err := r.DB("rethinkdb").Table("server_status").Field("process").Field("version").Run(rs.session)
+	cursor, err := r.DB("rethinkdb").Table("server_status").Field("process").Field("version").Run(rs.session, r.RunOpts{Context: ctx})
 	if err != nil {
 		return returnStatus(err)
 	}
