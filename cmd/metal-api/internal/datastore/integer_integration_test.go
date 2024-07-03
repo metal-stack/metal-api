@@ -6,8 +6,8 @@ package datastore
 import (
 	"context"
 	"log/slog"
+	"os"
 	"sync"
-	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/test"
@@ -25,7 +25,9 @@ func TestRethinkStore_AcquireRandomUniqueIntegerIntegration(t *testing.T) {
 		_ = container.Terminate(context.Background())
 	}()
 
-	rs := New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+	rs := New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
@@ -49,8 +51,9 @@ func TestRethinkStore_AcquireUniqueIntegerTwiceIntegration(t *testing.T) {
 	defer func() {
 		_ = container.Terminate(context.Background())
 	}()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
-	rs := New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
@@ -77,7 +80,9 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 		_ = container.Terminate(context.Background())
 	}()
 
-	rs := New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+	rs := New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
@@ -101,7 +106,6 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 			}
 			assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
 			assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
-			t.Logf("acquired a vrf %d at: %s", got, time.Now())
 		}()
 	}
 

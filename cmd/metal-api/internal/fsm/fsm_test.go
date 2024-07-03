@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 	"time"
@@ -627,9 +628,10 @@ func TestHandleProvisioningEvent(t *testing.T) {
 		},
 	}
 	for i := range tests {
+		ctx := context.Background()
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HandleProvisioningEvent(slog.Default(), tt.container, tt.event)
+			got, err := HandleProvisioningEvent(ctx, slog.Default(), tt.container, tt.event)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
@@ -646,10 +648,11 @@ func TestHandleProvisioningEvent(t *testing.T) {
 }
 
 func TestReactionToAllIncomingEvents(t *testing.T) {
+	ctx := context.Background()
 	// this test ensures that for every incoming event we have a proper transition
 	for e1 := range metal.AllProvisioningEventTypes {
 		for e2 := range metal.AllProvisioningEventTypes {
-			_, err := HandleProvisioningEvent(slog.Default(), &metal.ProvisioningEventContainer{
+			_, err := HandleProvisioningEvent(ctx, slog.Default(), &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
 						Event: e2,

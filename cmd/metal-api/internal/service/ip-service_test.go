@@ -26,7 +26,6 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 
 	"github.com/google/go-cmp/cmp"
-	goipam "github.com/metal-stack/go-ipam"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -38,7 +37,7 @@ func TestGetIPs(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	logger := slog.Default()
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(ipservice)
@@ -68,7 +67,7 @@ func TestGetIP(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	logger := slog.Default()
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
@@ -126,7 +125,7 @@ func TestGetIPNotFound(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	logger := slog.Default()
 
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
@@ -174,7 +173,7 @@ func TestDeleteIP(t *testing.T) {
 		{
 			name:         "free an cluster-ip should fail",
 			ip:           testdata.IP2.IPAddress,
-			wantedStatus: http.StatusUnprocessableEntity,
+			wantedStatus: http.StatusNotFound,
 		},
 	}
 	for i := range tests {
@@ -268,6 +267,19 @@ func TestAllocateIP(t *testing.T) {
 			wantedIP:     "10.0.0.5",
 		},
 		{
+			name: "allocate a specific ip which is already allocated",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+				},
+			},
+			specificIP:   "10.0.0.5",
+			wantedStatus: http.StatusConflict,
+			wantErr:      errors.New("Conflict ip already allocated"),
+		},
+		{
 			name: "allocate a static specific ip outside prefix",
 			allocateRequest: v1.IPAllocateRequest{
 				Describable: v1.Describable{},
@@ -328,7 +340,7 @@ func TestUpdateIP(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	logger := slog.Default()
 
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := tag.MachineID + "=" + "1"

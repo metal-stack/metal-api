@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"log/slog"
+	"os"
 	"testing"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -20,7 +21,7 @@ Return Values:
 */
 func InitMockDB(t *testing.T) (*RethinkStore, *r.Mock) {
 	rs := New(
-		slog.Default(),
+		slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})),
 		"db-addr",
 		"mockdb",
 		"db-user",

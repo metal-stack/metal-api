@@ -6,6 +6,7 @@ package migrations_integration
 import (
 	"context"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -28,7 +29,9 @@ func Test_Migration(t *testing.T) {
 		_ = container.Terminate(context.Background())
 	}()
 
-	rs := datastore.New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
