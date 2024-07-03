@@ -1,6 +1,7 @@
 package states
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
@@ -25,7 +26,7 @@ func newPhonedHome(c *StateConfig) *PhonedHomeState {
 	}
 }
 
-func (p *PhonedHomeState) OnTransition(e *fsm.Event) {
+func (p *PhonedHomeState) OnTransition(ctx context.Context, e *fsm.Event) {
 	switch e.Src {
 	case PhonedHome.String():
 		updateTimeAndLiveliness(p.event, p.container)

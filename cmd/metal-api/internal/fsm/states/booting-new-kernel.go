@@ -1,6 +1,8 @@
 package states
 
 import (
+	"context"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
@@ -17,6 +19,6 @@ func newBootingNewKernel(c *StateConfig) *BootingNewKernelState {
 	}
 }
 
-func (p *BootingNewKernelState) OnTransition(e *fsm.Event) {
+func (p *BootingNewKernelState) OnTransition(ctx context.Context, e *fsm.Event) {
 	appendEventToContainer(p.event, p.container)
 }

@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"math/rand/v2"
+	"os"
 	"strconv"
 	"sync"
 	"testing"
@@ -220,7 +221,7 @@ func (t *test) startApiInstances(ds *datastore.RethinkStore) {
 		cfg := &ServerConfig{
 			Context:          ctx,
 			Store:            ds,
-			Logger:           slog.Default(),
+			Logger:           slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})),
 			GrpcPort:         50005 + i,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,

@@ -70,7 +70,7 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 			Message: event.Message,
 		}
 
-		_, err = e.ds.ProvisioningEventForMachine(e.log, &ev, machineID)
+		_, err = e.ds.ProvisioningEventForMachine(ctx, e.log, &ev, machineID)
 		if err != nil {
 			processErrs = append(processErrs, err)
 			failed = append(failed, machineID)
