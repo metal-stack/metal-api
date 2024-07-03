@@ -1,10 +1,12 @@
 package datastore
 
 import (
+	"errors"
+	"fmt"
+	"net/netip"
 	"strconv"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -24,8 +26,28 @@ type NetworkSearchQuery struct {
 	Labels              map[string]string `json:"labels" optional:"true"`
 }
 
+func (p *NetworkSearchQuery) Validate() error {
+	var errs []error
+	for _, prefix := range p.Prefixes {
+		_, err := netip.ParsePrefix(prefix)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	for _, prefix := range p.DestinationPrefixes {
+		_, err := netip.ParsePrefix(prefix)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) == 0 {
+		return nil
+	}
+	return errors.Join(errs...)
+}
+
 // GenerateTerm generates the project search query term.
-func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
+func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 	q := *rs.networkTable()
 
 	if p.ID != nil {
@@ -91,42 +113,48 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, prefix := range p.Prefixes {
-		ip, length := utils.SplitCIDR(prefix)
+		pfx, err := netip.ParsePrefix(prefix)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse prefix %w", err)
+		}
+		ip := pfx.Addr()
+		length := pfx.Bits()
 
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("prefixes").Map(func(p r.Term) r.Term {
 				return p.Field("ip")
-			}).Contains(r.Expr(ip))
+			}).Contains(r.Expr(ip.String()))
 		})
 
-		if length != nil {
-			q = q.Filter(func(row r.Term) r.Term {
-				return row.Field("prefixes").Map(func(p r.Term) r.Term {
-					return p.Field("length")
-				}).Contains(r.Expr(strconv.Itoa(*length)))
-			})
-		}
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("prefixes").Map(func(p r.Term) r.Term {
+				return p.Field("length")
+			}).Contains(r.Expr(strconv.Itoa(length)))
+		})
 	}
 
 	for _, destPrefix := range p.DestinationPrefixes {
-		ip, length := utils.SplitCIDR(destPrefix)
+		pfx, err := netip.ParsePrefix(destPrefix)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse prefix %w", err)
+		}
+		ip := pfx.Addr()
+		length := pfx.Bits()
 
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
 				return dp.Field("ip")
-			}).Contains(r.Expr(ip))
+			}).Contains(r.Expr(ip.String()))
 		})
 
-		if length != nil {
-			q = q.Filter(func(row r.Term) r.Term {
-				return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
-					return dp.Field("length")
-				}).Contains(r.Expr(strconv.Itoa(*length)))
-			})
-		}
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
+				return dp.Field("length")
+			}).Contains(r.Expr(strconv.Itoa(length)))
+		})
 	}
 
-	return &q
+	return &q, nil
 }
 
 // FindNetworkByID returns an network of a given id.
@@ -141,12 +169,20 @@ func (rs *RethinkStore) FindNetworkByID(id string) (*metal.Network, error) {
 
 // FindNetwork returns a machine by the given query, fails if there is no record or multiple records found.
 func (rs *RethinkStore) FindNetwork(q *NetworkSearchQuery, n *metal.Network) error {
-	return rs.findEntity(q.generateTerm(rs), &n)
+	term, err := q.generateTerm(rs)
+	if err != nil {
+		return err
+	}
+	return rs.findEntity(term, &n)
 }
 
 // SearchNetworks returns the networks that match the given properties
 func (rs *RethinkStore) SearchNetworks(q *NetworkSearchQuery, ns *metal.Networks) error {
-	return rs.searchEntities(q.generateTerm(rs), ns)
+	term, err := q.generateTerm(rs)
+	if err != nil {
+		return err
+	}
+	return rs.searchEntities(term, ns)
 }
 
 // ListNetworks returns all networks.
