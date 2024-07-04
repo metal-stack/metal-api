@@ -23,6 +23,7 @@ import (
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/security"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -294,8 +295,9 @@ func createTestEnvironment(t *testing.T) testEnv {
 			PartitionID: &partition.ID,
 		},
 		NetworkImmutable: v1.NetworkImmutable{
-			Prefixes:     []string{testPrivateSuperCidr},
-			PrivateSuper: true,
+			Prefixes:          []string{testPrivateSuperCidr},
+			PrivateSuper:      true,
+			ChildPrefixLength: pointer.Pointer(uint8(22)),
 		},
 	}
 	status = te.networkCreate(t, ncr, &createdNetwork)

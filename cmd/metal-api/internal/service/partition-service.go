@@ -170,14 +170,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 	if requestPayload.Labels != nil {
 		labels = requestPayload.Labels
 	}
-	prefixLength := uint8(22)
-	if requestPayload.PrivateNetworkPrefixLength != nil {
-		prefixLength = uint8(*requestPayload.PrivateNetworkPrefixLength)
-		if prefixLength < 16 || prefixLength > 30 {
-			r.sendError(request, response, httperrors.BadRequest(errors.New("private network prefix length is out of range")))
-			return
-		}
-	}
+
 	var imageURL string
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
@@ -211,9 +204,8 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			Name:        name,
 			Description: description,
 		},
-		Labels:                     labels,
-		MgmtServiceAddress:         mgmtServiceAddress,
-		PrivateNetworkPrefixLength: prefixLength,
+		Labels:             labels,
+		MgmtServiceAddress: mgmtServiceAddress,
 		BootConfiguration: metal.BootConfiguration{
 			ImageURL:    imageURL,
 			KernelURL:   kernelURL,

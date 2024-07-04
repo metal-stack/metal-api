@@ -17,6 +17,7 @@ type NetworkBase struct {
 type NetworkImmutable struct {
 	Prefixes            []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
+	ChildPrefixLength   *uint8   `json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil" optional:"true"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	PrivateSuper        bool     `json:"privatesuper" description:"if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition"`
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
@@ -47,6 +48,29 @@ type NetworkAllocateRequest struct {
 	NetworkBase
 	DestinationPrefixes []string `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
 	Nat                 *bool    `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip" optional:"true"`
+	AddressFamily       *string  `json:"address_family" description:"can be ipv4 or ipv6, defaults to ipv4" optional:"true"`
+	Length              *uint8   `json:"length" description:"the bitlen of the prefix to allocate, defaults to childprefixlength of super prefix" optional:"true"`
+}
+
+// AddressFamily identifies IPv4/IPv6
+type AddressFamily string
+
+const (
+	// IPv4AddressFamily identifies IPv4
+	IPv4AddressFamily = AddressFamily("IPv4")
+	// IPv6AddressFamily identifies IPv6
+	IPv6AddressFamily = AddressFamily("IPv6")
+)
+
+// ToAddressFamily will convert a string af to a AddressFamily
+func ToAddressFamily(af string) AddressFamily {
+	switch af {
+	case "IPv4", "ipv4":
+		return IPv4AddressFamily
+	case "IPv6", "ipv6":
+		return IPv6AddressFamily
+	}
+	return IPv4AddressFamily
 }
 
 // NetworkFindRequest is used to find a Network with different criteria.
@@ -106,6 +130,7 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 		NetworkImmutable: NetworkImmutable{
 			Prefixes:            network.Prefixes.String(),
 			DestinationPrefixes: network.DestinationPrefixes.String(),
+			ChildPrefixLength:   network.ChildPrefixLength,
 			Nat:                 network.Nat,
 			PrivateSuper:        network.PrivateSuper,
 			Underlay:            network.Underlay,
