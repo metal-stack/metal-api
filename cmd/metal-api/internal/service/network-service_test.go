@@ -7,8 +7,12 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"testing"
 
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -21,6 +25,7 @@ import (
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -420,99 +425,128 @@ func Test_networkResource_createNetwork(t *testing.T) {
 	}
 }
 
-// func Test_networkResource_allocateNetwork(t *testing.T) {
-// 	log := slog.Default()
-// 	tests := []struct {
-// 		name                 string
-// 		networkName          string
-// 		partitionID          string
-// 		projectID            string
-// 		childprefixlength    *uint8
-// 		addressFamily        *string
-// 		shared               bool
-// 		expectedStatus       int
-// 		expectedErrorMessage string
-// 	}{
-// 		{
-// 			name:           "simple ipv4",
-// 			networkName:    "tenantv4",
-// 			partitionID:    "1",
-// 			projectID:      "project-1",
-// 			expectedStatus: http.StatusCreated,
-// 		},
-// 		{
-// 			name:                 "ipv6 without ipv6 super",
-// 			networkName:          "tenantv6",
-// 			partitionID:          "1",
-// 			projectID:            "project-1",
-// 			addressFamily:        pointer.Pointer("ipv6"),
-// 			expectedStatus:       http.StatusUnprocessableEntity,
-// 			expectedErrorMessage: "no supernetwork for addressfamily:IPv6 found",
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		ds, mock := datastore.InitMockDB(t)
+func Test_networkResource_allocateNetwork(t *testing.T) {
+	log := slog.Default()
+	tests := []struct {
+		name                 string
+		networkName          string
+		partitionID          string
+		projectID            string
+		childprefixlength    *uint8
+		addressFamily        *string
+		shared               bool
+		expectedStatus       int
+		expectedErrorMessage string
+	}{
+		{
+			name:           "simple ipv4, default childprefixlength",
+			networkName:    "tenantv4",
+			partitionID:    testdata.Partition1.ID,
+			projectID:      "project-1",
+			expectedStatus: http.StatusCreated,
+		},
+		{
+			name:              "simple ipv4, specific childprefixlength",
+			networkName:       "tenantv4.2",
+			partitionID:       testdata.Partition1.ID,
+			projectID:         "project-1",
+			childprefixlength: pointer.Pointer(uint8(29)),
+			expectedStatus:    http.StatusCreated,
+		},
+		{
+			name:                 "ipv6 without ipv6 super",
+			networkName:          "tenantv6",
+			partitionID:          testdata.Partition1.ID,
+			projectID:            "project-1",
+			addressFamily:        pointer.Pointer("ipv6"),
+			expectedStatus:       http.StatusBadRequest,
+			expectedErrorMessage: "no supernetwork for addressfamily:IPv6 found",
+		},
+	}
+	for _, tt := range tests {
+		ds, mock := datastore.InitMockDB(t)
 
-// 		ipamer, err := testdata.InitMockIpamData(mock, false)
-// 		require.Nil(t, err)
-// 		mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.Networks{testdata.Nw1, testdata.Nw2}, nil)
-// 		changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(42)}}}
-// 		mock.On(r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.
-// 			DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
+		supernetwork := testdata.Nw1
+		ipamer, err := testdata.InitMockIpamData(mock, false)
+		require.NoError(t, err)
+		mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.Networks{supernetwork}, nil)
+		changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(42)}}}
+		mock.On(r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.
+			DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
-// 		mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything())).Return(
-// 			metal.Partition{
-// 				Base: metal.Base{ID: tt.partitionID},
-// 			},
-// 			nil,
-// 		)
-// 		testdata.InitMockDBData(mock)
+		mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything())).Return(
+			metal.Partition{
+				Base: metal.Base{ID: tt.partitionID},
+			},
+			nil,
+		)
+		testdata.InitMockDBData(mock)
 
-// 		psc := mdmock.ProjectServiceClient{}
-// 		psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "project-1"}).Return(&mdmv1.ProjectResponse{
-// 			Project: &mdmv1.Project{
-// 				Meta: &mdmv1.Meta{Id: tt.projectID},
-// 			},
-// 		}, nil,
-// 		)
-// 		tsc := mdmock.TenantServiceClient{}
+		psc := mdmv1mock.ProjectServiceClient{}
+		psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "project-1"}).Return(&mdmv1.ProjectResponse{
+			Project: &mdmv1.Project{
+				Meta: &mdmv1.Meta{Id: tt.projectID},
+			},
+		}, nil,
+		)
+		tsc := mdmv1mock.TenantServiceClient{}
 
-// 		mdc := mdm.NewMock(&psc, &tsc)
+		mdc := mdm.NewMock(&psc, &tsc, nil, nil)
 
-// 		networkservice := NewNetwork(log, ds, ipamer, mdc)
-// 		container := restful.NewContainer().Add(networkservice)
+		networkservice := NewNetwork(log, ds, ipamer, mdc)
+		container := restful.NewContainer().Add(networkservice)
 
-// 		allocateRequest := &v1.NetworkAllocateRequest{
-// 			Describable:   v1.Describable{Name: &tt.networkName},
-// 			NetworkBase:   v1.NetworkBase{PartitionID: &tt.partitionID, ProjectID: &tt.projectID},
-// 			AddressFamily: tt.addressFamily,
-// 			Length:        tt.childprefixlength,
-// 		}
+		allocateRequest := &v1.NetworkAllocateRequest{
+			Describable:   v1.Describable{Name: &tt.networkName},
+			NetworkBase:   v1.NetworkBase{PartitionID: &tt.partitionID, ProjectID: &tt.projectID},
+			AddressFamily: tt.addressFamily,
+			Length:        tt.childprefixlength,
+		}
 
-// 		js, _ := json.Marshal(allocateRequest)
-// 		body := bytes.NewBuffer(js)
-// 		req := httptest.NewRequest("POST", "/v1/network/allocate", body)
-// 		req.Header.Add("Content-Type", "application/json")
-// 		container = injectAdmin(log, container, req)
-// 		w := httptest.NewRecorder()
-// 		container.ServeHTTP(w, req)
+		js, err := json.Marshal(allocateRequest)
+		require.NoError(t, err)
 
-// 		resp := w.Result()
-// 		require.Equal(t, tt.expectedStatus, resp.StatusCode, w.Body.String())
-// 		if tt.expectedStatus > 300 {
-// 			var result httperrors.HTTPErrorResponse
-// 			err := json.NewDecoder(resp.Body).Decode(&result)
+		body := bytes.NewBuffer(js)
+		req := httptest.NewRequest("POST", "/v1/network/allocate", body)
+		req.Header.Add("Content-Type", "application/json")
+		container = injectAdmin(log, container, req)
+		w := httptest.NewRecorder()
+		container.ServeHTTP(w, req)
 
-// 			require.Nil(t, err)
-// 			require.Equal(t, tt.expectedErrorMessage, result.Message)
-// 		} else {
-// 			var result v1.NetworkResponse
-// 			err = json.NewDecoder(resp.Body).Decode(&result)
-// 			require.Nil(t, err)
-// 			require.Equal(t, tt.networkName, *result.Name)
-// 			require.Equal(t, tt.partitionID, *result.PartitionID)
-// 			require.Equal(t, tt.projectID, *result.ProjectID)
-// 			// TODO check af and length
-// 		}
-// 	}
-// }
+		resp := w.Result()
+		defer resp.Body.Close()
+		require.Equal(t, tt.expectedStatus, resp.StatusCode, w.Body.String())
+		if tt.expectedStatus > 300 {
+			var result httperrors.HTTPErrorResponse
+			err := json.NewDecoder(resp.Body).Decode(&result)
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedErrorMessage, result.Message)
+		} else {
+			var result v1.NetworkResponse
+			err = json.NewDecoder(resp.Body).Decode(&result)
+
+			requestAF := "ipv4"
+			if tt.addressFamily != nil {
+				requestAF = "ipv6"
+			}
+
+			require.GreaterOrEqual(t, len(result.Prefixes), 1)
+			resultFirstPrefix := netip.MustParsePrefix(result.Prefixes[0])
+			af := "ipv4"
+			if resultFirstPrefix.Addr().Is6() {
+				af = "ipv6"
+			}
+			expectedLength := *supernetwork.ChildPrefixLength
+			if tt.childprefixlength != nil {
+				expectedLength = *tt.childprefixlength
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.networkName, *result.Name)
+			require.Equal(t, tt.partitionID, *result.PartitionID)
+			require.Equal(t, tt.projectID, *result.ProjectID)
+			require.Equal(t, requestAF, af)
+			require.Equal(t, int(expectedLength), resultFirstPrefix.Bits())
+		}
+	}
+}

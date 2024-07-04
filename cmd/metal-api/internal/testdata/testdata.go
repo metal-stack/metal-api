@@ -280,7 +280,7 @@ var (
 	}
 	// Networks
 	prefix1    = metal.Prefix{IP: "185.1.2.0", Length: "26"}
-	prefix2    = metal.Prefix{IP: "100.64.2.0", Length: "16"}
+	prefix2    = metal.Prefix{IP: "100.64.0.0", Length: "16"}
 	prefix3    = metal.Prefix{IP: "192.0.0.0", Length: "16"}
 	prefixIPAM = metal.Prefix{IP: "10.0.0.0", Length: "16"}
 	cpl1       = uint8(28)
@@ -308,6 +308,7 @@ var (
 			Name:        "Network 2",
 			Description: "description 2",
 		},
+		PartitionID:       Partition1.ID,
 		Prefixes:          prefixes2,
 		Underlay:          true,
 		ChildPrefixLength: &cpl2,

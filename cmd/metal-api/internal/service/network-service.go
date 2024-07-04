@@ -20,6 +20,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 type networkResource struct {
@@ -263,6 +264,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 
 	prefixes := metal.Prefixes{}
 	addressFamilies := make(map[string]bool)
+	var addressFamily v1.AddressFamily
 	// all Prefixes must be valid and from the same addressfamily
 	for i := range requestPayload.Prefixes {
 		p := requestPayload.Prefixes[i]
@@ -278,9 +280,11 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		}
 		if ipprefix.Addr().Is4() {
 			addressFamilies["ipv4"] = true
+			addressFamily = v1.IPv4AddressFamily
 		}
 		if ipprefix.Addr().Is6() {
 			addressFamilies["ipv6"] = true
+			addressFamily = v1.IPv6AddressFamily
 		}
 		prefixes = append(prefixes, *prefix)
 	}
@@ -288,6 +292,17 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	if len(addressFamilies) > 1 {
 		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("given prefixes have different addressfamilies")))
 		return
+	}
+
+	if privateSuper && requestPayload.ChildPrefixLength == nil {
+		var childprefixlength *uint8
+		if addressFamily == v1.IPv4AddressFamily {
+			childprefixlength = pointer.Pointer(uint8(22))
+		}
+		if addressFamily == v1.IPv6AddressFamily {
+			childprefixlength = pointer.Pointer(uint8(64))
+		}
+		r.log.Info("createnetwork childprefixlength not set for private super network, using default", "addressfamily", addressFamily, "childprefixlength", childprefixlength)
 	}
 
 	destPrefixes := metal.Prefixes{}
@@ -474,6 +489,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		return
 	}
 
+	r.log.Info("allocateNetwork", "request", requestPayload)
 	var name string
 	if requestPayload.Name != nil {
 		name = *requestPayload.Name
@@ -520,14 +536,6 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		return
 	}
 
-	var superNetworks metal.Networks
-	boolTrue := true
-	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &superNetworks)
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
 	destPrefixes := metal.Prefixes{}
 	for _, p := range requestPayload.DestinationPrefixes {
 		prefix, err := metal.NewPrefixFromCIDR(p)
@@ -547,8 +555,16 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	r.log.Info("network allocate", "family", addressFamily)
 	var (
 		superNetwork      metal.Network
+		superNetworks     metal.Networks
 		superNetworkFound bool
 	)
+
+	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: pointer.Pointer(true)}, &superNetworks)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
 	for _, snw := range superNetworks {
 		ipprefix, err := netip.ParsePrefix(snw.Prefixes[0].String())
 		if err != nil {
@@ -592,6 +608,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	if requestPayload.Length != nil {
 		length = *requestPayload.Length
 	}
+	r.log.Info("network allocate", "supernetwork", superNetwork.Name, "length", length)
 
 	ctx := request.Request.Context()
 	nw, err := createChildNetwork(ctx, r.ds, r.ipamer, nwSpec, &superNetwork, length)
