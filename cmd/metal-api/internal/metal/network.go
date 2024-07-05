@@ -1,9 +1,9 @@
 package metal
 
 import (
-	"fmt"
 	"net"
-	"strings"
+	"net/netip"
+	"strconv"
 
 	"github.com/samber/lo"
 )
@@ -162,6 +162,7 @@ func (n *Nic) GetIdentifier() string {
 type Nics []Nic
 
 // Prefix is a ip with mask, either ipv4/ipv6
+// FIXME this should be converted to simply a string
 type Prefix struct {
 	IP     string `rethinkdb:"ip" json:"ip"`
 	Length string `rethinkdb:"length" json:"length"`
@@ -172,12 +173,12 @@ type Prefixes []Prefix
 
 // NewPrefixFromCIDR returns a new prefix from a given cidr.
 func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
-	parts := strings.Split(cidr, "/")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("cannot split cidr into pieces: %v", cidr)
+	prefix, err := netip.ParsePrefix(cidr)
+	if err != nil {
+		return nil, err
 	}
-	ip := strings.TrimSpace(parts[0])
-	length := strings.TrimSpace(parts[1])
+	ip := prefix.Addr().String()
+	length := strconv.Itoa(prefix.Bits())
 	return &Prefix{
 		IP:     ip,
 		Length: length,
@@ -197,8 +198,8 @@ func (p Prefixes) String() []string {
 	return result
 }
 
-// Equals returns true when prefixes have the same cidr.
-func (p *Prefix) Equals(other *Prefix) bool {
+// equals returns true when prefixes have the same cidr.
+func (p *Prefix) equals(other *Prefix) bool {
 	return p.String() == other.String()
 }
 
@@ -229,7 +230,7 @@ type NetworkMap map[string]Network
 type NetworkUsage struct {
 	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
 	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available Prefixes" readonly:"true"`
+	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
@@ -274,7 +275,7 @@ func (n *Network) SubtractPrefixes(prefixes ...Prefix) []Prefix {
 	for _, p := range n.Prefixes {
 		contains := false
 		for i := range prefixes {
-			if p.Equals(&prefixes[i]) {
+			if p.equals(&prefixes[i]) {
 				contains = true
 				break
 			}

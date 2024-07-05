@@ -113,7 +113,7 @@ func TestPrefix_Equals(t *testing.T) {
 				IP:     tt.fields.IP,
 				Length: tt.fields.Length,
 			}
-			if got := p.Equals(tt.args.other); got != tt.want {
+			if got := p.equals(tt.args.other); got != tt.want {
 				t.Errorf("Prefix.Equals() = %v, want %v", got, tt.want)
 			}
 		})

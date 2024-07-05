@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -66,7 +67,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	rethinkContainer, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 
-	log := slog.Default()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000
 	ds.ASNPoolRangeMax = 1000
@@ -380,6 +381,11 @@ func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, resp
 
 func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, response interface{}) int {
 	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nar, "/v1/network/allocate", response)
+}
+
+//nolint:unused
+func (te *testEnv) networkFind(t *testing.T, nfr v1.NetworkFindRequest, response interface{}) int {
+	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nfr, "/v1/network/find", response)
 }
 
 func (te *testEnv) machineAllocate(t *testing.T, mar v1.MachineAllocateRequest, response interface{}) int {

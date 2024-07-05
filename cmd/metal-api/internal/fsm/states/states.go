@@ -1,6 +1,7 @@
 package states
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/looplab/fsm"
@@ -23,7 +24,7 @@ const (
 )
 
 type FSMState interface {
-	OnTransition(e *fsm.Event)
+	OnTransition(ctx context.Context, e *fsm.Event)
 }
 
 type stateType string

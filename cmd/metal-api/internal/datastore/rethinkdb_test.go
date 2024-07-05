@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -11,7 +12,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	logger := slog.Default()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	type args struct {
 		log    *slog.Logger
 		dbhost string

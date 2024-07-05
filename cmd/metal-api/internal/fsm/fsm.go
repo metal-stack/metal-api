@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -16,7 +17,7 @@ import (
 // The function returns a new provisioning event container that can then be safely persisted in the database. If an error is returned, the incoming event is not supposed to be persisted in the database.
 //
 // Among other things, this function can detect crash loops or other irregularities within a machine lifecycle and enriches the returned provisioning event container with this information.
-func HandleProvisioningEvent(log *slog.Logger, ec *metal.ProvisioningEventContainer, event *metal.ProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
+func HandleProvisioningEvent(ctx context.Context, log *slog.Logger, ec *metal.ProvisioningEventContainer, event *metal.ProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
 	if ec == nil {
 		return nil, fmt.Errorf("provisioning event container must not be nil")
 	}
@@ -35,7 +36,7 @@ func HandleProvisioningEvent(log *slog.Logger, ec *metal.ProvisioningEventContai
 		)
 	)
 
-	err := f.Event(event.Event.String())
+	err := f.Event(ctx, event.Event.String())
 	if err == nil {
 		return container, nil
 	}

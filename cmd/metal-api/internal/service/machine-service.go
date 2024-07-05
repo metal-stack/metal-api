@@ -1273,7 +1273,7 @@ func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.Ret
 	if err != nil {
 		return nil, rollbackOnError(fmt.Errorf("unable to gather networks:%w", err))
 	}
-	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
+	err = makeNetworks(ctx, ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
 		return nil, rollbackOnError(fmt.Errorf("unable to make networks:%w", err))
 	}
@@ -1394,9 +1394,9 @@ func findWaitingMachine(ctx context.Context, ds *datastore.RethinkStore, allocat
 // makeNetworks creates network entities and ip addresses as specified in the allocation network map.
 // created networks are added to the machine allocation directly after their creation. This way, the rollback mechanism
 // is enabled to clean up networks that were already created.
-func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
+func makeNetworks(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
 	for _, n := range networks {
-		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
+		machineNetwork, err := makeMachineNetwork(ctx, ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return err
 		}
@@ -1610,9 +1610,9 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 	}, nil
 }
 
-func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
+func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
-		ipAddress, ipParentCidr, err := allocateRandomIP(n.network, ipamer)
+		ipAddress, ipParentCidr, err := allocateRandomIP(ctx, n.network, ipamer)
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 		}
@@ -1766,7 +1766,9 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		Event:   metal.ProvisioningEventMachineReclaim,
 		Message: "free machine called",
 	}
-	_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
+
+	ctx := request.Request.Context()
+	_, err = r.ds.ProvisioningEventForMachine(ctx, logger, &ev, id)
 	if err != nil {
 		r.log.Error("error sending provisioning event after machine free", "error", err)
 	}
@@ -2083,39 +2085,39 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 }
 
 func (r *machineResource) machineOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineOnCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineOnCmd, request, response)
 }
 
 func (r *machineResource) machineOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineOffCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineOffCmd, request, response)
 }
 
 func (r *machineResource) machineReset(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineResetCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineResetCmd, request, response)
 }
 
 func (r *machineResource) machineCycle(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineCycleCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineCycleCmd, request, response)
 }
 
 func (r *machineResource) machineBios(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineBiosCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineBiosCmd, request, response)
 }
 
 func (r *machineResource) machineDisk(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineDiskCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineDiskCmd, request, response)
 }
 
 func (r *machineResource) machinePxe(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachinePxeCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachinePxeCmd, request, response)
 }
 
 func (r *machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.ChassisIdentifyLEDOnCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.ChassisIdentifyLEDOnCmd, request, response)
 }
 
 func (r *machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.ChassisIdentifyLEDOffCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.ChassisIdentifyLEDOffCmd, request, response)
 }
 
 func (r *machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
@@ -2208,7 +2210,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineCmd(ctx context.Context, cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
 	logger := r.logger(request)
 
 	id := request.PathParameter("id")
@@ -2229,7 +2231,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 			Event:   metal.ProvisioningEventPlannedReboot,
 			Message: string(cmd),
 		}
-		_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
+		_, err = r.ds.ProvisioningEventForMachine(ctx, logger, &ev, id)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
