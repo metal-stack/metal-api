@@ -262,35 +262,16 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	prefixes := metal.Prefixes{}
-	addressFamilies := make(map[string]bool)
-	var addressFamily v1.AddressFamily
 	// all Prefixes must be valid and from the same addressfamily
-	for i := range requestPayload.Prefixes {
-		p := requestPayload.Prefixes[i]
-		prefix, err := metal.NewPrefixFromCIDR(p)
-		if err != nil {
-			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)))
-			return
-		}
-		ipprefix, err := netip.ParsePrefix(p)
-		if err != nil {
-			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)))
-			return
-		}
-		if ipprefix.Addr().Is4() {
-			addressFamilies["ipv4"] = true
-			addressFamily = v1.IPv4AddressFamily
-		}
-		if ipprefix.Addr().Is6() {
-			addressFamilies["ipv6"] = true
-			addressFamily = v1.IPv6AddressFamily
-		}
-		prefixes = append(prefixes, *prefix)
+	prefixes, addressFamily, err := validatePrefixes(requestPayload.Prefixes)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
 	}
-
-	if len(addressFamilies) > 1 {
-		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("given prefixes have different addressfamilies")))
+	// all DestinationPrefixes must be valid and from the same addressfamily
+	_, _, err = validatePrefixes(requestPayload.DestinationPrefixes)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -478,6 +459,37 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	usage := getNetworkUsage(ctx, nw, r.ipamer)
 
 	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+}
+
+func validatePrefixes(prefixes []string) (metal.Prefixes, v1.AddressFamily, error) {
+	var (
+		result          metal.Prefixes
+		addressFamilies = make(map[string]bool)
+		addressFamily   v1.AddressFamily
+	)
+	for _, p := range prefixes {
+		prefix, err := metal.NewPrefixFromCIDR(p)
+		if err != nil {
+			return nil, v1.IPv4AddressFamily, fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)
+		}
+		ipprefix, err := netip.ParsePrefix(p)
+		if err != nil {
+			return nil, v1.IPv4AddressFamily, fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)
+		}
+		if ipprefix.Addr().Is4() {
+			addressFamilies["ipv4"] = true
+			addressFamily = v1.IPv4AddressFamily
+		}
+		if ipprefix.Addr().Is6() {
+			addressFamilies["ipv6"] = true
+			addressFamily = v1.IPv6AddressFamily
+		}
+		result = append(result, *prefix)
+	}
+	if len(addressFamilies) > 1 {
+		return nil, v1.IPv4AddressFamily, fmt.Errorf("given prefixes have different addressfamilies")
+	}
+	return result, addressFamily, nil
 }
 
 // TODO add possibility to allocate from a non super network if given in the AllocateRequest and super has childprefixlength
@@ -736,11 +748,14 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	var prefixesToBeAdded metal.Prefixes
 
 	if len(requestPayload.Prefixes) > 0 {
-		newNetwork.Prefixes, err = prefixesFromCidr(requestPayload.Prefixes)
+		// all Prefixes must be valid and from the same addressfamily
+		prefixes, _, err := validatePrefixes(requestPayload.Prefixes)
 		if err != nil {
-			r.sendError(request, response, defaultError(err))
+			r.sendError(request, response, httperrors.BadRequest(err))
 			return
 		}
+
+		newNetwork.Prefixes = prefixes
 
 		prefixesToBeRemoved = oldNetwork.SubtractPrefixes(newNetwork.Prefixes...)
 
@@ -779,11 +794,14 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	}
 
 	if len(requestPayload.DestinationPrefixes) > 0 {
-		newNetwork.DestinationPrefixes, err = prefixesFromCidr(requestPayload.DestinationPrefixes)
+		// all Prefixes must be valid and from the same addressfamily
+		prefixes, _, err := validatePrefixes(requestPayload.Prefixes)
 		if err != nil {
-			r.sendError(request, response, defaultError(err))
+			r.sendError(request, response, httperrors.BadRequest(err))
 			return
 		}
+
+		newNetwork.DestinationPrefixes = prefixes
 	}
 
 	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
@@ -795,18 +813,6 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	usage := getNetworkUsage(ctx, &newNetwork, r.ipamer)
 
 	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(&newNetwork, usage))
-}
-
-func prefixesFromCidr(PrefixesCidr []string) (metal.Prefixes, error) {
-	var prefixes metal.Prefixes
-	for _, prefixCidr := range PrefixesCidr {
-		Prefix, err := metal.NewPrefixFromCIDR(prefixCidr)
-		if err != nil {
-			return nil, err
-		}
-		prefixes = append(prefixes, *Prefix)
-	}
-	return prefixes, nil
 }
 
 func (r *networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {

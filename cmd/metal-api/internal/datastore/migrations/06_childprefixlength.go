@@ -34,6 +34,7 @@ func init() {
 					return err
 				}
 
+				// TODO: does not work somehow
 				new := old
 				new.ChildPrefixLength = &partition.PrivateNetworkPrefixLength
 				err = rs.UpdateNetwork(&old, &new)
