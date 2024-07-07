@@ -3612,7 +3612,11 @@
           "description": "marks a network as shareable.",
           "type": "boolean"
         }
-      }
+      },
+      "required": [
+        "address_family",
+        "length"
+      ]
     },
     "v1.NetworkBase": {
       "properties": {

@@ -8,25 +8,23 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"reflect"
 	"testing"
 
+	restful "github.com/emicklei/go-restful/v3"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
-	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
-
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
-
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-
-	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 func TestGetNetworks(t *testing.T) {
@@ -548,5 +546,55 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 			require.Equal(t, requestAF, af)
 			require.Equal(t, int(expectedLength), resultFirstPrefix.Bits())
 		}
+	}
+}
+
+func Test_getAddressFamily(t *testing.T) {
+	tests := []struct {
+		name     string
+		prefixes metal.Prefixes
+		want     *v1.AddressFamily
+		wantErr  bool
+	}{
+		{
+			name: "ipv4",
+			prefixes: metal.Prefixes{
+				metal.Prefix{IP: "10.0.0.0", Length: "8"},
+			},
+			want: pointer.Pointer(v1.IPv4AddressFamily),
+		},
+		{
+			name: "ipv6",
+			prefixes: metal.Prefixes{
+				metal.Prefix{IP: "2001::", Length: "64"},
+			},
+			want: pointer.Pointer(v1.IPv6AddressFamily),
+		},
+		{
+			name:     "empty prefixes",
+			prefixes: metal.Prefixes{},
+			want:     nil,
+			wantErr:  false,
+		},
+		{
+			name: "malformed ipv4",
+			prefixes: metal.Prefixes{
+				metal.Prefix{IP: "10.0.0.0.0", Length: "6"},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getAddressFamily(tt.prefixes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getAddressFamily() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getAddressFamily() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

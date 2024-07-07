@@ -48,8 +48,8 @@ type NetworkAllocateRequest struct {
 	NetworkBase
 	DestinationPrefixes []string `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
 	Nat                 *bool    `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip" optional:"true"`
-	AddressFamily       *string  `json:"address_family" description:"can be ipv4 or ipv6, defaults to ipv4" optional:"true"`
-	Length              *uint8   `json:"length" description:"the bitlen of the prefix to allocate, defaults to childprefixlength of super prefix" optional:"true"`
+	AddressFamily       *string  `json:"address_family" description:"can be ipv4 or ipv6, defaults to ipv4"`
+	Length              *uint8   `json:"length" description:"the bitlen of the prefix to allocate, defaults to childprefixlength of super prefix"`
 }
 
 // AddressFamily identifies IPv4/IPv6

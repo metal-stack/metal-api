@@ -78,6 +78,11 @@ func New(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass s
 	}
 }
 
+// Session exported for migration unit test
+func (rs *RethinkStore) Session() r.QueryExecutor {
+	return rs.session
+}
+
 func multi(session r.QueryExecutor, tt ...r.Term) error {
 	for _, t := range tt {
 		if err := t.Exec(session); err != nil {

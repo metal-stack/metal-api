@@ -23,6 +23,11 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
+const (
+	ipv4DefaultChildPrefixLength = uint8(22)
+	ipv6DefaultChildPrefixLength = uint8(64)
+)
+
 type networkResource struct {
 	webResource
 	ipamer ipam.IPAMer
@@ -278,10 +283,10 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	if privateSuper && requestPayload.ChildPrefixLength == nil {
 		var childprefixlength *uint8
 		if addressFamily == v1.IPv4AddressFamily {
-			childprefixlength = pointer.Pointer(uint8(22))
+			childprefixlength = pointer.Pointer(ipv4DefaultChildPrefixLength)
 		}
 		if addressFamily == v1.IPv6AddressFamily {
-			childprefixlength = pointer.Pointer(uint8(64))
+			childprefixlength = pointer.Pointer(ipv6DefaultChildPrefixLength)
 		}
 		r.log.Info("createnetwork childprefixlength not set for private super network, using default", "addressfamily", addressFamily, "childprefixlength", childprefixlength)
 	}
@@ -459,6 +464,24 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	usage := getNetworkUsage(ctx, nw, r.ipamer)
 
 	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+}
+
+func getAddressFamily(prefixes metal.Prefixes) (*v1.AddressFamily, error) {
+	if len(prefixes) == 0 {
+		return nil, nil
+	}
+
+	parsed, err := netip.ParsePrefix(prefixes[0].String())
+	if err != nil {
+		return nil, err
+	}
+	if parsed.Addr().Is4() {
+		return pointer.Pointer(v1.IPv4AddressFamily), nil
+	}
+	if parsed.Addr().Is6() {
+		return pointer.Pointer(v1.IPv6AddressFamily), nil
+	}
+	return nil, fmt.Errorf("unable to detect addressfamily from prefixes:%v", prefixes.String())
 }
 
 func validatePrefixes(prefixes []string) (metal.Prefixes, v1.AddressFamily, error) {
@@ -724,6 +747,12 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		return
 	}
 
+	addressFamily, err := getAddressFamily(oldNetwork.Prefixes)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
 	newNetwork := *oldNetwork
 
 	if requestPayload.Name != nil {
@@ -744,14 +773,21 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	var prefixesToBeRemoved metal.Prefixes
-	var prefixesToBeAdded metal.Prefixes
+	var (
+		prefixesToBeRemoved metal.Prefixes
+		prefixesToBeAdded   metal.Prefixes
+	)
 
 	if len(requestPayload.Prefixes) > 0 {
 		// all Prefixes must be valid and from the same addressfamily
-		prefixes, _, err := validatePrefixes(requestPayload.Prefixes)
+		prefixes, af, err := validatePrefixes(requestPayload.Prefixes)
 		if err != nil {
 			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+
+		if af != *addressFamily {
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("new prefixes have different addressfamily %q then existing prefixes %q", af, *addressFamily)))
 			return
 		}
 
@@ -795,9 +831,14 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 
 	if len(requestPayload.DestinationPrefixes) > 0 {
 		// all Prefixes must be valid and from the same addressfamily
-		prefixes, _, err := validatePrefixes(requestPayload.Prefixes)
+		prefixes, af, err := validatePrefixes(requestPayload.Prefixes)
 		if err != nil {
 			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+
+		if af != *addressFamily {
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("new destination prefixes have different addressfamily %q then existing destination prefixes %q", af, *addressFamily)))
 			return
 		}
 
