@@ -9371,9 +9371,8 @@
           {
             "default": false,
             "description": "if true switch is deleted with no validation",
-            "in": "path",
+            "in": "query",
             "name": "force",
-            "required": true,
             "type": "boolean"
           }
         ],
@@ -9385,12 +9384,6 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/v1.SwitchResponse"
-            }
-          },
-          "400": {
-            "description": "Bad input data",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           },
           "default": {
