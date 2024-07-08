@@ -193,7 +193,12 @@ func (r *switchResource) findSwitches(request *restful.Request, response *restfu
 
 func (r *switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	force, err := strconv.ParseBool(request.QueryParameter("force"))
+	forceParam := request.QueryParameter("force")
+	if forceParam == "" {
+		forceParam = "false"
+	}
+
+	force, err := strconv.ParseBool(forceParam)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
