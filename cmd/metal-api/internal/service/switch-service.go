@@ -81,11 +81,10 @@ func (r *switchResource) webService() *restful.WebService {
 		Operation("deleteSwitch").
 		Doc("deletes an switch and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
-		Param(ws.PathParameter("force", "if true switch is deleted with no validation").DataType("boolean").DefaultValue("false")).
+		Param(ws.QueryParameter("force", "if true switch is deleted with no validation").DataType("boolean").DefaultValue("false")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.SwitchResponse{}).
 		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
-		Returns(http.StatusBadRequest, "Bad input data", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/register").
@@ -194,9 +193,10 @@ func (r *switchResource) findSwitches(request *restful.Request, response *restfu
 
 func (r *switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	force, err := strconv.ParseBool(request.PathParameter("force"))
+	force, err := strconv.ParseBool(request.QueryParameter("force"))
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
+		return
 	}
 
 	s, err := r.ds.FindSwitch(id)
