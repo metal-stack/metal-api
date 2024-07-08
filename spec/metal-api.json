@@ -402,6 +402,9 @@
         "name": {
           "type": "string"
         },
+        "release_version": {
+          "type": "string"
+        },
         "revision": {
           "type": "string"
         },
