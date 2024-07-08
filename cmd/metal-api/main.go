@@ -33,6 +33,7 @@ import (
 
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	"connectrpc.com/connect"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -296,6 +297,7 @@ func init() {
 	rootCmd.Flags().String("headscale-api-key", "", "initial api key to connect to headscale server")
 
 	rootCmd.Flags().StringP("minimum-client-version", "", "v0.0.1", "the minimum metalctl version required to talk to this version of metal-api")
+	rootCmd.Flags().String("release-version", "", "the metal-stack release version")
 
 	must(viper.BindPFlags(rootCmd.Flags()))
 	must(viper.BindPFlags(rootCmd.PersistentFlags()))
@@ -749,6 +751,11 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 		log.Fatalf("given minimum client version is not semver parsable: %s", err)
 	}
 
+	var releaseVersion *string
+	if viper.IsSet("release-version") {
+		releaseVersion = pointer.Pointer(viper.GetString("release-version"))
+	}
+
 	restful.DefaultContainer.Add(service.NewAudit(logger.WithGroup("audit-service"), audit))
 	restful.DefaultContainer.Add(service.NewPartition(logger.WithGroup("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.WithGroup("image-service"), ds))
@@ -766,7 +773,11 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	restful.DefaultContainer.Add(service.NewSwitch(logger.WithGroup("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
 	restful.DefaultContainer.Add(service.NewVPN(logger.WithGroup("vpn-service"), headscaleClient))
-	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath, minClientVersion.Original()))
+	restful.DefaultContainer.Add(rest.NewVersion(moduleName, &rest.VersionOpts{
+		BasePath:         service.BasePath,
+		MinClientVersion: minClientVersion.Original(),
+		ReleaseVersion:   releaseVersion,
+	}))
 	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger)) // FIXME
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 

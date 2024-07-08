@@ -402,6 +402,9 @@
         "name": {
           "type": "string"
         },
+        "release_version": {
+          "type": "string"
+        },
         "revision": {
           "type": "string"
         },
@@ -9382,6 +9385,14 @@
             "name": "id",
             "required": true,
             "type": "string"
+          },
+          {
+            "default": false,
+            "description": "if true switch is deleted with no validation",
+            "in": "path",
+            "name": "force",
+            "required": true,
+            "type": "boolean"
           }
         ],
         "produces": [
@@ -9392,6 +9403,12 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/v1.SwitchResponse"
+            }
+          },
+          "400": {
+            "description": "Bad input data",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           },
           "default": {
