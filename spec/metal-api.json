@@ -402,6 +402,9 @@
         "name": {
           "type": "string"
         },
+        "release_version": {
+          "type": "string"
+        },
         "revision": {
           "type": "string"
         },
@@ -9371,6 +9374,13 @@
             "name": "id",
             "required": true,
             "type": "string"
+          },
+          {
+            "default": false,
+            "description": "if true switch is deleted with no validation",
+            "in": "query",
+            "name": "force",
+            "type": "boolean"
           }
         ],
         "produces": [
