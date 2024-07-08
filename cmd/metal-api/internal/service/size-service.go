@@ -12,7 +12,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -496,13 +495,13 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 		for _, reservation := range size.Reservations {
 			reservation := reservation
 
+			project, ok := projectsByID[reservation.ProjectID]
+			if !ok {
+				r.log.Error("size reservation references a project that does not exist anymore", "size-id", size.ID, "project-id", reservation.ProjectID)
+				continue
+			}
+
 			for _, partitionID := range reservation.PartitionIDs {
-				project := pointer.SafeDeref(projectsByID[reservation.ProjectID])
-
-				if requestPayload.Tenant != nil && project.TenantId != *requestPayload.Tenant {
-					continue
-				}
-
 				allocations := len(machinesByProjectID[reservation.ProjectID].WithPartition(partitionID).WithSize(size.ID))
 
 				result = append(result, &v1.SizeReservationResponse{
