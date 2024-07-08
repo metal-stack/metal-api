@@ -497,7 +497,6 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 
 			project, ok := projectsByID[reservation.ProjectID]
 			if !ok {
-				r.log.Error("size reservation references a project that does not exist anymore", "size-id", size.ID, "project-id", reservation.ProjectID)
 				continue
 			}
 
