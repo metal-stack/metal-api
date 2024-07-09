@@ -12,18 +12,19 @@ import (
 
 // NetworkSearchQuery can be used to search networks.
 type NetworkSearchQuery struct {
-	ID                  *string           `json:"id" optional:"true"`
-	Name                *string           `json:"name" optional:"true"`
-	PartitionID         *string           `json:"partitionid" optional:"true"`
-	ProjectID           *string           `json:"projectid" optional:"true"`
-	Prefixes            []string          `json:"prefixes" optional:"true"`
-	DestinationPrefixes []string          `json:"destinationprefixes" optional:"true"`
-	Nat                 *bool             `json:"nat" optional:"true"`
-	PrivateSuper        *bool             `json:"privatesuper" optional:"true"`
-	Underlay            *bool             `json:"underlay" optional:"true"`
-	Vrf                 *int64            `json:"vrf" optional:"true"`
-	ParentNetworkID     *string           `json:"parentnetworkid" optional:"true"`
-	Labels              map[string]string `json:"labels" optional:"true"`
+	ID                  *string              `json:"id" optional:"true"`
+	Name                *string              `json:"name" optional:"true"`
+	PartitionID         *string              `json:"partitionid" optional:"true"`
+	ProjectID           *string              `json:"projectid" optional:"true"`
+	Prefixes            []string             `json:"prefixes" optional:"true"`
+	DestinationPrefixes []string             `json:"destinationprefixes" optional:"true"`
+	Nat                 *bool                `json:"nat" optional:"true"`
+	PrivateSuper        *bool                `json:"privatesuper" optional:"true"`
+	Underlay            *bool                `json:"underlay" optional:"true"`
+	Vrf                 *int64               `json:"vrf" optional:"true"`
+	ParentNetworkID     *string              `json:"parentnetworkid" optional:"true"`
+	Labels              map[string]string    `json:"labels" optional:"true"`
+	AddressFamily       *metal.AddressFamily `json:"addressfamily" optional:"true"`
 }
 
 func (p *NetworkSearchQuery) Validate() error {
@@ -101,6 +102,12 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 	if p.Underlay != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("underlay").Eq(*p.Underlay)
+		})
+	}
+
+	if p.AddressFamily != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("addressfamily").Eq(string(*p.AddressFamily))
 		})
 	}
 

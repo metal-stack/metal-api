@@ -4,6 +4,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 func init() {
@@ -20,10 +21,6 @@ func init() {
 			}
 
 			for _, old := range nws {
-				if !old.PrivateSuper {
-					continue
-				}
-
 				cursor, err := db.Table("partition").Get(old.PartitionID).Run(session)
 				if err != nil {
 					return err
@@ -36,7 +33,17 @@ func init() {
 
 				// TODO: does not work somehow
 				new := old
-				new.ChildPrefixLength = &partition.PrivateNetworkPrefixLength
+
+				af, err := metal.GetAddressFamily(new.Prefixes)
+				if err != nil {
+					return err
+				}
+				if af != nil {
+					new.AddressFamily = *af
+				}
+				if new.PrivateSuper {
+					new.DefaultChildPrefixLength = &partition.PrivateNetworkPrefixLength
+				}
 				err = rs.UpdateNetwork(&old, &new)
 				if err != nil {
 					return err

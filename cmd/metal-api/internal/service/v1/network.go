@@ -15,15 +15,16 @@ type NetworkBase struct {
 
 // NetworkImmutable defines the properties which are immutable in the Network.
 type NetworkImmutable struct {
-	Prefixes            []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
-	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
-	ChildPrefixLength   *uint8   `json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil" optional:"true"`
-	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
-	PrivateSuper        bool     `json:"privatesuper" description:"if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition"`
-	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
-	Vrf                 *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
-	VrfShared           *bool    `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)" optional:"true"`
-	ParentNetworkID     *string  `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
+	Prefixes                 []string      `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
+	DestinationPrefixes      []string      `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
+	DefaultChildPrefixLength *uint8        `json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil" optional:"true"`
+	Nat                      bool          `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	PrivateSuper             bool          `json:"privatesuper" description:"if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition"`
+	Underlay                 bool          `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
+	Vrf                      *uint         `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
+	VrfShared                *bool         `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)" optional:"true"`
+	ParentNetworkID          *string       `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
+	AddressFamily            AddressFamily `json:"addressfamily" description:"the addressfamily either IPv4 or IPv6 of this network" enum:"IPv4|IPv6"`
 }
 
 // NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.
@@ -49,7 +50,7 @@ type NetworkAllocateRequest struct {
 	DestinationPrefixes []string `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
 	Nat                 *bool    `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip" optional:"true"`
 	AddressFamily       *string  `json:"address_family" description:"can be ipv4 or ipv6, defaults to ipv4"`
-	Length              *uint8   `json:"length" description:"the bitlen of the prefix to allocate, defaults to childprefixlength of super prefix"`
+	Length              *uint8   `json:"length" description:"the bitlen of the prefix to allocate, defaults to defaultchildprefixlength of super prefix"`
 }
 
 // AddressFamily identifies IPv4/IPv6
@@ -68,6 +69,17 @@ func ToAddressFamily(af string) AddressFamily {
 	case "IPv4", "ipv4":
 		return IPv4AddressFamily
 	case "IPv6", "ipv6":
+		return IPv6AddressFamily
+	}
+	return IPv4AddressFamily
+}
+
+// FromAddressFamily will convert from a metal.AddressFamily to a AddressFamily
+func FromAddressFamily(af metal.AddressFamily) AddressFamily {
+	switch af {
+	case metal.IPv4AddressFamily:
+		return IPv4AddressFamily
+	case metal.IPv6AddressFamily:
 		return IPv6AddressFamily
 	}
 	return IPv4AddressFamily
@@ -128,14 +140,15 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			Shared:      &network.Shared,
 		},
 		NetworkImmutable: NetworkImmutable{
-			Prefixes:            network.Prefixes.String(),
-			DestinationPrefixes: network.DestinationPrefixes.String(),
-			ChildPrefixLength:   network.ChildPrefixLength,
-			Nat:                 network.Nat,
-			PrivateSuper:        network.PrivateSuper,
-			Underlay:            network.Underlay,
-			Vrf:                 &network.Vrf,
-			ParentNetworkID:     parentNetworkID,
+			Prefixes:                 network.Prefixes.String(),
+			DestinationPrefixes:      network.DestinationPrefixes.String(),
+			DefaultChildPrefixLength: network.DefaultChildPrefixLength,
+			Nat:                      network.Nat,
+			PrivateSuper:             network.PrivateSuper,
+			Underlay:                 network.Underlay,
+			Vrf:                      &network.Vrf,
+			ParentNetworkID:          parentNetworkID,
+			AddressFamily:            ToAddressFamily(string(network.AddressFamily)),
 		},
 		Usage: NetworkUsage{
 			AvailableIPs:      usage.AvailableIPs,

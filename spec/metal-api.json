@@ -255,6 +255,9 @@
     },
     "datastore.NetworkSearchQuery": {
       "properties": {
+        "addressfamily": {
+          "type": "string"
+        },
         "destinationprefixes": {
           "items": {
             "type": "string"
@@ -3591,7 +3594,7 @@
           "type": "object"
         },
         "length": {
-          "description": "the bitlen of the prefix to allocate, defaults to childprefixlength of super prefix",
+          "description": "the bitlen of the prefix to allocate, defaults to defaultchildprefixlength of super prefix",
           "format": "byte",
           "type": "integer"
         },
@@ -3646,7 +3649,15 @@
     },
     "v1.NetworkCreateRequest": {
       "properties": {
-        "childprefixlength": {
+        "addressfamily": {
+          "description": "the addressfamily either IPv4 or IPv6 of this network",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
+        "defaultchildprefixlength": {
           "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
           "format": "byte",
           "type": "integer"
@@ -3723,6 +3734,7 @@
         }
       },
       "required": [
+        "addressfamily",
         "destinationprefixes",
         "id",
         "nat",
@@ -3733,6 +3745,9 @@
     },
     "v1.NetworkFindRequest": {
       "properties": {
+        "addressfamily": {
+          "type": "string"
+        },
         "destinationprefixes": {
           "items": {
             "type": "string"
@@ -3784,7 +3799,15 @@
     "v1.NetworkImmutable": {
       "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
       "properties": {
-        "childprefixlength": {
+        "addressfamily": {
+          "description": "the addressfamily either IPv4 or IPv6 of this network",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
+        "defaultchildprefixlength": {
           "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
           "format": "byte",
           "type": "integer"
@@ -3830,6 +3853,7 @@
         }
       },
       "required": [
+        "addressfamily",
         "destinationprefixes",
         "nat",
         "prefixes",
@@ -3839,22 +3863,30 @@
     },
     "v1.NetworkResponse": {
       "properties": {
+        "addressfamily": {
+          "description": "the addressfamily either IPv4 or IPv6 of this network",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "changed": {
           "description": "the last changed timestamp of this entity",
           "format": "date-time",
           "readOnly": true,
           "type": "string"
         },
-        "childprefixlength": {
-          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
-          "format": "byte",
-          "type": "integer"
-        },
         "created": {
           "description": "the creation time of this entity",
           "format": "date-time",
           "readOnly": true,
           "type": "string"
+        },
+        "defaultchildprefixlength": {
+          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
+          "format": "byte",
+          "type": "integer"
         },
         "description": {
           "description": "a description for this entity",
@@ -3932,6 +3964,7 @@
         }
       },
       "required": [
+        "addressfamily",
         "destinationprefixes",
         "id",
         "nat",
@@ -4668,10 +4701,29 @@
       },
       "required": [
         "amount",
-        "labels",
         "partitionids",
         "projectid"
       ]
+    },
+    "v1.SizeReservationListRequest": {
+      "properties": {
+        "partitionid": {
+          "description": "the partition id of this size reservation",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project id of this size reservation",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id of this size reservation",
+          "type": "string"
+        },
+        "tenant": {
+          "description": "the tenant of this size reservation",
+          "type": "string"
+        }
+      }
     },
     "v1.SizeReservationResponse": {
       "properties": {
@@ -4719,7 +4771,6 @@
         }
       },
       "required": [
-        "labels",
         "partitionid",
         "projectallocations",
         "projectid",
@@ -9053,7 +9104,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.EmptyBody"
+              "$ref": "#/definitions/v1.SizeReservationListRequest"
             }
           }
         ],

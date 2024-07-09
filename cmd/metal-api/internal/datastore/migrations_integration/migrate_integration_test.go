@@ -167,12 +167,18 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 			Base: metal.Base{
 				ID: "n1",
 			},
-			PartitionID:  "p1",
+			PartitionID: "p1",
+			Prefixes: metal.Prefixes{
+				{IP: "10.0.0.0", Length: "8"},
+			},
 			PrivateSuper: true,
 		}
 		n2 = &metal.Network{
 			Base: metal.Base{
 				ID: "n2",
+			},
+			Prefixes: metal.Prefixes{
+				{IP: "2001::", Length: "64"},
 			},
 			PartitionID:  "p2",
 			PrivateSuper: true,
@@ -180,6 +186,9 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 		n3 = &metal.Network{
 			Base: metal.Base{
 				ID: "n3",
+			},
+			Prefixes: metal.Prefixes{
+				{IP: "100.1.0.0", Length: "22"},
 			},
 			PartitionID:  "p2",
 			PrivateSuper: false,
@@ -210,15 +219,18 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 	n1fetched, err := rs.FindNetworkByID(n1.ID)
 	require.NoError(t, err)
 	require.NotNil(t, n1fetched)
-	require.Equal(t, p1.PrivateNetworkPrefixLength, *n1fetched.ChildPrefixLength, fmt.Sprintf("childprefixlength:%d", *n1fetched.ChildPrefixLength))
+	require.Equal(t, p1.PrivateNetworkPrefixLength, *n1fetched.DefaultChildPrefixLength, fmt.Sprintf("childprefixlength:%d", *n1fetched.DefaultChildPrefixLength))
+	require.Equal(t, metal.IPv4AddressFamily, n1fetched.AddressFamily)
 
 	n2fetched, err := rs.FindNetworkByID(n2.ID)
 	require.NoError(t, err)
 	require.NotNil(t, n2fetched)
-	require.Equal(t, p2.PrivateNetworkPrefixLength, *n2fetched.ChildPrefixLength, fmt.Sprintf("childprefixlength:%d", *n2fetched.ChildPrefixLength))
+	require.Equal(t, p2.PrivateNetworkPrefixLength, *n2fetched.DefaultChildPrefixLength, fmt.Sprintf("childprefixlength:%d", *n2fetched.DefaultChildPrefixLength))
+	require.Equal(t, metal.IPv6AddressFamily, n2fetched.AddressFamily)
 
 	n3fetched, err := rs.FindNetworkByID(n3.ID)
 	require.NoError(t, err)
 	require.NotNil(t, n3fetched)
-	require.Nil(t, n3fetched.ChildPrefixLength)
+	require.Nil(t, n3fetched.DefaultChildPrefixLength)
+	require.Equal(t, metal.IPv4AddressFamily, n3fetched.AddressFamily)
 }

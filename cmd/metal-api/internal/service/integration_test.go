@@ -295,15 +295,18 @@ func createTestEnvironment(t *testing.T) testEnv {
 			PartitionID: &partition.ID,
 		},
 		NetworkImmutable: v1.NetworkImmutable{
-			Prefixes:          []string{testPrivateSuperCidr},
-			PrivateSuper:      true,
-			ChildPrefixLength: pointer.Pointer(uint8(22)),
+			Prefixes:                 []string{testPrivateSuperCidr},
+			PrivateSuper:             true,
+			DefaultChildPrefixLength: pointer.Pointer(uint8(22)),
+			AddressFamily:            v1.IPv4AddressFamily,
 		},
 	}
+	log.Info("try to create a network", "request", ncr)
 	status = te.networkCreate(t, ncr, &createdNetwork)
 	require.Equal(t, http.StatusCreated, status)
 	require.NotNil(t, createdNetwork)
 	require.Equal(t, *ncr.ID, createdNetwork.ID)
+	log.Info("created a network", "nw", createdNetwork)
 
 	te.privateSuperNetwork = &createdNetwork
 
@@ -320,6 +323,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 			ProjectID:   &projectID,
 			PartitionID: &partition.ID,
 		},
+		AddressFamily: pointer.Pointer("ipv4"),
 	}
 	status = te.networkAcquire(t, nar, &acquiredPrivateNetwork)
 	require.Equal(t, http.StatusCreated, status)

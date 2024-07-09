@@ -378,7 +378,7 @@ func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return metal.NotFound("no %v with found", getEntityName(entity))
+		return metal.NotFound("no %v found", getEntityName(entity))
 	}
 
 	hasResult := res.Next(entity)

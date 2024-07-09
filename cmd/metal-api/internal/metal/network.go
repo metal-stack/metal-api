@@ -1,10 +1,12 @@
 package metal
 
 import (
+	"fmt"
 	"net"
 	"net/netip"
 	"strconv"
 
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/samber/lo"
 )
 
@@ -207,18 +209,40 @@ func (p *Prefix) equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes            Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
-	DestinationPrefixes Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-	ChildPrefixLength   *uint8            `rethinkdb:"childprefixlength" json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil"`
-	PartitionID         string            `rethinkdb:"partitionid" json:"partitionid"`
-	ProjectID           string            `rethinkdb:"projectid" json:"projectid"`
-	ParentNetworkID     string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
-	Vrf                 uint              `rethinkdb:"vrf" json:"vrf"`
-	PrivateSuper        bool              `rethinkdb:"privatesuper" json:"privatesuper"`
-	Nat                 bool              `rethinkdb:"nat" json:"nat"`
-	Underlay            bool              `rethinkdb:"underlay" json:"underlay"`
-	Shared              bool              `rethinkdb:"shared" json:"shared"`
-	Labels              map[string]string `rethinkdb:"labels" json:"labels"`
+	Prefixes                 Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
+	DestinationPrefixes      Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+	DefaultChildPrefixLength *uint8            `rethinkdb:"defaultchildprefixlength" json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil"`
+	PartitionID              string            `rethinkdb:"partitionid" json:"partitionid"`
+	ProjectID                string            `rethinkdb:"projectid" json:"projectid"`
+	ParentNetworkID          string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
+	Vrf                      uint              `rethinkdb:"vrf" json:"vrf"`
+	PrivateSuper             bool              `rethinkdb:"privatesuper" json:"privatesuper"`
+	Nat                      bool              `rethinkdb:"nat" json:"nat"`
+	Underlay                 bool              `rethinkdb:"underlay" json:"underlay"`
+	Shared                   bool              `rethinkdb:"shared" json:"shared"`
+	Labels                   map[string]string `rethinkdb:"labels" json:"labels"`
+	AddressFamily            AddressFamily     `rethinkdb:"addressfamily" json:"addressfamily"`
+}
+
+// AddressFamily identifies IPv4/IPv6
+type AddressFamily string
+
+const (
+	// IPv4AddressFamily identifies IPv4
+	IPv4AddressFamily = AddressFamily("IPv4")
+	// IPv6AddressFamily identifies IPv6
+	IPv6AddressFamily = AddressFamily("IPv6")
+)
+
+// ToAddressFamily will convert a string af to a AddressFamily
+func ToAddressFamily(af string) AddressFamily {
+	switch af {
+	case "IPv4", "ipv4":
+		return IPv4AddressFamily
+	case "IPv6", "ipv6":
+		return IPv6AddressFamily
+	}
+	return IPv4AddressFamily
 }
 
 // Networks is a list of networks.
@@ -323,4 +347,22 @@ func (nics Nics) ByIdentifier() map[string]*Nic {
 	}
 
 	return res
+}
+
+func GetAddressFamily(prefixes Prefixes) (*AddressFamily, error) {
+	if len(prefixes) == 0 {
+		return nil, nil
+	}
+
+	parsed, err := netip.ParsePrefix(prefixes[0].String())
+	if err != nil {
+		return nil, err
+	}
+	if parsed.Addr().Is4() {
+		return pointer.Pointer(IPv4AddressFamily), nil
+	}
+	if parsed.Addr().Is6() {
+		return pointer.Pointer(IPv6AddressFamily), nil
+	}
+	return nil, fmt.Errorf("unable to detect addressfamily from prefixes:%v", prefixes)
 }
