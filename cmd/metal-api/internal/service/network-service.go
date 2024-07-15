@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"connectrpc.com/connect"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
@@ -560,6 +561,12 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 	for _, prefix := range nw.Prefixes {
 		err = r.ipamer.ReleaseChildPrefix(ctx, prefix)
 		if err != nil {
+			var connectErr *connect.Error
+			if errors.As(err, &connectErr) {
+				if connectErr.Code() == connect.CodeNotFound {
+					continue
+				}
+			}
 			r.sendError(request, response, defaultError(err))
 			return
 		}
