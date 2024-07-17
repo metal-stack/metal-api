@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -286,8 +285,8 @@ var (
 	prefixIPAM    = metal.Prefix{IP: "10.0.0.0", Length: "16"}
 	superPrefix   = metal.Prefix{IP: "10.1.0.0", Length: "16"}
 	superPrefixV6 = metal.Prefix{IP: "2001::", Length: "48"}
-	cpl1          = uint8(28)
-	cpl2          = uint8(22)
+	cpl1          = metal.ChildPrefixLength{metal.IPv4AddressFamily: 28}
+	cpl2          = metal.ChildPrefixLength{metal.IPv4AddressFamily: 22}
 
 	prefixes1    = []metal.Prefix{prefix1, prefix2}
 	prefixes2    = []metal.Prefix{prefix2}
@@ -303,8 +302,8 @@ var (
 		PartitionID:              Partition1.ID,
 		Prefixes:                 prefixes1,
 		PrivateSuper:             true,
-		DefaultChildPrefixLength: &cpl1,
-		AddressFamily:            metal.IPv4AddressFamily,
+		DefaultChildPrefixLength: cpl1,
+		AddressFamilies:          metal.AddressFamilies{metal.IPv4AddressFamily: true},
 	}
 	Nw2 = metal.Network{
 		Base: metal.Base{
@@ -315,8 +314,8 @@ var (
 		PartitionID:              Partition1.ID,
 		Prefixes:                 prefixes2,
 		Underlay:                 true,
-		DefaultChildPrefixLength: &cpl2,
-		AddressFamily:            metal.IPv4AddressFamily,
+		DefaultChildPrefixLength: cpl2,
+		AddressFamilies:          metal.AddressFamilies{metal.IPv4AddressFamily: true},
 	}
 	Nw3 = metal.Network{
 		Base: metal.Base{
@@ -327,7 +326,7 @@ var (
 		Prefixes:        prefixes3,
 		PartitionID:     Partition1.ID,
 		ParentNetworkID: Nw1.ID,
-		AddressFamily:   metal.IPv4AddressFamily,
+		AddressFamilies: metal.AddressFamilies{metal.IPv4AddressFamily: true},
 	}
 
 	Partition1PrivateSuperNetwork = metal.Network{
@@ -336,7 +335,7 @@ var (
 		},
 		Prefixes:                 metal.Prefixes{superPrefix},
 		PartitionID:              Partition1.ID,
-		DefaultChildPrefixLength: pointer.Pointer(uint8(22)),
+		DefaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv4AddressFamily: 22},
 		ParentNetworkID:          "",
 		ProjectID:                "",
 		PrivateSuper:             true,
@@ -350,8 +349,8 @@ var (
 		},
 		Prefixes:                 metal.Prefixes{superPrefix},
 		PartitionID:              Partition2.ID,
-		DefaultChildPrefixLength: pointer.Pointer(uint8(22)),
-		AddressFamily:            metal.IPv4AddressFamily,
+		DefaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv4AddressFamily: 22},
+		AddressFamilies:          metal.AddressFamilies{metal.IPv4AddressFamily: true},
 		ParentNetworkID:          "",
 		ProjectID:                "",
 		PrivateSuper:             true,
@@ -365,8 +364,23 @@ var (
 		},
 		Prefixes:                 metal.Prefixes{superPrefixV6},
 		PartitionID:              Partition2.ID,
-		DefaultChildPrefixLength: pointer.Pointer(uint8(64)),
-		AddressFamily:            metal.IPv6AddressFamily,
+		DefaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv6AddressFamily: 64},
+		AddressFamilies:          metal.AddressFamilies{metal.IPv6AddressFamily: true},
+		ParentNetworkID:          "",
+		ProjectID:                "",
+		PrivateSuper:             true,
+		Nat:                      false,
+		Underlay:                 false,
+	}
+
+	Partition4PrivateSuperNetworkMixed = metal.Network{
+		Base: metal.Base{
+			ID: "super-tenant-network-2-mixed",
+		},
+		Prefixes:                 metal.Prefixes{superPrefix, superPrefixV6},
+		PartitionID:              "4",
+		DefaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv4AddressFamily: 22, metal.IPv6AddressFamily: 64},
+		AddressFamilies:          metal.AddressFamilies{metal.IPv4AddressFamily: true, metal.IPv6AddressFamily: true},
 		ParentNetworkID:          "",
 		ProjectID:                "",
 		PrivateSuper:             true,
@@ -484,7 +498,8 @@ var (
 			Name:        "IPAM Network",
 			Description: "description IPAM",
 		},
-		Prefixes: prefixesIPAM,
+		Prefixes:        prefixesIPAM,
+		AddressFamilies: metal.AddressFamilies{metal.IPv4AddressFamily: true},
 	}
 
 	// IPs
@@ -492,21 +507,21 @@ var (
 		IPAddress:   "1.2.3.4",
 		Name:        "Image 1",
 		Description: "description 1",
-		Type:        "ephemeral",
+		Type:        metal.Ephemeral,
 		ProjectID:   "1",
 	}
 	IP2 = metal.IP{
 		IPAddress:   "2.3.4.5",
 		Name:        "Image 2",
 		Description: "description 2",
-		Type:        "static",
+		Type:        metal.Static,
 		ProjectID:   "1",
 	}
 	IP3 = metal.IP{
 		IPAddress:   "3.4.5.6",
 		Name:        "Image 3",
 		Description: "description 3",
-		Type:        "static",
+		Type:        metal.Static,
 		Tags:        []string{tag.MachineID},
 		ProjectID:   "1",
 	}
@@ -514,7 +529,7 @@ var (
 		IPAddress:   "2001:0db8:85a3::1",
 		Name:        "IPv6 4",
 		Description: "description 4",
-		Type:        "ephemeral",
+		Type:        metal.Ephemeral,
 		ProjectID:   "1",
 	}
 	IPAMIP = metal.IP{
@@ -565,7 +580,13 @@ var (
 			Description: "description 3",
 		},
 	}
-
+	Partition4 = metal.Partition{
+		Base: metal.Base{
+			ID:          "4",
+			Name:        "partition4",
+			Description: "description 4",
+		},
+	}
 	// Switches
 	Switch1 = metal.Switch{
 		Base: metal.Base{
@@ -841,6 +862,8 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("partition").Get("1")).Return(Partition1, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get("2")).Return(Partition2, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get("3")).Return(Partition3, nil)
+	mock.On(r.DB("mockdb").Table("partition").Get("4")).Return(Partition4, nil)
+
 	mock.On(r.DB("mockdb").Table("partition").Get("404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("partition").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("image-1")).Return(Img1, nil)
@@ -867,20 +890,16 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("network").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("network").Filter(
 		func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("1") }).Filter(
-		func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) }).Filter(
-		func(var_5 r.Term) r.Term { return var_5.Field("addressfamily").Eq("IPv4") })).Return(Nw3, nil)
-	mock.On(r.DB("mockdb").Table("network").Filter(
-		func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("1") }).Filter(
-		func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) }).Filter(
-		func(var_5 r.Term) r.Term { return var_5.Field("addressfamily").Eq("IPv6") })).Return(nil, metal.NotFound("network not found"))
+		func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) })).Return(Nw3, nil)
 	mock.On(r.DB("mockdb").Table("network").Filter(
 		func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("2") }).Filter(
-		func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) }).Filter(
-		func(var_5 r.Term) r.Term { return var_5.Field("addressfamily").Eq("IPv4") })).Return(Partition2PrivateSuperNetwork, nil)
+		func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) })).Return(Partition2PrivateSuperNetwork, nil)
 	mock.On(r.DB("mockdb").Table("network").Filter(
-		func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("2") }).Filter(
-		func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) }).Filter(
-		func(var_5 r.Term) r.Term { return var_5.Field("addressfamily").Eq("IPv6") })).Return(Partition2PrivateSuperNetworkV6, nil)
+		func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("3") }).Filter(
+		func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) })).Return(nil, nil)
+	mock.On(r.DB("mockdb").Table("network").Filter(
+		func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("4") }).Filter(
+		func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) })).Return(Partition4PrivateSuperNetworkMixed, nil)
 
 	mock.On(r.DB("mockdb").Table("ip").Get("1.2.3.4")).Return(IP1, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("2.3.4.5")).Return(IP2, nil)

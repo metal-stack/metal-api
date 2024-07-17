@@ -7,11 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"net/netip"
-	"reflect"
 	"testing"
 
 	restful "github.com/emicklei/go-restful/v3"
+	"github.com/google/go-cmp/cmp"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -21,7 +20,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -268,7 +266,7 @@ func Test_networkResource_createNetwork(t *testing.T) {
 		prefixes             []string
 		destinationPrefixes  []string
 		vrf                  uint
-		childprefixlength    *uint8
+		childprefixlength    metal.ChildPrefixLength
 		privateSuper         bool
 		underlay             bool
 		nat                  bool
@@ -286,17 +284,19 @@ func Test_networkResource_createNetwork(t *testing.T) {
 			expectedStatus:      http.StatusCreated,
 		},
 		{
-			name:                 "privatesuper IPv4",
-			networkName:          testdata.Nw1.Name,
-			partitionID:          testdata.Nw1.PartitionID,
-			projectID:            testdata.Nw1.ProjectID,
-			prefixes:             []string{"172.0.0.0/24"},
-			destinationPrefixes:  []string{"0.0.0.0/0"},
-			childprefixlength:    pointer.Pointer(uint8(22)),
+			name:                "privatesuper IPv4",
+			networkName:         testdata.Nw1.Name,
+			partitionID:         testdata.Nw1.PartitionID,
+			projectID:           testdata.Nw1.ProjectID,
+			prefixes:            []string{"172.0.0.0/24"},
+			destinationPrefixes: []string{"0.0.0.0/0"},
+			childprefixlength: metal.ChildPrefixLength{
+				metal.IPv4AddressFamily: 22,
+			},
 			privateSuper:         true,
 			vrf:                  uint(10000),
 			expectedStatus:       http.StatusBadRequest,
-			expectedErrorMessage: "partition with id \"1\" already has a private super network for addressfamily:IPv4",
+			expectedErrorMessage: "given defaultchildprefixlength 22 is not greater than prefix length of:172.0.0.0/24",
 		},
 		{
 			name:                 "privatesuper IPv4 without defaultchildprefixlength",
@@ -311,25 +311,30 @@ func Test_networkResource_createNetwork(t *testing.T) {
 			expectedErrorMessage: "private super network must always contain a defaultchildprefixlength",
 		},
 		{
-			name:                "privatesuper IPv6",
+			name:                "privatesuper Mixed",
+			networkName:         "privatesuper mixed",
+			partitionID:         "3",
+			projectID:           "",
+			prefixes:            []string{"fdaa:bbcc::/50", "172.0.0.0/16"},
+			destinationPrefixes: []string{"::/0", "0.0.0.0/0"},
+			childprefixlength: metal.ChildPrefixLength{
+				metal.IPv4AddressFamily: 22,
+				metal.IPv6AddressFamily: 64,
+			},
+			privateSuper:   true,
+			vrf:            uint(10000),
+			expectedStatus: http.StatusCreated,
+		},
+		{
+			name:                "broken IPv4",
 			networkName:         testdata.Nw1.Name,
 			partitionID:         testdata.Nw1.PartitionID,
 			projectID:           testdata.Nw1.ProjectID,
-			prefixes:            []string{"fdaa:bbcc::/50"},
-			destinationPrefixes: []string{"::/0"},
-			childprefixlength:   pointer.Pointer(uint8(64)),
-			privateSuper:        true,
-			vrf:                 uint(10000),
-			expectedStatus:      http.StatusCreated,
-		},
-		{
-			name:                 "broken IPv4",
-			networkName:          testdata.Nw1.Name,
-			partitionID:          testdata.Nw1.PartitionID,
-			projectID:            testdata.Nw1.ProjectID,
-			prefixes:             []string{"192.168.265.0/24"},
-			destinationPrefixes:  []string{"0.0.0.0/0"},
-			childprefixlength:    pointer.Pointer(uint8(64)),
+			prefixes:            []string{"192.168.265.0/24"},
+			destinationPrefixes: []string{"0.0.0.0/0"},
+			childprefixlength: metal.ChildPrefixLength{
+				metal.IPv6AddressFamily: 64,
+			},
 			privateSuper:         true,
 			vrf:                  uint(10000),
 			expectedStatus:       http.StatusBadRequest,
@@ -348,15 +353,14 @@ func Test_networkResource_createNetwork(t *testing.T) {
 			expectedErrorMessage: "given prefix fdaa:::/50 is not a valid ip with mask: netip.ParsePrefix(\"fdaa:::/50\"): ParseAddr(\"fdaa:::\"): each colon-separated field must have at least one digit (at \":\")",
 		},
 		{
-			name:                 "mixed prefix addressfamilies",
-			networkName:          testdata.Nw1.Name,
-			partitionID:          testdata.Nw1.PartitionID,
-			projectID:            testdata.Nw1.ProjectID,
-			prefixes:             []string{"172.0.0.0/24", "fdaa:bbcc::/50"},
-			destinationPrefixes:  []string{"0.0.0.0/0"},
-			vrf:                  uint(10000),
-			expectedStatus:       http.StatusBadRequest,
-			expectedErrorMessage: "given prefixes have different addressfamilies",
+			name:                "mixed prefix addressfamilies",
+			networkName:         testdata.Nw1.Name,
+			partitionID:         testdata.Nw1.PartitionID,
+			projectID:           testdata.Nw1.ProjectID,
+			prefixes:            []string{"172.0.0.0/24", "fdaa:bbcc::/50"},
+			destinationPrefixes: []string{"0.0.0.0/0"},
+			vrf:                 uint(10000),
+			expectedStatus:      http.StatusCreated,
 		},
 		{
 			name:                 "broken destinationprefix",
@@ -370,12 +374,14 @@ func Test_networkResource_createNetwork(t *testing.T) {
 			expectedErrorMessage: "given prefix 0.0.0.0/33 is not a valid ip with mask: netip.ParsePrefix(\"0.0.0.0/33\"): prefix length out of range",
 		},
 		{
-			name:                 "broken childprefixlength",
-			networkName:          testdata.Nw1.Name,
-			partitionID:          testdata.Nw1.PartitionID,
-			projectID:            testdata.Nw1.ProjectID,
-			prefixes:             []string{"fdaa:bbcc::/50"},
-			childprefixlength:    pointer.Pointer(uint8(50)),
+			name:        "broken childprefixlength",
+			networkName: testdata.Nw1.Name,
+			partitionID: testdata.Nw1.PartitionID,
+			projectID:   testdata.Nw1.ProjectID,
+			prefixes:    []string{"fdaa:bbcc::/50"},
+			childprefixlength: metal.ChildPrefixLength{
+				metal.IPv6AddressFamily: 50,
+			},
 			privateSuper:         true,
 			vrf:                  uint(10000),
 			expectedStatus:       http.StatusBadRequest,
@@ -445,8 +451,7 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 		networkName          string
 		partitionID          string
 		projectID            string
-		childprefixlength    *uint8
-		addressFamily        *string
+		childprefixlength    metal.ChildPrefixLength
 		shared               bool
 		expectedStatus       int
 		expectedErrorMessage string
@@ -459,29 +464,32 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 			expectedStatus: http.StatusCreated,
 		},
 		{
-			name:              "simple ipv4, specific childprefixlength",
-			networkName:       "tenantv4.2",
-			partitionID:       testdata.Partition2.ID,
-			projectID:         "project-1",
-			childprefixlength: pointer.Pointer(uint8(29)),
-			expectedStatus:    http.StatusCreated,
+			name:        "simple ipv4, specific childprefixlength",
+			networkName: "tenantv4.2",
+			partitionID: testdata.Partition2.ID,
+			projectID:   "project-1",
+			childprefixlength: metal.ChildPrefixLength{
+				metal.IPv4AddressFamily: 29,
+			},
+			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "ipv6 default childprefixlength",
 			networkName:    "tenantv6",
 			partitionID:    testdata.Partition2.ID,
 			projectID:      "project-1",
-			addressFamily:  pointer.Pointer("ipv6"),
 			expectedStatus: http.StatusCreated,
 		},
 		{
-			name:              "simple ipv6, specific childprefixlength",
-			networkName:       "tenantv6.2",
-			partitionID:       testdata.Partition2.ID,
-			projectID:         "project-1",
-			addressFamily:     pointer.Pointer("ipv6"),
-			childprefixlength: pointer.Pointer(uint8(58)),
-			expectedStatus:    http.StatusCreated,
+			name:        "mixed, specific childprefixlength",
+			networkName: "tenantv6.2",
+			partitionID: "4",
+			projectID:   "project-1",
+			childprefixlength: metal.ChildPrefixLength{
+				metal.IPv4AddressFamily: 22,
+				metal.IPv6AddressFamily: 58,
+			},
+			expectedStatus: http.StatusCreated,
 		},
 	}
 	for _, tt := range tests {
@@ -509,10 +517,9 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 		container := restful.NewContainer().Add(networkservice)
 
 		allocateRequest := &v1.NetworkAllocateRequest{
-			Describable:   v1.Describable{Name: &tt.networkName},
-			NetworkBase:   v1.NetworkBase{PartitionID: &tt.partitionID, ProjectID: &tt.projectID},
-			AddressFamily: tt.addressFamily,
-			Length:        tt.childprefixlength,
+			Describable: v1.Describable{Name: &tt.networkName},
+			NetworkBase: v1.NetworkBase{PartitionID: &tt.partitionID, ProjectID: &tt.projectID},
+			Length:      tt.childprefixlength,
 		}
 
 		js, err := json.Marshal(allocateRequest)
@@ -538,23 +545,12 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 			var result v1.NetworkResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
 
-			requestAF := "ipv4"
-			if tt.addressFamily != nil {
-				requestAF = "ipv6"
-			}
-
 			require.GreaterOrEqual(t, len(result.Prefixes), 1)
-			resultFirstPrefix := netip.MustParsePrefix(result.Prefixes[0])
-			af := "ipv4"
-			if resultFirstPrefix.Addr().Is6() {
-				af = "ipv6"
-			}
 
 			require.NoError(t, err)
 			require.Equal(t, tt.networkName, *result.Name)
 			require.Equal(t, tt.partitionID, *result.PartitionID)
 			require.Equal(t, tt.projectID, *result.ProjectID)
-			require.Equal(t, requestAF, af)
 		}
 	}
 }
@@ -564,41 +560,41 @@ func Test_validatePrefixes(t *testing.T) {
 		name         string
 		prefixes     []string
 		wantPrefixes metal.Prefixes
-		wantAF       *v1.AddressFamily
+		wantAF       metal.AddressFamilies
 		wantErr      bool
 	}{
 		{
 			name:         "simple all ipv4",
 			prefixes:     []string{"10.0.0.0/8", "11.0.0.0/24"},
 			wantPrefixes: metal.Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "11.0.0.0", Length: "24"}},
-			wantAF:       pointer.Pointer(v1.IPv4AddressFamily),
+			wantAF:       metal.AddressFamilies{metal.IPv4AddressFamily: true},
 		},
 		{
 			name:         "simple all ipv6",
 			prefixes:     []string{"2001::/64", "fbaa::/48"},
 			wantPrefixes: metal.Prefixes{{IP: "2001::", Length: "64"}, {IP: "fbaa::", Length: "48"}},
-			wantAF:       pointer.Pointer(v1.IPv6AddressFamily),
+			wantAF:       metal.AddressFamilies{metal.IPv6AddressFamily: true},
 		},
 		{
 			name:         "mixed af",
 			prefixes:     []string{"10.0.0.0/8", "2001::/64"},
-			wantPrefixes: nil,
-			wantAF:       nil,
-			wantErr:      true,
+			wantPrefixes: metal.Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "2001::", Length: "64"}},
+			wantAF:       metal.AddressFamilies{metal.IPv4AddressFamily: true, metal.IPv6AddressFamily: true},
+			wantErr:      false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := validatePrefixes(tt.prefixes)
+			got, af, err := validatePrefixes(tt.prefixes)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validatePrefixes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.wantPrefixes) {
-				t.Errorf("validatePrefixes() got = %v, want %v", got, tt.wantPrefixes)
+			if diff := cmp.Diff(got, tt.wantPrefixes); diff != "" {
+				t.Errorf("validatePrefixes() diff=%s", diff)
 			}
-			if !reflect.DeepEqual(got1, tt.wantAF) {
-				t.Errorf("validatePrefixes() got1 = %v, want %v", got1, tt.wantAF)
+			if diff := cmp.Diff(af, tt.wantAF); diff != "" {
+				t.Errorf("validatePrefixes() diff=%s", diff)
 			}
 		})
 	}

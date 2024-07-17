@@ -285,6 +285,22 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
+	if requestPayload.AddressFamily != nil {
+		ok := nw.AddressFamilies[metal.ToAddressFamily(string(*requestPayload.AddressFamily))]
+		if !ok {
+			r.sendError(request, response, httperrors.BadRequest(
+				fmt.Errorf("there is no prefix for the given addressfamily:%s present in this network:%s", string(*requestPayload.AddressFamily), requestPayload.NetworkID)),
+			)
+			return
+		}
+		if specificIP != "" {
+			r.sendError(request, response, httperrors.BadRequest(
+				fmt.Errorf("it is not possible to specify specificIP and addressfamily"),
+			))
+			return
+		}
+	}
+
 	p, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -320,7 +336,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	ctx := request.Request.Context()
 
 	if specificIP == "" {
-		ipAddress, ipParentCidr, err = allocateRandomIP(ctx, nw, r.ipamer)
+		ipAddress, ipParentCidr, err = allocateRandomIP(ctx, nw, r.ipamer, requestPayload.AddressFamily)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -333,12 +349,12 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		}
 	}
 
-	r.logger(request).Debug("allocated ip in ipam", "ip", ipAddress, "network", nw.ID)
-
 	ipType := metal.Ephemeral
 	if requestPayload.Type == metal.Static {
 		ipType = metal.Static
 	}
+
+	r.logger(request).Info("allocated ip in ipam", "ip", ipAddress, "network", nw.ID, "type", ipType)
 
 	ip := &metal.IP{
 		IPAddress:        ipAddress,
@@ -436,8 +452,24 @@ func allocateSpecificIP(ctx context.Context, parent *metal.Network, specificIP s
 	return "", "", fmt.Errorf("specific ip not contained in any of the defined prefixes")
 }
 
-func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IPAMer) (ipAddress, parentPrefixCidr string, err error) {
+func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IPAMer, af *metal.AddressFamily) (ipAddress, parentPrefixCidr string, err error) {
+	var addressfamily = metal.IPv4AddressFamily
+	if af != nil {
+		addressfamily = *af
+	}
+
 	for _, prefix := range parent.Prefixes {
+		pfx, err := netip.ParsePrefix(prefix.String())
+		if err != nil {
+			return "", "", fmt.Errorf("unable to parse prefix: %w", err)
+		}
+		if pfx.Addr().Is4() && addressfamily == metal.IPv6AddressFamily {
+			continue
+		}
+		if pfx.Addr().Is6() && addressfamily == metal.IPv4AddressFamily {
+			continue
+		}
+
 		ipAddress, err = ipamer.AllocateIP(ctx, prefix)
 		if err != nil && errors.Is(err, goipam.ErrNoIPAvailable) {
 			continue

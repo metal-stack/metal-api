@@ -15,24 +15,25 @@ type NetworkBase struct {
 
 // NetworkImmutable defines the properties which are immutable in the Network.
 type NetworkImmutable struct {
-	Prefixes                 []string      `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
-	DestinationPrefixes      []string      `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
-	DefaultChildPrefixLength *uint8        `json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil" optional:"true"`
-	Nat                      bool          `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
-	PrivateSuper             bool          `json:"privatesuper" description:"if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition"`
-	Underlay                 bool          `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
-	Vrf                      *uint         `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
-	VrfShared                *bool         `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)" optional:"true"`
-	ParentNetworkID          *string       `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
-	AddressFamily            AddressFamily `json:"addressfamily" description:"the addressfamily either IPv4 or IPv6 of this network" enum:"IPv4|IPv6"`
+	Prefixes                 []string                `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
+	DestinationPrefixes      []string                `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
+	DefaultChildPrefixLength metal.ChildPrefixLength `json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil" optional:"true"`
+	// FIXME add IPv6Nat
+	Nat             bool                  `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	PrivateSuper    bool                  `json:"privatesuper" description:"if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition"`
+	Underlay        bool                  `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
+	Vrf             *uint                 `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
+	VrfShared       *bool                 `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)" optional:"true"`
+	ParentNetworkID *string               `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
+	AddressFamilies metal.AddressFamilies `json:"addressfamilies" description:"the addressfamilies in this network, either IPv4 or IPv6 or both"`
 }
 
 // NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.
 type NetworkUsage struct {
-	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
-	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
-	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
+	AvailableIPs      map[metal.AddressFamily]uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs           map[metal.AddressFamily]uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailablePrefixes map[metal.AddressFamily]uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
+	UsedPrefixes      map[metal.AddressFamily]uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
 // NetworkCreateRequest is used to create a new Network.
@@ -47,42 +48,11 @@ type NetworkCreateRequest struct {
 type NetworkAllocateRequest struct {
 	Describable
 	NetworkBase
-	DestinationPrefixes []string `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
-	Nat                 *bool    `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip" optional:"true"`
-	AddressFamily       *string  `json:"address_family" description:"can be ipv4 or ipv6, defaults to ipv4"`
-	Length              *uint8   `json:"length" description:"the bitlen of the prefix to allocate, defaults to defaultchildprefixlength of super prefix"`
-}
-
-// AddressFamily identifies IPv4/IPv6
-type AddressFamily string
-
-const (
-	// IPv4AddressFamily identifies IPv4
-	IPv4AddressFamily = AddressFamily("IPv4")
-	// IPv6AddressFamily identifies IPv6
-	IPv6AddressFamily = AddressFamily("IPv6")
-)
-
-// ToAddressFamily will convert a string af to a AddressFamily
-func ToAddressFamily(af string) AddressFamily {
-	switch af {
-	case "IPv4", "ipv4":
-		return IPv4AddressFamily
-	case "IPv6", "ipv6":
-		return IPv6AddressFamily
-	}
-	return IPv4AddressFamily
-}
-
-// FromAddressFamily will convert from a metal.AddressFamily to a AddressFamily
-func FromAddressFamily(af metal.AddressFamily) AddressFamily {
-	switch af {
-	case metal.IPv4AddressFamily:
-		return IPv4AddressFamily
-	case metal.IPv6AddressFamily:
-		return IPv6AddressFamily
-	}
-	return IPv4AddressFamily
+	DestinationPrefixes []string                `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
+	Nat                 *bool                   `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip" optional:"true"`
+	Length              metal.ChildPrefixLength `json:"length" description:"the bitlen of the prefix to allocate, defaults to defaultchildprefixlength of super prefix"`
+	ParentNetworkID     *string                 `json:"parentnetworkid" description:"the parent network from which this network should be allocated"`
+	AddressFamily       *metal.AddressFamily    `json:"addressfamily" description:"the addressfamily to allocate a child network defaults. If not specified, the child network inherits the addressfamilies from the parent." enum:"IPv4|IPv6"`
 }
 
 // NetworkFindRequest is used to find a Network with different criteria.
@@ -114,7 +84,10 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 		return nil
 	}
 
-	var parentNetworkID *string
+	var (
+		parentNetworkID *string
+	)
+
 	if network.ParentNetworkID != "" {
 		parentNetworkID = &network.ParentNetworkID
 	}
@@ -148,7 +121,7 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			Underlay:                 network.Underlay,
 			Vrf:                      &network.Vrf,
 			ParentNetworkID:          parentNetworkID,
-			AddressFamily:            ToAddressFamily(string(network.AddressFamily)),
+			AddressFamilies:          network.AddressFamilies,
 		},
 		Usage: NetworkUsage{
 			AvailableIPs:      usage.AvailableIPs,

@@ -255,9 +255,6 @@
     },
     "datastore.NetworkSearchQuery": {
       "properties": {
-        "addressfamily": {
-          "type": "string"
-        },
         "destinationprefixes": {
           "items": {
             "type": "string"
@@ -1510,6 +1507,14 @@
     },
     "v1.IPAllocateRequest": {
       "properties": {
+        "addressfamily": {
+          "description": "the addressfamily to allocate a ip address from the given network, defaults to IPv4",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -1547,6 +1552,7 @@
         }
       },
       "required": [
+        "addressfamily",
         "networkid",
         "projectid",
         "type"
@@ -3571,8 +3577,12 @@
     },
     "v1.NetworkAllocateRequest": {
       "properties": {
-        "address_family": {
-          "description": "can be ipv4 or ipv6, defaults to ipv4",
+        "addressfamily": {
+          "description": "the addressfamily to allocate a child network defaults. If not specified, the child network inherits the addressfamilies from the parent.",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
           "type": "string"
         },
         "description": {
@@ -3594,9 +3604,11 @@
           "type": "object"
         },
         "length": {
+          "additionalProperties": {
+            "type": "integer"
+          },
           "description": "the bitlen of the prefix to allocate, defaults to defaultchildprefixlength of super prefix",
-          "format": "byte",
-          "type": "integer"
+          "type": "object"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3605,6 +3617,10 @@
         "nat": {
           "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
+        },
+        "parentnetworkid": {
+          "description": "the parent network from which this network should be allocated",
+          "type": "string"
         },
         "partitionid": {
           "description": "the partition this network belongs to",
@@ -3620,8 +3636,9 @@
         }
       },
       "required": [
-        "address_family",
-        "length"
+        "addressfamily",
+        "length",
+        "parentnetworkid"
       ]
     },
     "v1.NetworkBase": {
@@ -3650,17 +3667,18 @@
     "v1.NetworkCreateRequest": {
       "properties": {
         "addressfamily": {
-          "description": "the addressfamily either IPv4 or IPv6 of this network",
-          "enum": [
-            "IPv4",
-            "IPv6"
-          ],
-          "type": "string"
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
+          "type": "object"
         },
         "defaultchildprefixlength": {
-          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
-          "format": "byte",
-          "type": "integer"
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
         },
         "description": {
           "description": "a description for this entity",
@@ -3745,9 +3763,6 @@
     },
     "v1.NetworkFindRequest": {
       "properties": {
-        "addressfamily": {
-          "type": "string"
-        },
         "destinationprefixes": {
           "items": {
             "type": "string"
@@ -3800,17 +3815,18 @@
       "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
       "properties": {
         "addressfamily": {
-          "description": "the addressfamily either IPv4 or IPv6 of this network",
-          "enum": [
-            "IPv4",
-            "IPv6"
-          ],
-          "type": "string"
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
+          "type": "object"
         },
         "defaultchildprefixlength": {
-          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
-          "format": "byte",
-          "type": "integer"
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
         },
         "destinationprefixes": {
           "description": "the destination prefixes of this network",
@@ -3864,12 +3880,11 @@
     "v1.NetworkResponse": {
       "properties": {
         "addressfamily": {
-          "description": "the addressfamily either IPv4 or IPv6 of this network",
-          "enum": [
-            "IPv4",
-            "IPv6"
-          ],
-          "type": "string"
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
+          "type": "object"
         },
         "changed": {
           "description": "the last changed timestamp of this entity",
@@ -3884,9 +3899,11 @@
           "type": "string"
         },
         "defaultchildprefixlength": {
-          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
-          "format": "byte",
-          "type": "integer"
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
         },
         "description": {
           "description": "a description for this entity",

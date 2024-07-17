@@ -174,17 +174,17 @@ type Prefix struct {
 type Prefixes []Prefix
 
 // NewPrefixFromCIDR returns a new prefix from a given cidr.
-func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
+func NewPrefixFromCIDR(cidr string) (*Prefix, *netip.Prefix, error) {
 	prefix, err := netip.ParsePrefix(cidr)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ip := prefix.Addr().String()
 	length := strconv.Itoa(prefix.Bits())
 	return &Prefix{
 		IP:     ip,
 		Length: length,
-	}, nil
+	}, &prefix, nil
 }
 
 // String implements the Stringer interface
@@ -211,7 +211,7 @@ type Network struct {
 	Base
 	Prefixes                 Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
 	DestinationPrefixes      Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-	DefaultChildPrefixLength *uint8            `rethinkdb:"defaultchildprefixlength" json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil"`
+	DefaultChildPrefixLength ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
 	PartitionID              string            `rethinkdb:"partitionid" json:"partitionid"`
 	ProjectID                string            `rethinkdb:"projectid" json:"projectid"`
 	ParentNetworkID          string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
@@ -221,11 +221,14 @@ type Network struct {
 	Underlay                 bool              `rethinkdb:"underlay" json:"underlay"`
 	Shared                   bool              `rethinkdb:"shared" json:"shared"`
 	Labels                   map[string]string `rethinkdb:"labels" json:"labels"`
-	AddressFamily            AddressFamily     `rethinkdb:"addressfamily" json:"addressfamily"`
+	AddressFamilies          AddressFamilies   `rethinkdb:"addressfamily" json:"addressfamily"`
 }
+
+type ChildPrefixLength map[AddressFamily]uint8
 
 // AddressFamily identifies IPv4/IPv6
 type AddressFamily string
+type AddressFamilies map[AddressFamily]bool
 
 const (
 	// IPv4AddressFamily identifies IPv4
@@ -253,10 +256,10 @@ type NetworkMap map[string]Network
 
 // NetworkUsage contains usage information of a network
 type NetworkUsage struct {
-	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
-	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
-	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
+	AvailableIPs      map[AddressFamily]uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs           map[AddressFamily]uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailablePrefixes map[AddressFamily]uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
+	UsedPrefixes      map[AddressFamily]uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
 // ByID creates an indexed map of partitions where the id is the index.

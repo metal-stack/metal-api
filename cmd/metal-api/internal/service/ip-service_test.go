@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -285,6 +286,35 @@ func TestAllocateIP(t *testing.T) {
 			wantedStatus: http.StatusUnprocessableEntity,
 			wantErr:      errors.New("specific ip not contained in any of the defined prefixes"),
 		},
+		{
+			name: "allocate a IPv4 address",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+					Type:      metal.Ephemeral,
+				},
+				AddressFamily: pointer.Pointer(metal.IPv4AddressFamily),
+			},
+			wantedIP:     "10.0.0.3",
+			wantedType:   metal.Ephemeral,
+			wantedStatus: http.StatusCreated,
+		},
+		{
+			name: "allocate a IPv6 address",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+					Type:      metal.Ephemeral,
+				},
+				AddressFamily: pointer.Pointer(metal.IPv6AddressFamily),
+			},
+			wantedStatus: http.StatusBadRequest,
+			wantErr:      errors.New("there is no prefix for the given addressfamily:IPv6 present in this network:4"),
+		},
 	}
 	for i := range tests {
 		tt := tests[i]
@@ -313,6 +343,8 @@ func TestAllocateIP(t *testing.T) {
 				err = json.NewDecoder(resp.Body).Decode(&result)
 
 				require.NoError(t, err)
+				require.NotNil(t, result.IPAddress)
+				require.NotNil(t, result.AllocationUUID)
 				require.Equal(t, tt.wantedType, result.Type)
 				require.Equal(t, tt.wantedIP, result.IPAddress)
 				require.Equal(t, tt.name, *result.Name)

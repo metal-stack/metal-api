@@ -23,7 +23,6 @@ import (
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/security"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -297,8 +296,8 @@ func createTestEnvironment(t *testing.T) testEnv {
 		NetworkImmutable: v1.NetworkImmutable{
 			Prefixes:                 []string{testPrivateSuperCidr},
 			PrivateSuper:             true,
-			DefaultChildPrefixLength: pointer.Pointer(uint8(22)),
-			AddressFamily:            v1.IPv4AddressFamily,
+			DefaultChildPrefixLength: map[metal.AddressFamily]uint8{metal.IPv4AddressFamily: 22},
+			AddressFamilies:          map[metal.AddressFamily]bool{metal.IPv4AddressFamily: true},
 		},
 	}
 	log.Info("try to create a network", "request", ncr)
@@ -323,7 +322,6 @@ func createTestEnvironment(t *testing.T) testEnv {
 			ProjectID:   &projectID,
 			PartitionID: &partition.ID,
 		},
-		AddressFamily: pointer.Pointer("ipv4"),
 	}
 	status = te.networkAcquire(t, nar, &acquiredPrivateNetwork)
 	require.Equal(t, http.StatusCreated, status)

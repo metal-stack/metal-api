@@ -39,10 +39,16 @@ func init() {
 					return err
 				}
 				if af != nil {
-					new.AddressFamily = *af
+					if new.AddressFamilies == nil {
+						new.AddressFamilies = make(map[metal.AddressFamily]bool)
+					}
+					new.AddressFamilies[*af] = true
 				}
 				if new.PrivateSuper {
-					new.DefaultChildPrefixLength = &partition.PrivateNetworkPrefixLength
+					if new.DefaultChildPrefixLength == nil {
+						new.DefaultChildPrefixLength = make(map[metal.AddressFamily]uint8)
+					}
+					new.DefaultChildPrefixLength[*af] = partition.PrivateNetworkPrefixLength
 				}
 				err = rs.UpdateNetwork(&old, &new)
 				if err != nil {
