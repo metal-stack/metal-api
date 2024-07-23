@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+
+	metalcommon "github.com/metal-stack/metal-lib/pkg/metal"
 )
 
 const (
@@ -470,7 +471,7 @@ func (c *FilesystemLayoutConstraints) matches(sizeID, imageID string) bool {
 	}
 	// Size matches
 	for os, versionconstraint := range c.Images {
-		imageos, version, err := utils.GetOsAndSemverFromImage(imageID)
+		imageos, version, err := metalcommon.GetOsAndSemverFromImage(imageID)
 		if err != nil {
 			return false
 		}
