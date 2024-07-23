@@ -3666,7 +3666,7 @@
     },
     "v1.NetworkCreateRequest": {
       "properties": {
-        "addressfamily": {
+        "addressfamilies": {
           "additionalProperties": {
             "type": "boolean"
           },
@@ -3752,7 +3752,7 @@
         }
       },
       "required": [
-        "addressfamily",
+        "addressfamilies",
         "destinationprefixes",
         "id",
         "nat",
@@ -3814,7 +3814,7 @@
     "v1.NetworkImmutable": {
       "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
       "properties": {
-        "addressfamily": {
+        "addressfamilies": {
           "additionalProperties": {
             "type": "boolean"
           },
@@ -3869,7 +3869,7 @@
         }
       },
       "required": [
-        "addressfamily",
+        "addressfamilies",
         "destinationprefixes",
         "nat",
         "prefixes",
@@ -3879,7 +3879,7 @@
     },
     "v1.NetworkResponse": {
       "properties": {
-        "addressfamily": {
+        "addressfamilies": {
           "additionalProperties": {
             "type": "boolean"
           },
@@ -3981,7 +3981,7 @@
         }
       },
       "required": [
-        "addressfamily",
+        "addressfamilies",
         "destinationprefixes",
         "id",
         "nat",
@@ -4038,24 +4038,32 @@
     "v1.NetworkUsage": {
       "properties": {
         "available_ips": {
+          "additionalProperties": {
+            "type": "integer"
+          },
           "description": "the total available IPs",
-          "format": "integer",
-          "type": "integer"
+          "type": "object"
         },
         "available_prefixes": {
+          "additionalProperties": {
+            "type": "integer"
+          },
           "description": "the total available 2 bit Prefixes",
-          "format": "integer",
-          "type": "integer"
+          "type": "object"
         },
         "used_ips": {
+          "additionalProperties": {
+            "type": "integer"
+          },
           "description": "the total used IPs",
-          "format": "integer",
-          "type": "integer"
+          "type": "object"
         },
         "used_prefixes": {
+          "additionalProperties": {
+            "type": "integer"
+          },
           "description": "the total used Prefixes",
-          "format": "integer",
-          "type": "integer"
+          "type": "object"
         }
       },
       "required": [

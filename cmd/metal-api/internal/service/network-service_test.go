@@ -27,10 +27,12 @@ import (
 
 func TestGetNetworks(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
+	ipamer, err := testdata.InitMockIpamData(mock, false)
+	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
 	log := slog.Default()
 
-	networkservice := NewNetwork(log, ds, ipam.InitTestIpam(t), nil)
+	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network", nil)
 	container = injectViewer(log, container, req)
@@ -41,7 +43,7 @@ func TestGetNetworks(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.NetworkResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
 	require.Len(t, result, 4)
@@ -55,10 +57,13 @@ func TestGetNetworks(t *testing.T) {
 
 func TestGetNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
+	ipamer, err := testdata.InitMockIpamData(mock, false)
+	require.NoError(t, err)
+
 	testdata.InitMockDBData(mock)
 	log := slog.Default()
 
-	networkservice := NewNetwork(log, ds, ipam.InitTestIpam(t), nil)
+	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network/1", nil)
 	container = injectViewer(log, container, req)
@@ -69,7 +74,7 @@ func TestGetNetwork(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.NetworkResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
 	require.Equal(t, testdata.Nw1.ID, result.ID)
@@ -193,10 +198,12 @@ func TestCreateNetwork(t *testing.T) {
 
 func TestUpdateNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
+	ipamer, err := testdata.InitMockIpamData(mock, false)
+	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
 	log := slog.Default()
 
-	networkservice := NewNetwork(log, ds, ipam.InitTestIpam(t), nil)
+	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
 
 	newName := "new"
@@ -228,11 +235,13 @@ func TestUpdateNetwork(t *testing.T) {
 
 func TestSearchNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
+	ipamer, err := testdata.InitMockIpamData(mock, false)
+	require.NoError(t, err)
 	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{testdata.Nw1}, nil)
 	testdata.InitMockDBData(mock)
 	log := slog.Default()
 
-	networkService := NewNetwork(log, ds, ipam.InitTestIpam(t), nil)
+	networkService := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkService)
 	requestJSON := fmt.Sprintf("{%q:%q}", "partitionid", "1")
 	req := httptest.NewRequest("POST", "/v1/network/find", bytes.NewBufferString(requestJSON))
@@ -245,7 +254,7 @@ func TestSearchNetwork(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var results []v1.NetworkResponse
-	err := json.NewDecoder(resp.Body).Decode(&results)
+	err = json.NewDecoder(resp.Body).Decode(&results)
 
 	require.NoError(t, err)
 	require.Len(t, results, 1)
