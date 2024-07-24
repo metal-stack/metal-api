@@ -8,7 +8,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+	metalcommon "github.com/metal-stack/metal-lib/pkg/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -201,7 +201,7 @@ func isOrphanImage(image metal.Image, machines metal.Machines) bool {
 // then the most recent ubuntu image (ubuntu-19.10.20200407) is returned
 // If patch is specified e.g. ubuntu-20.04.20200502 then this exact image is searched.
 func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*metal.Image, error) {
-	os, sv, err := utils.GetOsAndSemverFromImage(id)
+	os, sv, err := metalcommon.GetOsAndSemverFromImage(id)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 // then all ubuntu images (ubuntu-19.10.*) are returned
 // If patch is specified e.g. ubuntu-20.04.20200502 then this exact image is searched.
 func getImagesFor(id string, images metal.Images) ([]metal.Image, error) {
-	os, sv, err := utils.GetOsAndSemverFromImage(id)
+	os, sv, err := metalcommon.GetOsAndSemverFromImage(id)
 	if err != nil {
 		return nil, err
 	}

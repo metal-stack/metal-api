@@ -437,13 +437,13 @@ func allocateSpecificIP(ctx context.Context, parent *metal.Network, specificIP s
 func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IPAMer) (ipAddress, parentPrefixCidr string, err error) {
 	for _, prefix := range parent.Prefixes {
 		ipAddress, err = ipamer.AllocateIP(ctx, prefix)
-		var connectErr *connect.Error
-		if errors.As(err, &connectErr) {
-			if connectErr.Code() == connect.CodeNotFound {
-				continue
-			}
-		}
 		if err != nil {
+			var connectErr *connect.Error
+			if errors.As(err, &connectErr) {
+				if connectErr.Code() == connect.CodeNotFound {
+					continue
+				}
+			}
 			return "", "", err
 		}
 
