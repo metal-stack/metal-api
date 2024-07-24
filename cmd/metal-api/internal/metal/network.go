@@ -1,12 +1,10 @@
 package metal
 
 import (
-	"fmt"
 	"net"
 	"net/netip"
 	"strconv"
 
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/samber/lo"
 )
 
@@ -350,22 +348,4 @@ func (nics Nics) ByIdentifier() map[string]*Nic {
 	}
 
 	return res
-}
-
-func GetAddressFamily(prefixes Prefixes) (*AddressFamily, error) {
-	if len(prefixes) == 0 {
-		return nil, nil
-	}
-
-	parsed, err := netip.ParsePrefix(prefixes[0].String())
-	if err != nil {
-		return nil, err
-	}
-	if parsed.Addr().Is4() {
-		return pointer.Pointer(IPv4AddressFamily), nil
-	}
-	if parsed.Addr().Is6() {
-		return pointer.Pointer(IPv6AddressFamily), nil
-	}
-	return nil, fmt.Errorf("unable to detect addressfamily from prefixes:%v", prefixes)
 }

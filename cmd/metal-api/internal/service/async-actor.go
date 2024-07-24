@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
+	"connectrpc.com/connect"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 
-	ipamer "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -216,12 +216,15 @@ func (a *asyncActor) releaseIP(ip metal.IP) error {
 
 	// now the IP should not exist any more in our datastore
 	// so cleanup the ipam
-	
+
 	ctx := context.Background()
 	err = a.ReleaseIP(ctx, ip)
 	if err != nil {
-		if errors.Is(err, ipamer.ErrNotFound) {
-			return nil
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) {
+			if connectErr.Code() == connect.CodeNotFound {
+				return nil
+			}
 		}
 		return fmt.Errorf("cannot release IP %q: %w", ip, err)
 	}

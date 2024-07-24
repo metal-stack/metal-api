@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/netip"
 
+	"connectrpc.com/connect"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
@@ -583,7 +584,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("no supernetwork found")))
 		return
 	}
-	if superNetwork.DefaultChildPrefixLength == nil {
+	if superNetwork.DefaultChildPrefixLength == nil || len(superNetwork.DefaultChildPrefixLength) == 0 {
 		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("supernetwork %s has no defaultchildprefixlength specified", superNetwork.ID)))
 		return
 	}
@@ -605,7 +606,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 
 	// Allow configurable prefix length per AF
 	length := superNetwork.DefaultChildPrefixLength
-	if requestPayload.Length != nil {
+	if len(requestPayload.Length) > 0 {
 		for af, l := range requestPayload.Length {
 			length[metal.ToAddressFamily(string(af))] = l
 		}
@@ -621,12 +622,13 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		length = metal.ChildPrefixLength{
 			af: bits,
 		}
+		nwSpec.AddressFamilies = metal.AddressFamilies{af: true}
 	}
 
 	r.log.Info("network allocate", "supernetwork", superNetwork.ID, "defaultchildprefixlength", superNetwork.DefaultChildPrefixLength, "length", length)
 
 	ctx := request.Request.Context()
-	nw, err := createChildNetwork(ctx, r.ds, r.ipamer, nwSpec, &superNetwork, length)
+	nw, err := r.createChildNetwork(ctx, nwSpec, &superNetwork, length)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -641,20 +643,20 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 }
 
-func createChildNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLengths metal.ChildPrefixLength) (*metal.Network, error) {
-	vrf, err := acquireRandomVRF(ds)
+func (r *networkResource) createChildNetwork(ctx context.Context, nwSpec *metal.Network, parent *metal.Network, childLengths metal.ChildPrefixLength) (*metal.Network, error) {
+	vrf, err := acquireRandomVRF(r.ds)
 	if err != nil {
 		return nil, fmt.Errorf("could not acquire a vrf: %w", err)
 	}
 
 	var childPrefixes = metal.Prefixes{}
 	for af, childLength := range childLengths {
-		childPrefix, err := createChildPrefix(ctx, parent.Prefixes, childLength, ipamer)
+		childPrefix, err := r.createChildPrefix(ctx, parent.Prefixes, af, childLength)
 		if err != nil {
 			return nil, err
 		}
 		if childPrefix == nil {
-			return nil, fmt.Errorf("could not allocate child prefix in parent network: %s for addressfamily: %s", parent.ID, af)
+			return nil, fmt.Errorf("could not allocate child prefix in parent network: %s for addressfamily: %s length:%d", parent.ID, af, childLength)
 		}
 		childPrefixes = append(childPrefixes, *childPrefix)
 	}
@@ -678,7 +680,7 @@ func createChildNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer 
 		AddressFamilies:     nwSpec.AddressFamilies,
 	}
 
-	err = ds.CreateNetwork(nw)
+	err = r.ds.CreateNetwork(nw)
 	if err != nil {
 		return nil, err
 	}
@@ -925,14 +927,31 @@ func getNetworkUsage(ctx context.Context, nw *metal.Network, ipamer ipam.IPAMer)
 	return usage, nil
 }
 
-func createChildPrefix(ctx context.Context, parentPrefixes metal.Prefixes, childLength uint8, ipamer ipam.IPAMer) (*metal.Prefix, error) {
-	var errors []error
-	var err error
-	var childPrefix *metal.Prefix
+func (r *networkResource) createChildPrefix(ctx context.Context, parentPrefixes metal.Prefixes, af metal.AddressFamily, childLength uint8) (*metal.Prefix, error) {
+	var (
+		errs        []error
+		childPrefix *metal.Prefix
+	)
 	for _, parentPrefix := range parentPrefixes {
-		childPrefix, err = ipamer.AllocateChildPrefix(ctx, parentPrefix, childLength)
+		pfx, err := netip.ParsePrefix(parentPrefix.String())
 		if err != nil {
-			errors = append(errors, err)
+			return nil, fmt.Errorf("unable to parse prefix: %w", err)
+		}
+		if pfx.Addr().Is4() && af == metal.IPv6AddressFamily {
+			continue
+		}
+		if pfx.Addr().Is6() && af == metal.IPv4AddressFamily {
+			continue
+		}
+		childPrefix, err = r.ipamer.AllocateChildPrefix(ctx, parentPrefix, childLength)
+		if err != nil {
+			var connectErr *connect.Error
+			if errors.As(err, &connectErr) {
+				if connectErr.Code() == connect.CodeNotFound {
+					continue
+				}
+			}
+			errs = append(errs, err)
 			continue
 		}
 		if childPrefix != nil {
@@ -940,10 +959,10 @@ func createChildPrefix(ctx context.Context, parentPrefixes metal.Prefixes, child
 		}
 	}
 	if childPrefix == nil {
-		if len(errors) > 0 {
-			return nil, fmt.Errorf("cannot allocate free child prefix in ipam: %v", errors)
+		if len(errs) > 0 {
+			return nil, fmt.Errorf("cannot allocate free child prefix in ipam: %w", errors.Join(errs...))
 		}
-		return nil, fmt.Errorf("cannot allocate free child prefix in one of the given parent prefixes in ipam: %v", parentPrefixes)
+		return nil, fmt.Errorf("cannot allocate free child prefix in one of the given parent prefixes in ipam: %s", parentPrefixes.String())
 	}
 
 	return childPrefix, nil

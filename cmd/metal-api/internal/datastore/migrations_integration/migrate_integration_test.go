@@ -163,6 +163,9 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 			ID:                         "p2",
 			PrivateNetworkPrefixLength: 24,
 		}
+		p3 = &tmpPartition{
+			ID: "p3",
+		}
 		n1 = &metal.Network{
 			Base: metal.Base{
 				ID: "n1",
@@ -193,10 +196,22 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 			PartitionID:  "p2",
 			PrivateSuper: false,
 		}
+		n4 = &metal.Network{
+			Base: metal.Base{
+				ID: "n4",
+			},
+			Prefixes: metal.Prefixes{
+				{IP: "100.1.0.0", Length: "22"},
+			},
+			PartitionID:  "p3",
+			PrivateSuper: true,
+		}
 	)
 	_, err = r.DB("metal").Table("partition").Insert(p1).RunWrite(rs.Session())
 	require.NoError(t, err)
 	_, err = r.DB("metal").Table("partition").Insert(p2).RunWrite(rs.Session())
+	require.NoError(t, err)
+	_, err = r.DB("metal").Table("partition").Insert(p3).RunWrite(rs.Session())
 	require.NoError(t, err)
 
 	err = rs.CreateNetwork(n1)
@@ -204,6 +219,8 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 	err = rs.CreateNetwork(n2)
 	require.NoError(t, err)
 	err = rs.CreateNetwork(n3)
+	require.NoError(t, err)
+	err = rs.CreateNetwork(n4)
 	require.NoError(t, err)
 
 	err = rs.Migrate(nil, false)
@@ -233,4 +250,11 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 	require.NotNil(t, n3fetched)
 	require.Nil(t, n3fetched.DefaultChildPrefixLength)
 	require.True(t, n3fetched.AddressFamilies[metal.IPv4AddressFamily])
+
+	n4fetched, err := rs.FindNetworkByID(n4.ID)
+	require.NoError(t, err)
+	require.NotNil(t, n4fetched)
+	require.NotNil(t, n4fetched.DefaultChildPrefixLength)
+	require.True(t, n4fetched.AddressFamilies[metal.IPv4AddressFamily])
+	require.Equal(t, uint8(22), n4fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily])
 }

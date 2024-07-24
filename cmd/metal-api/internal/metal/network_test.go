@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func TestNics_ByIdentifier(t *testing.T) {
@@ -333,50 +331,6 @@ func TestNicState_SetState(t *testing.T) {
 			}
 			if got1 != tt.changed {
 				t.Errorf("NicState.SetState() got1 = %v, want %v", got1, tt.changed)
-			}
-		})
-	}
-}
-
-func Test_getAddressFamily(t *testing.T) {
-	tests := []struct {
-		name     string
-		prefixes Prefixes
-		want     *AddressFamily
-		wantErr  bool
-	}{
-		{
-			name:     "ipv4",
-			prefixes: Prefixes{{IP: "10.0.0.0", Length: "8"}},
-			want:     pointer.Pointer(IPv4AddressFamily),
-		},
-		{
-			name:     "ipv6",
-			prefixes: Prefixes{{IP: "2001::", Length: "64"}},
-			want:     pointer.Pointer(IPv6AddressFamily),
-		},
-		{
-			name:     "empty prefixes",
-			prefixes: Prefixes{},
-			want:     nil,
-			wantErr:  false,
-		},
-		{
-			name:     "malformed ipv4",
-			prefixes: Prefixes{{IP: "10.0.0.0.0", Length: "6"}},
-			want:     nil,
-			wantErr:  true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetAddressFamily(tt.prefixes)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getAddressFamily() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getAddressFamily() = %v, want %v", got, tt.want)
 			}
 		})
 	}

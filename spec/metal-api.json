@@ -3968,7 +3968,11 @@
         },
         "usage": {
           "$ref": "#/definitions/v1.NetworkUsage",
-          "description": "usage of ips and prefixes in this network"
+          "description": "usage of IPv4 ips and prefixes in this network"
+        },
+        "usagev6": {
+          "$ref": "#/definitions/v1.NetworkUsage",
+          "description": "usage of IPv6 ips and prefixes in this network"
         },
         "vrf": {
           "description": "the vrf this network is associated with",
@@ -3988,7 +3992,8 @@
         "prefixes",
         "privatesuper",
         "underlay",
-        "usage"
+        "usage",
+        "usagev6"
       ]
     },
     "v1.NetworkUpdateRequest": {
@@ -4038,32 +4043,24 @@
     "v1.NetworkUsage": {
       "properties": {
         "available_ips": {
-          "additionalProperties": {
-            "type": "integer"
-          },
           "description": "the total available IPs",
-          "type": "object"
+          "format": "integer",
+          "type": "integer"
         },
         "available_prefixes": {
-          "additionalProperties": {
-            "type": "integer"
-          },
           "description": "the total available 2 bit Prefixes",
-          "type": "object"
+          "format": "integer",
+          "type": "integer"
         },
         "used_ips": {
-          "additionalProperties": {
-            "type": "integer"
-          },
           "description": "the total used IPs",
-          "type": "object"
+          "format": "integer",
+          "type": "integer"
         },
         "used_prefixes": {
-          "additionalProperties": {
-            "type": "integer"
-          },
           "description": "the total used Prefixes",
-          "type": "object"
+          "format": "integer",
+          "type": "integer"
         }
       },
       "required": [

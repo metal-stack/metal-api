@@ -1396,6 +1396,14 @@ func findWaitingMachine(ctx context.Context, ds *datastore.RethinkStore, allocat
 // is enabled to clean up networks that were already created.
 func makeNetworks(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
 	for _, n := range networks {
+		if n == nil || n.network == nil {
+			continue
+		}
+		if len(n.network.AddressFamilies) == 0 {
+			n.network.AddressFamilies = metal.AddressFamilies{
+				metal.IPv4AddressFamily: true,
+			}
+		}
 		machineNetwork, err := makeMachineNetwork(ctx, ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return err
@@ -1472,10 +1480,12 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	// - user specifies administrative networks, i.e. underlay or privatesuper networks
 	// - user's private network is specified with noauto but no specific IPs are given: this would yield a machine with no ip address
 
-	specNetworks := make(map[string]*allocationNetwork)
-	var primaryPrivateNetwork *allocationNetwork
-	var privateNetworks []*allocationNetwork
-	var privateSharedNetworks []*allocationNetwork
+	var (
+		specNetworks          = make(map[string]*allocationNetwork)
+		primaryPrivateNetwork *allocationNetwork
+		privateNetworks       []*allocationNetwork
+		privateSharedNetworks []*allocationNetwork
+	)
 
 	for _, networkSpec := range allocationSpec.Networks {
 		auto := true

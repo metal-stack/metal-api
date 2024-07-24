@@ -23,8 +23,6 @@ import (
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
-	goipam "github.com/metal-stack/go-ipam"
-
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -289,7 +287,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		ok := nw.AddressFamilies[metal.ToAddressFamily(string(*requestPayload.AddressFamily))]
 		if !ok {
 			r.sendError(request, response, httperrors.BadRequest(
-				fmt.Errorf("there is no prefix for the given addressfamily:%s present in this network:%s", string(*requestPayload.AddressFamily), requestPayload.NetworkID)),
+				fmt.Errorf("there is no prefix for the given addressfamily:%s present in network:%s", string(*requestPayload.AddressFamily), requestPayload.NetworkID)),
 			)
 			return
 		}
@@ -471,10 +469,13 @@ func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IP
 		}
 
 		ipAddress, err = ipamer.AllocateIP(ctx, prefix)
-		if err != nil && errors.Is(err, goipam.ErrNoIPAvailable) {
-			continue
-		}
 		if err != nil {
+			var connectErr *connect.Error
+			if errors.As(err, &connectErr) {
+				if connectErr.Code() == connect.CodeNotFound {
+					continue
+				}
+			}
 			return "", "", err
 		}
 

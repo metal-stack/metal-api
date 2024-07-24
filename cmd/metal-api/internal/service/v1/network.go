@@ -30,10 +30,10 @@ type NetworkImmutable struct {
 
 // NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.
 type NetworkUsage struct {
-	AvailableIPs      map[metal.AddressFamily]uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
-	UsedIPs           map[metal.AddressFamily]uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes map[metal.AddressFamily]uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
-	UsedPrefixes      map[metal.AddressFamily]uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
+	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
+	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
 // NetworkCreateRequest is used to create a new Network.
@@ -74,7 +74,8 @@ type NetworkResponse struct {
 	Common
 	NetworkBase
 	NetworkImmutable
-	Usage NetworkUsage `json:"usage" description:"usage of ips and prefixes in this network" readonly:"true"`
+	Usage   NetworkUsage `json:"usage" description:"usage of IPv4 ips and prefixes in this network" readonly:"true"`
+	UsageV6 NetworkUsage `json:"usagev6" description:"usage of IPv6 ips and prefixes in this network" readonly:"true"`
 	Timestamps
 }
 
@@ -86,6 +87,8 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 
 	var (
 		parentNetworkID *string
+		usagev4         NetworkUsage
+		usagev6         NetworkUsage
 	)
 
 	if network.ParentNetworkID != "" {
@@ -94,6 +97,32 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 	labels := network.Labels
 	if labels == nil {
 		labels = make(map[string]string)
+	}
+
+	// Existing tenant networks where not migrated and get AF created here
+	if len(network.AddressFamilies) == 0 {
+		network.AddressFamilies = metal.AddressFamilies{
+			metal.IPv4AddressFamily: true,
+		}
+	}
+
+	for af := range network.AddressFamilies {
+		if af == metal.IPv4AddressFamily {
+			usagev4 = NetworkUsage{
+				AvailableIPs:      usage.AvailableIPs[af],
+				UsedIPs:           usage.UsedIPs[af],
+				AvailablePrefixes: usage.AvailablePrefixes[af],
+				UsedPrefixes:      usage.UsedPrefixes[af],
+			}
+		}
+		if af == metal.IPv6AddressFamily {
+			usagev6 = NetworkUsage{
+				AvailableIPs:      usage.AvailableIPs[af],
+				UsedIPs:           usage.UsedIPs[af],
+				AvailablePrefixes: usage.AvailablePrefixes[af],
+				UsedPrefixes:      usage.UsedPrefixes[af],
+			}
+		}
 	}
 
 	return &NetworkResponse{
@@ -123,12 +152,8 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			ParentNetworkID:          parentNetworkID,
 			AddressFamilies:          network.AddressFamilies,
 		},
-		Usage: NetworkUsage{
-			AvailableIPs:      usage.AvailableIPs,
-			UsedIPs:           usage.UsedIPs,
-			AvailablePrefixes: usage.AvailablePrefixes,
-			UsedPrefixes:      usage.UsedPrefixes,
-		},
+		Usage:   usagev4,
+		UsageV6: usagev6,
 		Timestamps: Timestamps{
 			Created: network.Created,
 			Changed: network.Changed,

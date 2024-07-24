@@ -313,7 +313,7 @@ func TestAllocateIP(t *testing.T) {
 				AddressFamily: pointer.Pointer(metal.IPv6AddressFamily),
 			},
 			wantedStatus: http.StatusBadRequest,
-			wantErr:      errors.New("there is no prefix for the given addressfamily:IPv6 present in this network:4"),
+			wantErr:      errors.New("there is no prefix for the given addressfamily:IPv6 present in network:4"),
 		},
 	}
 	for i := range tests {
