@@ -13,7 +13,9 @@ import (
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/rethinkdb/rethinkdb-go.v6"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -21,6 +23,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func TestRegisterSwitch(t *testing.T) {
@@ -1417,4 +1420,129 @@ func TestToggleSwitchNicWithoutMachine(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, result.Message, fmt.Sprintf("switch %q does not have a connected machine at port %q", testdata.Switch1.ID, testdata.Switch1.Nics[1].Name))
+}
+
+func Test_SwitchDelete(t *testing.T) {
+	tests := []struct {
+		name       string
+		mockFn     func(mock *rethinkdb.Mock)
+		want       *v1.SwitchResponse
+		wantErr    error
+		wantStatus int
+		force      bool
+	}{
+		{
+			name: "delete switch",
+			mockFn: func(mock *rethinkdb.Mock) {
+				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
+					Base: metal.Base{
+						ID: "switch-1",
+					},
+				}, nil)
+				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
+				mock.On(rethinkdb.DB("mockdb").Table("switchstatus").Get("switch-1")).Return(nil, nil)
+				mock.On(rethinkdb.DB("mockdb").Table("ip")).Return(nil, nil)
+			},
+			want: &v1.SwitchResponse{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{
+						ID: "switch-1",
+					},
+					Describable: v1.Describable{
+						Name:        pointer.Pointer(""),
+						Description: pointer.Pointer(""),
+					},
+				},
+				Nics:        v1.SwitchNics{},
+				Connections: []v1.SwitchConnection{},
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name: "delete switch does not work due to machine connections",
+			mockFn: func(mock *rethinkdb.Mock) {
+				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
+					Base: metal.Base{
+						ID: "switch-1",
+					},
+					MachineConnections: metal.ConnectionMap{
+						"port-a": metal.Connections{},
+					},
+				}, nil)
+				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
+			},
+			wantErr: &httperrors.HTTPErrorResponse{
+				StatusCode: http.StatusBadRequest,
+				Message:    "cannot delete switch switch-1 while it still has machines connected to it",
+			},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name: "delete switch with force",
+			mockFn: func(mock *rethinkdb.Mock) {
+				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
+					Base: metal.Base{
+						ID: "switch-1",
+					},
+					MachineConnections: metal.ConnectionMap{
+						"port-a": metal.Connections{},
+					},
+				}, nil)
+				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
+				mock.On(rethinkdb.DB("mockdb").Table("switchstatus").Get("switch-1")).Return(nil, nil)
+				mock.On(rethinkdb.DB("mockdb").Table("ip")).Return(nil, nil)
+			},
+			force: true,
+			want: &v1.SwitchResponse{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{
+						ID: "switch-1",
+					},
+					Describable: v1.Describable{
+						Name:        pointer.Pointer(""),
+						Description: pointer.Pointer(""),
+					},
+				},
+				Nics:        v1.SwitchNics{},
+				Connections: []v1.SwitchConnection{},
+			},
+			wantStatus: http.StatusOK,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			var (
+				ds, mock = datastore.InitMockDB(t)
+				ws       = NewSwitch(slog.Default(), ds)
+			)
+
+			if tt.mockFn != nil {
+				tt.mockFn(mock)
+			}
+
+			if tt.wantErr != nil {
+				code, got := genericWebRequest[*httperrors.HTTPErrorResponse](t, ws, testAdminUser, nil, "DELETE", "/v1/switch/switch-1")
+				assert.Equal(t, tt.wantStatus, code)
+
+				if diff := cmp.Diff(tt.wantErr, got); diff != "" {
+					t.Errorf("diff (-want +got):\n%s", diff)
+				}
+
+				return
+			}
+
+			force := ""
+			if tt.force {
+				force = "?force=true"
+			}
+
+			code, got := genericWebRequest[*v1.SwitchResponse](t, ws, testAdminUser, nil, "DELETE", "/v1/switch/switch-1"+force)
+			assert.Equal(t, tt.wantStatus, code)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
+	}
 }

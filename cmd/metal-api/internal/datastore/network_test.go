@@ -49,7 +49,7 @@ func TestRethinkStore_FindNetworkByID(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_ListNetworks(t *testing.T) {
+func TestRethinkStore_Mock_ListNetworks(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 

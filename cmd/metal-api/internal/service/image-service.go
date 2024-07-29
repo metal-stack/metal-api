@@ -11,8 +11,8 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/metal-lib/auditing"
+	metalcommon "github.com/metal-stack/metal-lib/pkg/metal"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -297,7 +297,7 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 		features[ft] = true
 	}
 
-	os, v, err := utils.GetOsAndSemverFromImage(requestPayload.ID)
+	os, v, err := metalcommon.GetOsAndSemverFromImage(requestPayload.ID)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return

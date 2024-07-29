@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"log/slog"
+	"os"
 	"reflect"
 	"sync"
 	"testing"
@@ -33,6 +34,8 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 
 func (p *emptyPublisher) Stop() {}
 func TestBootService_Register(t *testing.T) {
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
 	tests := []struct {
 		name                 string
 		uuid                 string
@@ -162,7 +165,7 @@ func TestBootService_Register(t *testing.T) {
 			}
 
 			bootService := &BootService{
-				log:              slog.Default(),
+				log:              log,
 				ds:               ds,
 				ipmiSuperUser:    metal.DisabledIPMISuperUser(),
 				publisher:        &emptyPublisher{},
@@ -193,6 +196,8 @@ func TestBootService_Register(t *testing.T) {
 }
 
 func TestBootService_Report(t *testing.T) {
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
 	tests := []struct {
 		name    string
 		req     *v1.BootServiceReportRequest
@@ -228,7 +233,7 @@ func TestBootService_Report(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			b := &BootService{
-				log:              slog.Default(),
+				log:              log,
 				ds:               ds,
 				ipmiSuperUser:    metal.DisabledIPMISuperUser(),
 				publisher:        &emptyPublisher{},

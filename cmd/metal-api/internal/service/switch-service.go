@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -80,6 +81,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Operation("deleteSwitch").
 		Doc("deletes an switch and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
+		Param(ws.QueryParameter("force", "if true switch is deleted with no validation").DataType("boolean").DefaultValue("false")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.SwitchResponse{}).
 		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
@@ -191,10 +193,25 @@ func (r *switchResource) findSwitches(request *restful.Request, response *restfu
 
 func (r *switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
+	forceParam := request.QueryParameter("force")
+	if forceParam == "" {
+		forceParam = "false"
+	}
+
+	force, err := strconv.ParseBool(forceParam)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
 
 	s, err := r.ds.FindSwitch(id)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	if !force && len(s.MachineConnections) > 0 {
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("cannot delete switch %s while it still has machines connected to it", id)))
 		return
 	}
 

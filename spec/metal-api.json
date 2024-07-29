@@ -402,6 +402,9 @@
         "name": {
           "type": "string"
         },
+        "release_version": {
+          "type": "string"
+        },
         "revision": {
           "type": "string"
         },
@@ -3962,7 +3965,7 @@
           "type": "integer"
         },
         "available_prefixes": {
-          "description": "the total available Prefixes",
+          "description": "the total available 2 bit Prefixes",
           "format": "integer",
           "type": "integer"
         },
@@ -4658,10 +4661,29 @@
       },
       "required": [
         "amount",
-        "labels",
         "partitionids",
         "projectid"
       ]
+    },
+    "v1.SizeReservationListRequest": {
+      "properties": {
+        "partitionid": {
+          "description": "the partition id of this size reservation",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project id of this size reservation",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id of this size reservation",
+          "type": "string"
+        },
+        "tenant": {
+          "description": "the tenant of this size reservation",
+          "type": "string"
+        }
+      }
     },
     "v1.SizeReservationResponse": {
       "properties": {
@@ -4709,7 +4731,6 @@
         }
       },
       "required": [
-        "labels",
         "partitionid",
         "projectallocations",
         "projectid",
@@ -9043,7 +9064,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.EmptyBody"
+              "$ref": "#/definitions/v1.SizeReservationListRequest"
             }
           }
         ],
@@ -9364,6 +9385,13 @@
             "name": "id",
             "required": true,
             "type": "string"
+          },
+          {
+            "default": false,
+            "description": "if true switch is deleted with no validation",
+            "in": "query",
+            "name": "force",
+            "type": "boolean"
           }
         ],
         "produces": [

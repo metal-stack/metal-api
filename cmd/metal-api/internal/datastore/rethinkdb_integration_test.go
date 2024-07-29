@@ -46,7 +46,7 @@ func startRethinkInitialized() (container testcontainers.Container, ds *RethinkS
 		panic(err)
 	}
 
-	rs := New(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := New(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010

@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/avast/retry-go/v4"
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
@@ -32,14 +33,15 @@ import (
 
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 
+	"connectrpc.com/connect"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
-	goipam "github.com/metal-stack/go-ipam"
+	compress "github.com/klauspost/connect-compress/v2"
+	apiv1 "github.com/metal-stack/go-ipam/api/v1"
+	"github.com/metal-stack/go-ipam/api/v1/apiv1connect"
 	"github.com/metal-stack/masterdata-api/pkg/auth"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -53,6 +55,8 @@ import (
 	httperrors "github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
 	"github.com/metal-stack/v"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type dsConnectOpt int
@@ -71,7 +75,7 @@ var (
 	logger *slog.Logger
 
 	ds                 *datastore.RethinkStore
-	ipamer             *ipam.Ipam
+	ipamer             ipam.IPAMer
 	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
 	mdc                mdm.Client
@@ -244,12 +248,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("db-user", "", "", "the database user to use")
 	rootCmd.PersistentFlags().StringP("db-password", "", "", "the database password to use")
 
-	rootCmd.Flags().StringP("ipam-db", "", "postgres", "the database adapter to use")
-	rootCmd.Flags().StringP("ipam-db-name", "", "metal-ipam", "the database name to use")
-	rootCmd.Flags().StringP("ipam-db-addr", "", "", "the database address string to use")
-	rootCmd.Flags().StringP("ipam-db-port", "", "5432", "the database port string to use")
-	rootCmd.Flags().StringP("ipam-db-user", "", "", "the database user to use")
-	rootCmd.Flags().StringP("ipam-db-password", "", "", "the database password to use")
+	rootCmd.Flags().String("ipam-grpc-server-endpoint", "http://ipam:9090", "the ipam grpc server endpoint")
 
 	rootCmd.Flags().StringP("metrics-server-bind-addr", "", ":2112", "the bind addr of the metrics server")
 
@@ -298,6 +297,7 @@ func init() {
 	rootCmd.Flags().String("headscale-api-key", "", "initial api key to connect to headscale server")
 
 	rootCmd.Flags().StringP("minimum-client-version", "", "v0.0.1", "the minimum metalctl version required to talk to this version of metal-api")
+	rootCmd.Flags().String("release-version", "", "the metal-stack release version")
 
 	must(viper.BindPFlags(rootCmd.Flags()))
 	must(viper.BindPFlags(rootCmd.PersistentFlags()))
@@ -537,10 +537,12 @@ func initMasterData() {
 		log.Fatal("no masterdata-port given")
 	}
 
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
 	var err error
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, false, slog.Default())
+		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, false, log)
 		if err == nil {
 			cancel()
 			break
@@ -553,30 +555,31 @@ func initMasterData() {
 }
 
 func initIpam() {
-	dbAdapter := viper.GetString("ipam-db")
-	switch dbAdapter {
-	case "postgres":
-		pgStorage, err := goipam.NewPostgresStorage(
-			viper.GetString("ipam-db-addr"),
-			viper.GetString("ipam-db-port"),
-			viper.GetString("ipam-db-user"),
-			viper.GetString("ipam-db-password"),
-			viper.GetString("ipam-db-name"),
-			goipam.SSLModeDisable)
+	ipamgrpcendpoint := viper.GetString("ipam-grpc-server-endpoint")
+
+	ipamService := apiv1connect.NewIpamServiceClient(
+		http.DefaultClient,
+		ipamgrpcendpoint,
+		connect.WithGRPC(),
+		compress.WithAll(compress.LevelBalanced),
+	)
+
+	ipamer = ipam.New(ipamService)
+
+	err := retry.Do(func() error {
+		version, err := ipamService.Version(context.Background(), connect.NewRequest(&apiv1.VersionRequest{}))
 		if err != nil {
-			logger.Error("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
-			time.Sleep(3 * time.Second)
-			initIpam()
-			return
+			return err
 		}
-		ipamInstance := goipam.NewWithStorage(pgStorage)
-		ipamer = ipam.New(ipamInstance)
-	case "memory":
-		ipamInstance := goipam.New()
-		ipamer = ipam.New(ipamInstance)
-	default:
-		logger.Error("database not supported", "db", dbAdapter)
+		logger.Info("connected to ipam service", "version", version.Msg)
+		return nil
+	})
+
+	if err != nil {
+		logger.Error("unable to connect to ipam service", "error", err)
+		os.Exit(1)
 	}
+
 	logger.Info("ipam initialized")
 }
 
@@ -738,7 +741,7 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 		log.Fatal(err)
 	}
 
-	healthService, err := rest.NewHealth(logger, service.BasePath, ds) // FIXME
+	healthService, err := rest.NewHealth(logger, service.BasePath, ds, ipamer)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -746,6 +749,11 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	minClientVersion, err := semver.NewVersion(viper.GetString("minimum-client-version"))
 	if err != nil {
 		log.Fatalf("given minimum client version is not semver parsable: %s", err)
+	}
+
+	var releaseVersion *string
+	if viper.IsSet("release-version") {
+		releaseVersion = pointer.Pointer(viper.GetString("release-version"))
 	}
 
 	restful.DefaultContainer.Add(service.NewAudit(logger.WithGroup("audit-service"), audit))
@@ -765,7 +773,11 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	restful.DefaultContainer.Add(service.NewSwitch(logger.WithGroup("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
 	restful.DefaultContainer.Add(service.NewVPN(logger.WithGroup("vpn-service"), headscaleClient))
-	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath, minClientVersion.Original()))
+	restful.DefaultContainer.Add(rest.NewVersion(moduleName, &rest.VersionOpts{
+		BasePath:         service.BasePath,
+		MinClientVersion: minClientVersion.Original(),
+		ReleaseVersion:   releaseVersion,
+	}))
 	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger)) // FIXME
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 
@@ -817,6 +829,9 @@ func initHeadscale() error {
 }
 
 func dumpSwaggerJSON() {
+
+	// This is required to make dump work
+	ipamer = ipam.New(nil)
 	cfg := initRestServices(nil, false, metal.DisabledIPMISuperUser())
 	actual := restfulspec.BuildSwagger(*cfg)
 
