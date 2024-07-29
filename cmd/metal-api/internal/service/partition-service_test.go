@@ -7,8 +7,11 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
+	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
@@ -18,6 +21,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -244,50 +248,281 @@ func TestUpdatePartition(t *testing.T) {
 	require.Equal(t, downloadableFile, *result.PartitionBootConfiguration.ImageURL)
 }
 
-func TestPartitionCapacity(t *testing.T) {
-	ds, mock := datastore.InitMockDB(t)
+// func TestPartitionCapacity(t *testing.T) {
+// 	ds, mock := datastore.InitMockDB(t)
 
-	ecs := []metal.ProvisioningEventContainer{}
-	for _, m := range testdata.TestMachines {
-		m := m
-		ecs = append(ecs, metal.ProvisioningEventContainer{
-			Base: m.Base,
+// 	ecs := []metal.ProvisioningEventContainer{}
+// 	for _, m := range testdata.TestMachines {
+// 		m := m
+// 		ecs = append(ecs, metal.ProvisioningEventContainer{
+// 			Base: m.Base,
+// 		})
+// 	}
+// 	mock.On(r.DB("mockdb").Table("event")).Return(ecs, nil)
+
+// 	testdata.InitMockDBData(mock)
+// 	log := slog.Default()
+
+// 	service := NewPartition(log, ds, &nopTopicCreator{})
+// 	container := restful.NewContainer().Add(service)
+
+// 	pcRequest := &v1.PartitionCapacityRequest{}
+// 	js, err := json.Marshal(pcRequest)
+// 	require.NoError(t, err)
+// 	body := bytes.NewBuffer(js)
+
+// 	req := httptest.NewRequest("POST", "/v1/partition/capacity", body)
+// 	req.Header.Add("Content-Type", "application/json")
+// 	container = injectAdmin(log, container, req)
+// 	w := httptest.NewRecorder()
+// 	container.ServeHTTP(w, req)
+
+// 	resp := w.Result()
+// 	defer resp.Body.Close()
+// 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+// 	var result []v1.PartitionCapacity
+// 	err = json.NewDecoder(resp.Body).Decode(&result)
+
+// 	require.NoError(t, err)
+// 	require.Len(t, result, 1)
+// 	require.Equal(t, testdata.Partition1.ID, result[0].ID)
+// 	require.NotNil(t, result[0].ServerCapacities)
+// 	require.Len(t, result[0].ServerCapacities, 1)
+// 	c := result[0].ServerCapacities[0]
+// 	require.Equal(t, "1", c.Size)
+// 	require.Equal(t, 5, c.Total)
+// 	require.Equal(t, -1, c.Free)
+// 	require.Equal(t, 3, c.Reservations)
+// 	require.Equal(t, 1, c.UsedReservations)
+// }
+
+func TestPartitionCapacity(t *testing.T) {
+	var (
+		mockMachines = func(mock *r.Mock, reservationCount int, ms ...metal.Machine) {
+			var (
+				sizes      metal.Sizes
+				events     metal.ProvisioningEventContainers
+				partitions metal.Partitions
+			)
+
+			for _, m := range ms {
+				ec := metal.ProvisioningEventContainer{Base: metal.Base{ID: m.ID}, Liveliness: metal.MachineLivelinessAlive}
+				if m.Waiting {
+					ec.Events = append(ec.Events, metal.ProvisioningEvent{
+						Event: metal.ProvisioningEventWaiting,
+					})
+				}
+				events = append(events, ec)
+				if !slices.ContainsFunc(sizes, func(s metal.Size) bool {
+					return s.ID == m.SizeID
+				}) {
+					s := metal.Size{Base: metal.Base{ID: m.SizeID}}
+					if reservationCount > 0 {
+						s.Reservations = append(s.Reservations, metal.Reservation{
+							Amount:       reservationCount,
+							ProjectID:    pointer.SafeDeref(m.Allocation).Project,
+							PartitionIDs: []string{m.PartitionID},
+						})
+					}
+					sizes = append(sizes, s)
+				}
+				if !slices.ContainsFunc(partitions, func(p metal.Partition) bool {
+					return p.ID == m.PartitionID
+				}) {
+					partitions = append(partitions, metal.Partition{Base: metal.Base{ID: m.PartitionID}})
+				}
+			}
+
+			mock.On(r.DB("mockdb").Table("machine")).Return(ms, nil)
+			mock.On(r.DB("mockdb").Table("event")).Return(events, nil)
+			mock.On(r.DB("mockdb").Table("partition")).Return(partitions, nil)
+			mock.On(r.DB("mockdb").Table("size")).Return(sizes, nil)
+		}
+
+		machineTpl = func(id, partition, size, project string) metal.Machine {
+			m := metal.Machine{
+				Base:        metal.Base{ID: id},
+				PartitionID: partition,
+				SizeID:      size,
+				IPMI: metal.IPMI{ // required for healthy machine state
+					Address:     "1.2.3.4",
+					MacAddress:  "aa:bb:00",
+					LastUpdated: time.Now().Add(-1 * time.Minute),
+				},
+			}
+			if project != "" {
+				m.Allocation = &metal.MachineAllocation{
+					Project: project,
+				}
+			}
+			return m
+		}
+	)
+
+	tests := []struct {
+		name   string
+		mockFn func(mock *r.Mock)
+		want   []*v1.PartitionCapacity
+	}{
+		{
+			name: "one allocated machine",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
+				mockMachines(mock, 0, m1)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:      "size-a",
+							Total:     1,
+							Allocated: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "one faulty, allocated machine",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
+				m1.IPMI.Address = ""
+				mockMachines(mock, 0, m1)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:           "size-a",
+							Total:          1,
+							Faulty:         1,
+							Allocated:      1,
+							FaultyMachines: []string{"1"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "one waiting machine",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "")
+				m1.Waiting = true
+				mockMachines(mock, 0, m1)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:    "size-a",
+							Total:   1,
+							Waiting: 1,
+							Free:    1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "one free machine",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "")
+				m1.Waiting = true
+				m1.State.Value = metal.AvailableState
+				mockMachines(mock, 0, m1)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:    "size-a",
+							Total:   1,
+							Waiting: 1,
+							Free:    1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "one machine rebooting",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "")
+				m1.Waiting = false
+				mockMachines(mock, 0, m1)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:          "size-a",
+							Total:         1,
+							Other:         1,
+							OtherMachines: []string{"1"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "machine reserved",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "")
+				m1.Waiting = true
+				mockMachines(mock, 1, m1)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:             "size-a",
+							Total:            1,
+							Waiting:          1,
+							Free:             0,
+							Reservations:     1,
+							UsedReservations: 0,
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				ds, mock = datastore.InitMockDB(t)
+				body     = &v1.PartitionCapacityRequest{}
+				ws       = NewPartition(slog.Default(), ds, nil)
+			)
+
+			if tt.mockFn != nil {
+				tt.mockFn(mock)
+			}
+
+			code, got := genericWebRequest[[]*v1.PartitionCapacity](t, ws, testViewUser, body, "POST", "/v1/partition/capacity")
+			assert.Equal(t, http.StatusOK, code)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
 		})
 	}
-	mock.On(r.DB("mockdb").Table("event")).Return(ecs, nil)
-
-	testdata.InitMockDBData(mock)
-	log := slog.Default()
-
-	service := NewPartition(log, ds, &nopTopicCreator{})
-	container := restful.NewContainer().Add(service)
-
-	pcRequest := &v1.PartitionCapacityRequest{}
-	js, err := json.Marshal(pcRequest)
-	require.NoError(t, err)
-	body := bytes.NewBuffer(js)
-
-	req := httptest.NewRequest("POST", "/v1/partition/capacity", body)
-	req.Header.Add("Content-Type", "application/json")
-	container = injectAdmin(log, container, req)
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []v1.PartitionCapacity
-	err = json.NewDecoder(resp.Body).Decode(&result)
-
-	require.NoError(t, err)
-	require.Len(t, result, 1)
-	require.Equal(t, testdata.Partition1.ID, result[0].ID)
-	require.NotNil(t, result[0].ServerCapacities)
-	require.Len(t, result[0].ServerCapacities, 1)
-	c := result[0].ServerCapacities[0]
-	require.Equal(t, "1", c.Size)
-	require.Equal(t, 5, c.Total)
-	require.Equal(t, -1, c.Free)
-	require.Equal(t, 3, c.Reservations)
-	require.Equal(t, 1, c.UsedReservations)
 }

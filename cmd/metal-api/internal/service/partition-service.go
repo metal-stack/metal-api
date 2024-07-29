@@ -10,7 +10,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/auditing"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
@@ -378,7 +377,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	machinesWithIssues, err := issues.Find(&issues.Config{
 		Machines:        ms,
 		EventContainers: ecs,
-		Only:            issues.NotAllocatableIssueTypes(),
+		Only:            issues.AllIssueTypes(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to calculate machine issues: %w", err)
@@ -436,24 +435,23 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 		cap.Total++
 
-		if m.Allocation != nil {
-			cap.Allocated++
-			continue
-		}
-
 		if _, ok := machinesWithIssues[m.ID]; ok {
 			cap.Faulty++
 			cap.FaultyMachines = append(cap.FaultyMachines, m.ID)
-			continue
 		}
 
-		if m.State.Value == metal.AvailableState && metal.ProvisioningEventWaiting == pointer.FirstOrZero(ec.Events).Event {
-			cap.Free++
-			continue
+		switch {
+		case m.Allocation != nil:
+			cap.Allocated++
+		case m.IsWaiting(ec):
+			cap.Waiting++
+			if m.State.Value == metal.AvailableState {
+				cap.Free++
+			}
+		default:
+			cap.Other++
+			cap.OtherMachines = append(cap.OtherMachines, m.ID)
 		}
-
-		cap.Other++
-		cap.OtherMachines = append(cap.OtherMachines, m.ID)
 	}
 
 	res := []v1.PartitionCapacity{}
@@ -468,7 +466,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 			for _, reservation := range size.Reservations.ForPartition(pc.ID) {
 				cap.Reservations += reservation.Amount
 				cap.UsedReservations += min(len(machinesByProject[reservation.ProjectID].WithSize(size.ID).WithPartition(pc.ID)), reservation.Amount)
-				cap.Free -= cap.UsedReservations
+				cap.Free -= cap.Reservations
 			}
 		}
 
