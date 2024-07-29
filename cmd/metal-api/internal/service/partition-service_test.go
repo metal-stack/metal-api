@@ -248,54 +248,6 @@ func TestUpdatePartition(t *testing.T) {
 	require.Equal(t, downloadableFile, *result.PartitionBootConfiguration.ImageURL)
 }
 
-// func TestPartitionCapacity(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB(t)
-
-// 	ecs := []metal.ProvisioningEventContainer{}
-// 	for _, m := range testdata.TestMachines {
-// 		m := m
-// 		ecs = append(ecs, metal.ProvisioningEventContainer{
-// 			Base: m.Base,
-// 		})
-// 	}
-// 	mock.On(r.DB("mockdb").Table("event")).Return(ecs, nil)
-
-// 	testdata.InitMockDBData(mock)
-// 	log := slog.Default()
-
-// 	service := NewPartition(log, ds, &nopTopicCreator{})
-// 	container := restful.NewContainer().Add(service)
-
-// 	pcRequest := &v1.PartitionCapacityRequest{}
-// 	js, err := json.Marshal(pcRequest)
-// 	require.NoError(t, err)
-// 	body := bytes.NewBuffer(js)
-
-// 	req := httptest.NewRequest("POST", "/v1/partition/capacity", body)
-// 	req.Header.Add("Content-Type", "application/json")
-// 	container = injectAdmin(log, container, req)
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
-
-// 	resp := w.Result()
-// 	defer resp.Body.Close()
-// 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-// 	var result []v1.PartitionCapacity
-// 	err = json.NewDecoder(resp.Body).Decode(&result)
-
-// 	require.NoError(t, err)
-// 	require.Len(t, result, 1)
-// 	require.Equal(t, testdata.Partition1.ID, result[0].ID)
-// 	require.NotNil(t, result[0].ServerCapacities)
-// 	require.Len(t, result[0].ServerCapacities, 1)
-// 	c := result[0].ServerCapacities[0]
-// 	require.Equal(t, "1", c.Size)
-// 	require.Equal(t, 5, c.Total)
-// 	require.Equal(t, -1, c.Free)
-// 	require.Equal(t, 3, c.Reservations)
-// 	require.Equal(t, 1, c.UsedReservations)
-// }
-
 func TestPartitionCapacity(t *testing.T) {
 	var (
 		mockMachines = func(mock *r.Mock, reservationCount int, ms ...metal.Machine) {
