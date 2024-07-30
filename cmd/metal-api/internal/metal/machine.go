@@ -137,6 +137,10 @@ func (m *Machine) IsWaiting(ec ProvisioningEventContainer) bool {
 	return m.Waiting && ProvisioningEventWaiting == pointer.FirstOrZero(ec.Events).Event
 }
 
+func (m *Machine) IsAvailable() bool {
+	return m.State.Value == AvailableState
+}
+
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
 	Creator          string            `rethinkdb:"creator" json:"creator"`

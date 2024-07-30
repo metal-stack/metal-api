@@ -444,7 +444,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 			cap.Allocated++
 		case m.IsWaiting(ec):
 			cap.Waiting++
-			if m.State.Value == metal.AvailableState {
+			if m.IsAvailable() {
 				cap.Free++
 			}
 		default:
@@ -463,10 +463,11 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 			size := sizesByID[cap.Size]
 
 			for _, reservation := range size.Reservations.ForPartition(pc.ID) {
+				usedReservations := min(len(machinesByProject[reservation.ProjectID].WithSize(size.ID).WithPartition(pc.ID)), reservation.Amount)
+
 				cap.Reservations += reservation.Amount
-				used := min(len(machinesByProject[reservation.ProjectID].WithSize(size.ID).WithPartition(pc.ID)), reservation.Amount)
-				cap.UsedReservations += used
-				cap.Free -= reservation.Amount - used
+				cap.UsedReservations += usedReservations
+				cap.Free -= reservation.Amount - usedReservations
 			}
 		}
 
