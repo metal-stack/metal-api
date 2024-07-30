@@ -446,6 +446,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		case m.Allocation != nil:
 			cap.Allocated++
 		case m.Waiting && !m.PreAllocated && m.State.Value == metal.AvailableState:
+			// the free machine count considers the same aspects as the query for electing the machine candidate!
 			cap.Free++
 		default:
 			cap.Unavailable++
