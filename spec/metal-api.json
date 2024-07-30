@@ -4451,17 +4451,7 @@
         }
       },
       "required": [
-        "allocated",
-        "faulty",
-        "faultymachines",
-        "free",
-        "other",
-        "othermachines",
-        "reservations",
-        "size",
-        "total",
-        "usedreservations",
-        "waiting"
+        "size"
       ]
     },
     "v1.SizeConstraint": {

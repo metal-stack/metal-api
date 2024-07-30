@@ -56,31 +56,31 @@ type ServerCapacity struct {
 	Size string `json:"size" description:"the size of the machine"`
 
 	// Total is the total amount of machines for this size.
-	Total int `json:"total" description:"total amount of machines with this size"`
+	Total int `json:"total,omitempty" description:"total amount of machines with this size"`
 
 	// Allocated is the amount of machines that are currently allocated.
-	Allocated int `json:"allocated" description:"allocated machines with this size"`
+	Allocated int `json:"allocated,omitempty" description:"allocated machines with this size"`
 	// Waiting is the amount of machines that are currently available for allocation.
-	Waiting int `json:"waiting" description:"machines waiting for allocation with this size"`
+	Waiting int `json:"waiting,omitempty" description:"machines waiting for allocation with this size"`
 	// Other is the amount of machines that are neither allocated nor in the pool of available machines because they are currently in another provisioning state.
-	Other int `json:"other" description:"machines neither allocated nor waiting with this size"`
+	Other int `json:"other,omitempty" description:"machines neither allocated nor waiting with this size"`
 	// OtherMachines contains the machine IDs for machines that were classified into "Other".
-	OtherMachines []string `json:"othermachines" description:"machine ids neither allocated nor waiting with this size"`
+	OtherMachines []string `json:"othermachines,omitempty" description:"machine ids neither allocated nor waiting with this size"`
 
 	// Faulty is the amount of machines that are neither allocated nor in the pool of available machines because they report an error.
-	Faulty int `json:"faulty" description:"machines with issues with this size"`
+	Faulty int `json:"faulty,omitempty" description:"machines with issues with this size"`
 	// FaultyMachines contains the machine IDs for machines that were classified into "Faulty".
-	FaultyMachines []string `json:"faultymachines" description:"machine ids with issues with this size"`
+	FaultyMachines []string `json:"faultymachines,omitempty" description:"machine ids with issues with this size"`
 
 	// Reservations is the amount of reservations made for this size.
-	Reservations int `json:"reservations" description:"the amount of reservations for this size"`
+	Reservations int `json:"reservations,omitempty" description:"the amount of reservations for this size"`
 	// UsedReservations is the amount of reservations already used up for this size.
-	UsedReservations int `json:"usedreservations" description:"the amount of used reservations for this size"`
+	UsedReservations int `json:"usedreservations,omitempty" description:"the amount of used reservations for this size"`
 
 	// Free is the amount of machines in a partition that can be freely allocated at any given moment by a project.
 	// Effectively this is the amount of waiting machines minus the machines that are unavailable due to machine state or un-allocatable due to size reservations.
 	// This can also be a negative number indicating that this machine size is "overbooked", i.e. there are more reservations than waiting machines.
-	Free int `json:"free" description:"free machines with this size"`
+	Free int `json:"free,omitempty" description:"free machines with this size"`
 }
 
 func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
