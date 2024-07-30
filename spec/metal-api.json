@@ -4414,12 +4414,12 @@
           "type": "integer"
         },
         "other": {
-          "description": "machines neither allocated or waiting with this size",
+          "description": "machines neither allocated nor waiting with this size",
           "format": "int32",
           "type": "integer"
         },
         "othermachines": {
-          "description": "machine ids neither allocated or waiting with this size",
+          "description": "machine ids neither allocated nor waiting with this size",
           "items": {
             "type": "string"
           },

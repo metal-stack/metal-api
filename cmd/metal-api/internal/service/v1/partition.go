@@ -63,9 +63,9 @@ type ServerCapacity struct {
 	// Waiting is the amount of machines that are currently available for allocation.
 	Waiting int `json:"waiting" description:"machines waiting for allocation with this size"`
 	// Other is the amount of machines that are neither allocated nor in the pool of available machines because they are currently in another provisioning state.
-	Other int `json:"other" description:"machines neither allocated or waiting with this size"`
+	Other int `json:"other" description:"machines neither allocated nor waiting with this size"`
 	// OtherMachines contains the machine IDs for machines that were classified into "Other".
-	OtherMachines []string `json:"othermachines" description:"machine ids neither allocated or waiting with this size"`
+	OtherMachines []string `json:"othermachines" description:"machine ids neither allocated nor waiting with this size"`
 
 	// Faulty is the amount of machines that are neither allocated nor in the pool of available machines because they report an error.
 	Faulty int `json:"faulty" description:"machines with issues with this size"`
