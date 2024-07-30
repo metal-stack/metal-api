@@ -551,7 +551,7 @@ func TestPartitionCapacity(t *testing.T) {
 			},
 		},
 		{
-			name: "reservations already used up",
+			name: "reservations already used up (edge)",
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
 				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
@@ -582,6 +582,43 @@ func TestPartitionCapacity(t *testing.T) {
 							Free:             1,
 							Reservations:     2,
 							UsedReservations: 2,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "reservations already used up",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
+				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
+				m3 := machineTpl("3", "partition-a", "size-a", "")
+				m3.Waiting = true
+
+				reservations := []metal.Reservation{
+					{
+						Amount:       1,
+						ProjectID:    "project-123",
+						PartitionIDs: []string{"partition-a"},
+					},
+				}
+
+				mockMachines(mock, reservations, m1, m2, m3)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:             "size-a",
+							Total:            3,
+							Allocated:        2,
+							Waiting:          1,
+							Free:             1,
+							Reservations:     1,
+							UsedReservations: 1,
 						},
 					},
 				},
