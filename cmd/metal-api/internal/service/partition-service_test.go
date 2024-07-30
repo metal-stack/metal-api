@@ -250,7 +250,7 @@ func TestUpdatePartition(t *testing.T) {
 
 func TestPartitionCapacity(t *testing.T) {
 	var (
-		mockMachines = func(mock *r.Mock, reservation *metal.Reservation, ms ...metal.Machine) {
+		mockMachines = func(mock *r.Mock, reservations []metal.Reservation, ms ...metal.Machine) {
 			var (
 				sizes      metal.Sizes
 				events     metal.ProvisioningEventContainers
@@ -269,15 +269,18 @@ func TestPartitionCapacity(t *testing.T) {
 					return s.ID == m.SizeID
 				}) {
 					s := metal.Size{Base: metal.Base{ID: m.SizeID}}
-					if reservation != nil {
-						s.Reservations = append(s.Reservations, *reservation)
-					}
 					sizes = append(sizes, s)
 				}
 				if !slices.ContainsFunc(partitions, func(p metal.Partition) bool {
 					return p.ID == m.PartitionID
 				}) {
 					partitions = append(partitions, metal.Partition{Base: metal.Base{ID: m.PartitionID}})
+				}
+			}
+
+			if len(reservations) > 0 {
+				for i := range sizes {
+					sizes[i].Reservations = append(sizes[i].Reservations, reservations...)
 				}
 			}
 
@@ -293,8 +296,8 @@ func TestPartitionCapacity(t *testing.T) {
 				PartitionID: partition,
 				SizeID:      size,
 				IPMI: metal.IPMI{ // required for healthy machine state
-					Address:     "1.2.3.4",
-					MacAddress:  "aa:bb:00",
+					Address:     "1.2.3." + id,
+					MacAddress:  "aa:bb:0" + id,
 					LastUpdated: time.Now().Add(-1 * time.Minute),
 				},
 			}
@@ -328,6 +331,28 @@ func TestPartitionCapacity(t *testing.T) {
 							Size:      "size-a",
 							Total:     1,
 							Allocated: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "two allocated machines",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
+				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
+				mockMachines(mock, nil, m1, m2)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:      "size-a",
+							Total:     2,
+							Allocated: 2,
 						},
 					},
 				},
@@ -381,6 +406,31 @@ func TestPartitionCapacity(t *testing.T) {
 			},
 		},
 		{
+			name: "one waiting, one allocated machine",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "")
+				m1.Waiting = true
+				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
+				mockMachines(mock, nil, m1, m2)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:      "size-a",
+							Total:     2,
+							Allocated: 1,
+							Waiting:   1,
+							Free:      1,
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "one free machine",
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "")
@@ -428,18 +478,20 @@ func TestPartitionCapacity(t *testing.T) {
 			},
 		},
 		{
-			name: "machine reserved",
+			name: "reserved machine does not count as free",
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "")
 				m1.Waiting = true
 
-				reservation := metal.Reservation{
-					Amount:       1,
-					ProjectID:    "project-123",
-					PartitionIDs: []string{"partition-a"},
+				reservations := []metal.Reservation{
+					{
+						Amount:       1,
+						ProjectID:    "project-123",
+						PartitionIDs: []string{"partition-a"},
+					},
 				}
 
-				mockMachines(mock, &reservation, m1)
+				mockMachines(mock, reservations, m1)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -454,6 +506,124 @@ func TestPartitionCapacity(t *testing.T) {
 							Free:             0,
 							Reservations:     1,
 							UsedReservations: 0,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "overbooked partition",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "")
+				m1.Waiting = true
+
+				reservations := []metal.Reservation{
+					{
+						Amount:       1,
+						ProjectID:    "project-123",
+						PartitionIDs: []string{"partition-a"},
+					},
+					{
+						Amount:       2,
+						ProjectID:    "project-456",
+						PartitionIDs: []string{"partition-a"},
+					},
+				}
+
+				mockMachines(mock, reservations, m1)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:             "size-a",
+							Total:            1,
+							Waiting:          1,
+							Free:             -2,
+							Reservations:     3,
+							UsedReservations: 0,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "reservations already used up",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
+				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
+				m3 := machineTpl("3", "partition-a", "size-a", "")
+				m3.Waiting = true
+
+				reservations := []metal.Reservation{
+					{
+						Amount:       2,
+						ProjectID:    "project-123",
+						PartitionIDs: []string{"partition-a"},
+					},
+				}
+
+				mockMachines(mock, reservations, m1, m2, m3)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:             "size-a",
+							Total:            3,
+							Allocated:        2,
+							Waiting:          1,
+							Free:             1,
+							Reservations:     2,
+							UsedReservations: 2,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "other partition size reservation has no influence",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
+				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
+				m3 := machineTpl("3", "partition-a", "size-a", "")
+				m3.Waiting = true
+
+				reservations := []metal.Reservation{
+					{
+						Amount:       2,
+						ProjectID:    "project-123",
+						PartitionIDs: []string{"partition-a"},
+					},
+					{
+						Amount:       2,
+						ProjectID:    "project-123",
+						PartitionIDs: []string{"partition-b"},
+					},
+				}
+
+				mockMachines(mock, reservations, m1, m2, m3)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:             "size-a",
+							Total:            3,
+							Allocated:        2,
+							Waiting:          1,
+							Free:             1,
+							Reservations:     2,
+							UsedReservations: 2,
 						},
 					},
 				},
