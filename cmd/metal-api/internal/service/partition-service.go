@@ -10,6 +10,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/auditing"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
@@ -440,14 +441,22 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 			cap.FaultyMachines = append(cap.FaultyMachines, m.ID)
 		}
 
+		// allocation dependent counts
 		switch {
 		case m.Allocation != nil:
 			cap.Allocated++
-		case m.IsWaiting(ec):
+		case m.Waiting && !m.PreAllocated && m.State.Value == metal.AvailableState:
+			cap.Free++
+		default:
+			cap.Unavailable++
+		}
+
+		// provisioning state dependent counts
+		switch pointer.FirstOrZero(ec.Events).Event { //nolint:exhaustive
+		case metal.ProvisioningEventPhonedHome:
+			cap.PhonedHome++
+		case metal.ProvisioningEventWaiting:
 			cap.Waiting++
-			if m.IsAvailable() {
-				cap.Free++
-			}
 		default:
 			cap.Other++
 			cap.OtherMachines = append(cap.OtherMachines, m.ID)

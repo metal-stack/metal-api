@@ -4392,7 +4392,7 @@
     "v1.ServerCapacity": {
       "properties": {
         "allocated": {
-          "description": "allocated machines with this size",
+          "description": "allocated machines",
           "format": "int32",
           "type": "integer"
         },
@@ -4409,12 +4409,12 @@
           "type": "array"
         },
         "free": {
-          "description": "free machines with this size",
+          "description": "free machines with this size (freely allocatable)",
           "format": "int32",
           "type": "integer"
         },
         "other": {
-          "description": "machines neither allocated nor waiting with this size",
+          "description": "machines neither phoned home nor waiting but in another provisioning state",
           "format": "int32",
           "type": "integer"
         },
@@ -4424,6 +4424,11 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "phoned_home": {
+          "description": "machines in phoned home provisioning state",
+          "format": "int32",
+          "type": "integer"
         },
         "reservations": {
           "description": "the amount of reservations for this size",
@@ -4435,7 +4440,12 @@
           "type": "string"
         },
         "total": {
-          "description": "total amount of machines with this size",
+          "description": "total amount of machines with size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "unavailable": {
+          "description": "unavailable machines with this size",
           "format": "int32",
           "type": "integer"
         },
@@ -4445,7 +4455,7 @@
           "type": "integer"
         },
         "waiting": {
-          "description": "machines waiting for allocation with this size",
+          "description": "machines in waiting provisioning state",
           "format": "int32",
           "type": "integer"
         }

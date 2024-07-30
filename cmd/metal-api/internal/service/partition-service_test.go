@@ -264,6 +264,11 @@ func TestPartitionCapacity(t *testing.T) {
 						Event: metal.ProvisioningEventWaiting,
 					})
 				}
+				if m.Allocation != nil {
+					ec.Events = append(ec.Events, metal.ProvisioningEvent{
+						Event: metal.ProvisioningEventPhonedHome,
+					})
+				}
 				events = append(events, ec)
 				if !slices.ContainsFunc(sizes, func(s metal.Size) bool {
 					return s.ID == m.SizeID
@@ -300,6 +305,9 @@ func TestPartitionCapacity(t *testing.T) {
 					MacAddress:  "aa:bb:0" + id,
 					LastUpdated: time.Now().Add(-1 * time.Minute),
 				},
+				State: metal.MachineState{
+					Value: metal.AvailableState,
+				},
 			}
 			if project != "" {
 				m.Allocation = &metal.MachineAllocation{
@@ -328,9 +336,10 @@ func TestPartitionCapacity(t *testing.T) {
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
-							Size:      "size-a",
-							Total:     1,
-							Allocated: 1,
+							Size:       "size-a",
+							Total:      1,
+							PhonedHome: 1,
+							Allocated:  1,
 						},
 					},
 				},
@@ -350,9 +359,10 @@ func TestPartitionCapacity(t *testing.T) {
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
-							Size:      "size-a",
-							Total:     2,
-							Allocated: 2,
+							Size:       "size-a",
+							Total:      2,
+							PhonedHome: 2,
+							Allocated:  2,
 						},
 					},
 				},
@@ -374,6 +384,7 @@ func TestPartitionCapacity(t *testing.T) {
 						{
 							Size:           "size-a",
 							Total:          1,
+							PhonedHome:     1,
 							Faulty:         1,
 							Allocated:      1,
 							FaultyMachines: []string{"1"},
@@ -420,11 +431,12 @@ func TestPartitionCapacity(t *testing.T) {
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
-							Size:      "size-a",
-							Total:     2,
-							Allocated: 1,
-							Waiting:   1,
-							Free:      1,
+							Size:       "size-a",
+							Total:      2,
+							Allocated:  1,
+							Waiting:    1,
+							PhonedHome: 1,
+							Free:       1,
 						},
 					},
 				},
@@ -471,6 +483,7 @@ func TestPartitionCapacity(t *testing.T) {
 							Size:          "size-a",
 							Total:         1,
 							Other:         1,
+							Unavailable:   1,
 							OtherMachines: []string{"1"},
 						},
 					},
@@ -582,6 +595,7 @@ func TestPartitionCapacity(t *testing.T) {
 							Free:             1,
 							Reservations:     2,
 							UsedReservations: 2,
+							PhonedHome:       2,
 						},
 					},
 				},
@@ -619,6 +633,7 @@ func TestPartitionCapacity(t *testing.T) {
 							Free:             1,
 							Reservations:     1,
 							UsedReservations: 1,
+							PhonedHome:       2,
 						},
 					},
 				},
@@ -661,6 +676,7 @@ func TestPartitionCapacity(t *testing.T) {
 							Free:             1,
 							Reservations:     2,
 							UsedReservations: 2,
+							PhonedHome:       2,
 						},
 					},
 				},

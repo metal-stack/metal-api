@@ -12,7 +12,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/samber/lo"
 )
 
@@ -131,14 +130,6 @@ func (m *Machine) IsFirewall() bool {
 		return true
 	}
 	return false
-}
-
-func (m *Machine) IsWaiting(ec ProvisioningEventContainer) bool {
-	return m.Waiting && ProvisioningEventWaiting == pointer.FirstOrZero(ec.Events).Event
-}
-
-func (m *Machine) IsAvailable() bool {
-	return m.State.Value == AvailableState
 }
 
 // A MachineAllocation stores the data which are only present for allocated machines.
