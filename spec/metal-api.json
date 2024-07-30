@@ -4392,34 +4392,34 @@
     "v1.ServerCapacity": {
       "properties": {
         "allocated": {
-          "description": "allocated servers with this size",
+          "description": "allocated machines with this size",
           "format": "int32",
           "type": "integer"
         },
         "faulty": {
-          "description": "servers with issues with this size",
+          "description": "machines with issues with this size",
           "format": "int32",
           "type": "integer"
         },
         "faultymachines": {
-          "description": "servers with issues with this size",
+          "description": "machine ids with issues with this size",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "free": {
-          "description": "free servers with this size",
+          "description": "free machines with this size",
           "format": "int32",
           "type": "integer"
         },
         "other": {
-          "description": "servers neither free, allocated or faulty with this size",
+          "description": "machines neither allocated or waiting with this size",
           "format": "int32",
           "type": "integer"
         },
         "othermachines": {
-          "description": "servers neither free, allocated or faulty with this size",
+          "description": "machine ids neither allocated or waiting with this size",
           "items": {
             "type": "string"
           },
@@ -4431,16 +4431,21 @@
           "type": "integer"
         },
         "size": {
-          "description": "the size of the server",
+          "description": "the size of the machine",
           "type": "string"
         },
         "total": {
-          "description": "total amount of servers with this size",
+          "description": "total amount of machines with this size",
           "format": "int32",
           "type": "integer"
         },
         "usedreservations": {
           "description": "the amount of used reservations for this size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "waiting": {
+          "description": "machines waiting for allocation with this size",
           "format": "int32",
           "type": "integer"
         }
@@ -4455,7 +4460,8 @@
         "reservations",
         "size",
         "total",
-        "usedreservations"
+        "usedreservations",
+        "waiting"
       ]
     },
     "v1.SizeConstraint": {
