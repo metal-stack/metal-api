@@ -15,7 +15,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/rethinkdb/rethinkdb-go.v6"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -351,11 +350,20 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 								IPs: []string{"212.89.42.1", "212.89.42.2"},
 								Vrf: 104009,
 							},
+							{
+								IPs: []string{"2001::", "fe80::"},
+								Vrf: 104011,
+							},
+							{
+								IPs:      []string{"2002::", "fe81::"},
+								Underlay: true,
+								Vrf:      104012,
+							},
 						},
 					},
 				},
 			},
-			want: v1.NewBGPFilter([]string{"104009", "104010"}, []string{"10.0.0.1/32", "10.0.0.2/32"}),
+			want: v1.NewBGPFilter([]string{"104009", "104010", "104011"}, []string{"10.0.0.1/32", "10.0.0.2/32", "2002::/128", "fe81::/128"}),
 		},
 		{
 			name: "no underlay firewall networks",
@@ -395,7 +403,7 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeBGPFilterFirewall(tt.args.machine)
+			got, _ := makeBGPFilterFirewall(tt.args.machine)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterFirewall() = %v, want %v", got, tt.want)
 			}
@@ -429,6 +437,9 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 					metal.IP{
 						IPAddress: "10.1.0.1",
 					},
+					metal.IP{
+						IPAddress: "2001::1",
+					},
 				}},
 				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
@@ -449,11 +460,15 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 								IPs: []string{"212.89.42.2", "212.89.42.1"},
 								Vrf: 104009,
 							},
+							{
+								IPs: []string{"2001::"},
+								Vrf: 104010,
+							},
 						},
 					},
 				},
 			},
-			want: v1.NewBGPFilter([]string{}, []string{"10.1.0.0/22", "10.2.0.0/22", "100.127.1.1/32", "212.89.42.1/32", "212.89.42.2/32"}),
+			want: v1.NewBGPFilter([]string{}, []string{"10.1.0.0/22", "10.2.0.0/22", "100.127.1.1/32", "2001::1/128", "212.89.42.1/32", "212.89.42.2/32"}),
 		},
 		{
 			name: "allow only allocated ips",
@@ -481,7 +496,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
+			got, _ := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterMachine() = %v, want %v", got, tt.want)
 			}
@@ -588,7 +603,7 @@ func TestMakeSwitchNics(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.machines)
+			got, _ := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.machines)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeSwitchNics() = %v, want %v", got, tt.want)
 			}
@@ -1425,7 +1440,7 @@ func TestToggleSwitchNicWithoutMachine(t *testing.T) {
 func Test_SwitchDelete(t *testing.T) {
 	tests := []struct {
 		name       string
-		mockFn     func(mock *rethinkdb.Mock)
+		mockFn     func(mock *r.Mock)
 		want       *v1.SwitchResponse
 		wantErr    error
 		wantStatus int
@@ -1433,15 +1448,15 @@ func Test_SwitchDelete(t *testing.T) {
 	}{
 		{
 			name: "delete switch",
-			mockFn: func(mock *rethinkdb.Mock) {
-				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
+			mockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
 					Base: metal.Base{
 						ID: "switch-1",
 					},
 				}, nil)
-				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
-				mock.On(rethinkdb.DB("mockdb").Table("switchstatus").Get("switch-1")).Return(nil, nil)
-				mock.On(rethinkdb.DB("mockdb").Table("ip")).Return(nil, nil)
+				mock.On(r.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
+				mock.On(r.DB("mockdb").Table("switchstatus").Get("switch-1")).Return(nil, nil)
+				mock.On(r.DB("mockdb").Table("ip")).Return(nil, nil)
 			},
 			want: &v1.SwitchResponse{
 				Common: v1.Common{
@@ -1460,8 +1475,8 @@ func Test_SwitchDelete(t *testing.T) {
 		},
 		{
 			name: "delete switch does not work due to machine connections",
-			mockFn: func(mock *rethinkdb.Mock) {
-				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
+			mockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
 					Base: metal.Base{
 						ID: "switch-1",
 					},
@@ -1469,7 +1484,7 @@ func Test_SwitchDelete(t *testing.T) {
 						"port-a": metal.Connections{},
 					},
 				}, nil)
-				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
+				mock.On(r.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
 			},
 			wantErr: &httperrors.HTTPErrorResponse{
 				StatusCode: http.StatusBadRequest,
@@ -1479,8 +1494,8 @@ func Test_SwitchDelete(t *testing.T) {
 		},
 		{
 			name: "delete switch with force",
-			mockFn: func(mock *rethinkdb.Mock) {
-				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
+			mockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
 					Base: metal.Base{
 						ID: "switch-1",
 					},
@@ -1488,9 +1503,9 @@ func Test_SwitchDelete(t *testing.T) {
 						"port-a": metal.Connections{},
 					},
 				}, nil)
-				mock.On(rethinkdb.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
-				mock.On(rethinkdb.DB("mockdb").Table("switchstatus").Get("switch-1")).Return(nil, nil)
-				mock.On(rethinkdb.DB("mockdb").Table("ip")).Return(nil, nil)
+				mock.On(r.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
+				mock.On(r.DB("mockdb").Table("switchstatus").Get("switch-1")).Return(nil, nil)
+				mock.On(r.DB("mockdb").Table("ip")).Return(nil, nil)
 			},
 			force: true,
 			want: &v1.SwitchResponse{
