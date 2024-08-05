@@ -157,7 +157,7 @@ func (r *networkResource) findNetwork(request *restful.Request, response *restfu
 		return
 	}
 	ctx := request.Request.Context()
-	usage, err := getNetworkUsage(ctx, nw, r.ipamer)
+	usage, err := r.getNetworkUsage(ctx, nw)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -175,7 +175,7 @@ func (r *networkResource) listNetworks(request *restful.Request, response *restf
 	ctx := request.Request.Context()
 	var result []*v1.NetworkResponse
 	for i := range nws {
-		usage, err := getNetworkUsage(ctx, &nws[i], r.ipamer)
+		usage, err := r.getNetworkUsage(ctx, &nws[i])
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -210,7 +210,7 @@ func (r *networkResource) findNetworks(request *restful.Request, response *restf
 	ctx := request.Request.Context()
 	result := []*v1.NetworkResponse{}
 	for i := range nws {
-		usage, err := getNetworkUsage(ctx, &nws[i], r.ipamer)
+		usage, err := r.getNetworkUsage(ctx, &nws[i])
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -417,7 +417,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	usage, err := getNetworkUsage(ctx, nw, r.ipamer)
+	usage, err := r.getNetworkUsage(ctx, nw)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -634,7 +634,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		return
 	}
 
-	usage, err := getNetworkUsage(ctx, nw, r.ipamer)
+	usage, err := r.getNetworkUsage(ctx, nw)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -828,7 +828,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	usage, err := getNetworkUsage(ctx, &newNetwork, r.ipamer)
+	usage, err := r.getNetworkUsage(ctx, &newNetwork)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -896,7 +896,7 @@ func (r *networkResource) deleteNetwork(request *restful.Request, response *rest
 	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
 }
 
-func getNetworkUsage(ctx context.Context, nw *metal.Network, ipamer ipam.IPAMer) (*metal.NetworkUsage, error) {
+func (r *networkResource) getNetworkUsage(ctx context.Context, nw *metal.Network) (*metal.NetworkUsage, error) {
 	usage := &metal.NetworkUsage{
 		AvailableIPs:      make(map[metal.AddressFamily]uint64),
 		UsedIPs:           make(map[metal.AddressFamily]uint64),
@@ -915,7 +915,7 @@ func getNetworkUsage(ctx context.Context, nw *metal.Network, ipamer ipam.IPAMer)
 		if pfx.Addr().Is6() {
 			key = metal.IPv6AddressFamily
 		}
-		u, err := ipamer.PrefixUsage(ctx, prefix.String())
+		u, err := r.ipamer.PrefixUsage(ctx, prefix.String())
 		if err != nil {
 			return nil, err
 		}
