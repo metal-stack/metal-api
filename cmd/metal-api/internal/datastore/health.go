@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/metal-stack/metal-lib/rest"
+	"github.com/metal-stack/metal-lib/pkg/healthstatus"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -13,18 +13,18 @@ func (rs *RethinkStore) ServiceName() string {
 }
 
 // Check implements the health interface and tests if the database is healthy.
-func (rs *RethinkStore) Check(ctx context.Context) (rest.HealthResult, error) {
+func (rs *RethinkStore) Check(ctx context.Context) (healthstatus.HealthResult, error) {
 	var version string
 
-	returnStatus := func(err error) (rest.HealthResult, error) {
+	returnStatus := func(err error) (healthstatus.HealthResult, error) {
 		if err != nil {
-			return rest.HealthResult{
-				Status: rest.HealthStatusUnhealthy,
+			return healthstatus.HealthResult{
+				Status: healthstatus.HealthStatusUnhealthy,
 			}, err
 		}
 
-		return rest.HealthResult{
-			Status:  rest.HealthStatusHealthy,
+		return healthstatus.HealthResult{
+			Status:  healthstatus.HealthStatusHealthy,
 			Message: fmt.Sprintf("connected to rethinkdb version: %s", version),
 		}, nil
 	}

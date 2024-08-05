@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -80,6 +82,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Operation("deleteSwitch").
 		Doc("deletes an switch and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
+		Param(ws.QueryParameter("force", "if true switch is deleted with no validation").DataType("boolean").DefaultValue("false")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.SwitchResponse{}).
 		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
@@ -191,10 +194,25 @@ func (r *switchResource) findSwitches(request *restful.Request, response *restfu
 
 func (r *switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
+	forceParam := request.QueryParameter("force")
+	if forceParam == "" {
+		forceParam = "false"
+	}
+
+	force, err := strconv.ParseBool(forceParam)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
 
 	s, err := r.ds.FindSwitch(id)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	if !force && len(s.MachineConnections) > 0 {
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("cannot delete switch %s while it still has machines connected to it", id)))
 		return
 	}
 
@@ -836,20 +854,27 @@ func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.Switch
 		return nil, err
 	}
 
-	nics := makeSwitchNics(s, ips, machines)
+	nics, err := makeSwitchNics(s, ips, machines)
+	if err != nil {
+		return nil, err
+	}
 	cons := makeSwitchCons(s)
 
 	return v1.NewSwitchResponse(s, ss, p, nics, cons), nil
 }
 
-func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
+func makeBGPFilterFirewall(m metal.Machine) (v1.BGPFilter, error) {
 	vnis := []string{}
 	cidrs := []string{}
 
 	for _, net := range m.Allocation.MachineNetworks {
 		if net.Underlay {
 			for _, ip := range net.IPs {
-				cidrs = append(cidrs, fmt.Sprintf("%s/32", ip))
+				ipwithMask, err := ipWithMask(ip)
+				if err != nil {
+					return v1.BGPFilter{}, err
+				}
+				cidrs = append(cidrs, ipwithMask)
 			}
 		} else {
 			vnis = append(vnis, fmt.Sprintf("%d", net.Vrf))
@@ -857,10 +882,10 @@ func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
 		}
 	}
 
-	return v1.NewBGPFilter(vnis, cidrs)
+	return v1.NewBGPFilter(vnis, cidrs), nil
 }
 
-func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) v1.BGPFilter {
+func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) (v1.BGPFilter, error) {
 	vnis := []string{}
 	cidrs := []string{}
 
@@ -888,29 +913,44 @@ func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) v1.BGPFilter {
 			continue
 		}
 		// Allow all other ip addresses allocated for the project.
-		cidrs = append(cidrs, fmt.Sprintf("%s/32", i.IPAddress))
+		ipwithMask, err := ipWithMask(i.IPAddress)
+		if err != nil {
+			return v1.BGPFilter{}, err
+		}
+		cidrs = append(cidrs, ipwithMask)
 	}
 
-	return v1.NewBGPFilter(vnis, cidrs)
+	return v1.NewBGPFilter(vnis, cidrs), nil
 }
 
-func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) v1.BGPFilter {
-	var filter v1.BGPFilter
+func ipWithMask(ip string) (string, error) {
+	parsed, err := netip.ParseAddr(ip)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s/%d", ip, parsed.BitLen()), nil
+}
+
+func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) (v1.BGPFilter, error) {
+	var (
+		filter v1.BGPFilter
+		err    error
+	)
 
 	if m.IsFirewall() {
 		// vrf "default" means: the firewall was successfully allocated and the switch port configured
 		// otherwise the port is still not configured yet (pxe-setup) and a BGPFilter would break the install routine
 		if vrf == "default" {
-			filter = makeBGPFilterFirewall(m)
+			filter, err = makeBGPFilterFirewall(m)
 		}
 	} else {
-		filter = makeBGPFilterMachine(m, ips)
+		filter, err = makeBGPFilterMachine(m, ips)
 	}
 
-	return filter
+	return filter, err
 }
 
-func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) v1.SwitchNics {
+func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) (v1.SwitchNics, error) {
 	machinesByID := map[string]*metal.Machine{}
 	for i, m := range machines {
 		machinesByID[m.ID] = &machines[i]
@@ -931,7 +971,10 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 		m := machinesBySwp[n.Name]
 		var filter *v1.BGPFilter
 		if m != nil && m.Allocation != nil {
-			f := makeBGPFilter(*m, n.Vrf, ips)
+			f, err := makeBGPFilter(*m, n.Vrf, ips)
+			if err != nil {
+				return nil, err
+			}
 			filter = &f
 		}
 		nic := v1.SwitchNic{
@@ -956,7 +999,7 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 		return nics[i].Name < nics[j].Name
 	})
 
-	return nics
+	return nics, nil
 }
 
 func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
@@ -1050,7 +1093,10 @@ func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v
 			p = &partitionEntity
 		}
 
-		nics := makeSwitchNics(&sw, ips, m)
+		nics, err := makeSwitchNics(&sw, ips, m)
+		if err != nil {
+			return nil, err
+		}
 		cons := makeSwitchCons(&sw)
 		ss, err := ds.GetSwitchStatus(sw.ID)
 		if err != nil && !metal.IsNotFound(err) {

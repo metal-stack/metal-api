@@ -139,6 +139,11 @@ func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partiti
 		}
 	}
 
+	var partition PartitionResponse
+	if partitionResp := NewPartitionResponse(p); partitionResp != nil {
+		partition = *partitionResp
+	}
+
 	return &SwitchResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -158,7 +163,7 @@ func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partiti
 			ConsoleCommand: s.ConsoleCommand,
 		},
 		Nics:          nics,
-		Partition:     *NewPartitionResponse(p),
+		Partition:     partition,
 		Connections:   cons,
 		LastSync:      snr.LastSync,
 		LastSyncError: snr.LastSyncError,

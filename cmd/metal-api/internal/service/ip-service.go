@@ -23,8 +23,6 @@ import (
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
-	goipam "github.com/metal-stack/go-ipam"
-
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -439,10 +437,13 @@ func allocateSpecificIP(ctx context.Context, parent *metal.Network, specificIP s
 func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IPAMer) (ipAddress, parentPrefixCidr string, err error) {
 	for _, prefix := range parent.Prefixes {
 		ipAddress, err = ipamer.AllocateIP(ctx, prefix)
-		if err != nil && errors.Is(err, goipam.ErrNoIPAvailable) {
-			continue
-		}
 		if err != nil {
+			var connectErr *connect.Error
+			if errors.As(err, &connectErr) {
+				if connectErr.Code() == connect.CodeNotFound {
+					continue
+				}
+			}
 			return "", "", err
 		}
 
