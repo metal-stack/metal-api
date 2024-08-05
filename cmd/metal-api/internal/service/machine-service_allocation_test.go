@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/emicklei/go-restful/v3"
@@ -52,9 +53,10 @@ var (
 func TestMachineAllocationIntegration(t *testing.T) {
 	machineCount := 30
 
-	// Setup
-	rs, container := setupTestEnvironment(machineCount, t)
-	defer rs.Close()
+	rethinkContainer, container := setupTestEnvironment(machineCount, t)
+	defer func() {
+		_ = rethinkContainer.Terminate(context.Background())
+	}()
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -287,10 +289,10 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 	}
 }
 
-func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
+func setupTestEnvironment(machineCount int, t *testing.T) (testcontainers.Container, *restful.Container) {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
-	_, c, err := test.StartRethink(t)
+	rethinkContainer, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
@@ -352,7 +354,8 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter, log))
-	return rs, container
+
+	return rethinkContainer, container
 }
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {
