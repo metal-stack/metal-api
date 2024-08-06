@@ -151,6 +151,8 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	status = te.machineFree(t, "test-uuid", &v1.MachineResponse{})
 	require.Equal(t, http.StatusOK, status)
 
+	time.Sleep(1 * time.Second)
+
 	err = te.machineWait(te.listener, "test-uuid")
 	require.NoError(t, err)
 
@@ -207,6 +209,8 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	// Free machine for next test
 	status = te.machineFree(t, "test-uuid", &v1.MachineResponse{})
 	require.Equal(t, http.StatusOK, status)
+
+	time.Sleep(1 * time.Second)
 
 	// Check on the switch that connections still exists, but filters are nil,
 	// this ensures that the freeMachine call executed and reset the machine<->switch configuration items.
