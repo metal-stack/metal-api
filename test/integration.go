@@ -12,11 +12,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func init() {
-	// prevent testcontainer logging mangle test and benchmark output
-	// log.SetOutput(io.Discard)
-}
-
 type ConnectionDetails struct {
 	Port     string
 	IP       string

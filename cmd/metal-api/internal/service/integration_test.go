@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -18,10 +17,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
-	"github.com/testcontainers/testcontainers-go"
-
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/security"
 
@@ -53,25 +49,14 @@ type testEnv struct {
 	ds                         *datastore.RethinkStore
 	privateSuperNetwork        *v1.NetworkResponse
 	privateNetwork             *v1.NetworkResponse
-	rethinkContainer           testcontainers.Container
 	ctx                        context.Context
+	listener                   net.Listener
 }
 
-func (te *testEnv) teardown() {
-	_ = te.rethinkContainer.Terminate(te.ctx)
-}
-
-func createTestEnvironment(t *testing.T) testEnv {
+func createTestEnvironment(t *testing.T, log *slog.Logger, ds *datastore.RethinkStore, publisher bus.Publisher, consumer *bus.Consumer) testEnv {
 	ipamer := ipam.InitTestIpam(t)
-	rethinkContainer, c, err := test.StartRethink(t)
-	require.NoError(t, err)
 
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
-	ds.VRFPoolRangeMax = 1000
-	ds.ASNPoolRangeMax = 1000
-
-	err = ds.Connect()
+	err := ds.Connect()
 	require.NoError(t, err)
 	err = ds.Initialize()
 	require.NoError(t, err)
@@ -94,7 +79,8 @@ func createTestEnvironment(t *testing.T) testEnv {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{
 			Context:          context.Background(),
 			Store:            ds,
-			Publisher:        NopPublisher{},
+			Publisher:        publisher,
+			Consumer:         consumer,
 			Logger:           log,
 			Listener:         listener,
 			TlsEnabled:       false,
@@ -102,13 +88,13 @@ func createTestEnvironment(t *testing.T) testEnv {
 			CheckInterval:    1 * time.Hour,
 		})
 		if err != nil {
-			t.Fail()
+			t.Errorf("grpc server stopped unexpectedly: %s", err)
 		}
 	}()
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
+	machineService, err := NewMachine(log, ds, publisher, bus.NewEndpoints(consumer, publisher), ipamer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	imageService := NewImage(log, ds)
 	switchService := NewSwitch(log, ds)
@@ -116,7 +102,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	sizeImageConstraintService := NewSizeImageConstraint(log, ds)
 	networkService := NewNetwork(log, ds, ipamer, mdc)
 	partitionService := NewPartition(log, ds, &emptyPublisher{})
-	ipService, err := NewIP(log, ds, bus.DirectEndpoints(), ipamer, mdc)
+	ipService, err := NewIP(log, ds, bus.NewEndpoints(consumer, publisher), ipamer, mdc)
 	require.NoError(t, err)
 
 	te := testEnv{
@@ -129,8 +115,8 @@ func createTestEnvironment(t *testing.T) testEnv {
 		machineService:             machineService,
 		ipService:                  ipService,
 		ds:                         ds,
-		rethinkContainer:           rethinkContainer,
 		ctx:                        context.TODO(),
+		listener:                   listener,
 	}
 
 	imageID := "test-image-1.0.0"
@@ -396,7 +382,7 @@ func (te *testEnv) machineFree(t *testing.T, uuid string, response interface{}) 
 	return webRequestDelete(t, te.machineService, &testUserDirectory.admin, &emptyBody{}, "/v1/machine/"+uuid+"/free", response)
 }
 
-func (te *testEnv) machineWait(uuid string) error {
+func (te *testEnv) machineWait(listener net.Listener, uuid string) error {
 	kacp := keepalive.ClientParameters{
 		Time:                5 * time.Millisecond,
 		Timeout:             20 * time.Millisecond,
@@ -407,11 +393,12 @@ func (te *testEnv) machineWait(uuid string) error {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	port := 50005
-	conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
+	conn, err := grpc.NewClient(listener.Addr().String(), opts...)
 	if err != nil {
 		return err
 	}
+
+	conn.Connect()
 
 	isWaiting := make(chan bool)
 
