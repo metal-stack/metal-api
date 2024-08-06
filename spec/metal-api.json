@@ -355,27 +355,7 @@
         },
         "services": {
           "additionalProperties": {
-            "$ref": "#/definitions/rest.HealthResult"
-          },
-          "type": "object"
-        },
-        "status": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "message",
-        "status"
-      ]
-    },
-    "rest.HealthResult": {
-      "properties": {
-        "message": {
-          "type": "string"
-        },
-        "services": {
-          "additionalProperties": {
-            "$ref": "#/definitions/rest.HealthResult"
+            "$ref": "#/definitions/rest.HealthResponse"
           },
           "type": "object"
         },
