@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -53,7 +54,7 @@ var (
 func TestMachineAllocationIntegration(t *testing.T) {
 	machineCount := 30
 
-	rethinkContainer, container := setupTestEnvironment(machineCount, t)
+	rethinkContainer, container, listener := setupTestEnvironment(machineCount, t)
 	defer func() {
 		_ = rethinkContainer.Terminate(context.Background())
 	}()
@@ -62,8 +63,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	port := 50006
-	conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
+	conn, err := grpc.NewClient(listener.Addr().String(), opts...)
 	require.NoError(t, err)
 
 	c := grpcv1.NewBootServiceClient(conn)
@@ -289,7 +289,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 	}
 }
 
-func setupTestEnvironment(machineCount int, t *testing.T) (testcontainers.Container, *restful.Container) {
+func setupTestEnvironment(machineCount int, t *testing.T) (testcontainers.Container, *restful.Container, net.Listener) {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	rethinkContainer, c, err := test.StartRethink(t)
@@ -333,13 +333,16 @@ func setupTestEnvironment(machineCount int, t *testing.T) (testcontainers.Contai
 
 	createTestdata(machineCount, rs, metalIPAMer, t)
 
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
 	go func() {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{
 			Context:          context.Background(),
 			Store:            rs,
 			Publisher:        NopPublisher{},
+			Listener:         listener,
 			Logger:           log,
-			GrpcPort:         50006,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
@@ -355,7 +358,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (testcontainers.Contai
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter, log))
 
-	return rethinkContainer, container
+	return rethinkContainer, container, listener
 }
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {

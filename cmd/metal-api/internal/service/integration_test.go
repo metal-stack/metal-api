@@ -61,7 +61,6 @@ func (te *testEnv) teardown() {
 	_ = te.rethinkContainer.Terminate(te.ctx)
 }
 
-//nolint:deadcode
 func createTestEnvironment(t *testing.T) testEnv {
 	ipamer := ipam.InitTestIpam(t)
 	rethinkContainer, c, err := test.StartRethink(t)
@@ -88,13 +87,16 @@ func createTestEnvironment(t *testing.T) testEnv {
 	}}, nil)
 	mdc := mdm.NewMock(psc, nil, nil, nil)
 
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
 	go func() {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{
 			Context:          context.Background(),
 			Store:            ds,
 			Publisher:        NopPublisher{},
 			Logger:           log,
-			GrpcPort:         50005,
+			Listener:         listener,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
