@@ -18,7 +18,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
-	v1helper "github.com/metal-stack/metal-api/pkg/api/v1/helper"
+	v1grpc "github.com/metal-stack/metal-api/pkg/grpc"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -273,7 +273,7 @@ func (te *test) startMachineInstances(ctx context.Context, allocations chan stri
 		go func() {
 			client.conn.Connect()
 
-			err := v1helper.WaitForAllocation(ctx, te.log.WithGroup("grpc-client").With("machine-id", client.machineID), client.c, client.machineID, 2*time.Second)
+			err := v1grpc.WaitForAllocation(ctx, te.log.WithGroup("grpc-client").With("machine-id", client.machineID), client.c, client.machineID, 2*time.Second)
 			if err != nil {
 				return
 			}
