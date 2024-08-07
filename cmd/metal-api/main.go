@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -973,6 +974,13 @@ func run() error {
 		log.Fatalf("cannot connect to NSQ: %s", err)
 	}
 
+	addr := fmt.Sprintf(":%d", viper.GetInt("grpc-port"))
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("cannot create grpc server listener on addr %s: %s", addr, err)
+		return err
+	}
+
 	go func() {
 		err = grpc.Run(&grpc.ServerConfig{
 			Context:                  context.Background(),
@@ -980,7 +988,7 @@ func run() error {
 			Consumer:                 c,
 			Store:                    ds,
 			Logger:                   logger,
-			GrpcPort:                 viper.GetInt("grpc-port"),
+			Listener:                 listener,
 			TlsEnabled:               viper.GetBool("grpc-tls-enabled"),
 			CaCertFile:               viper.GetString("grpc-ca-cert-file"),
 			ServerCertFile:           viper.GetString("grpc-server-cert-file"),
@@ -994,7 +1002,7 @@ func run() error {
 		}
 	}()
 
-	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
+	addr = fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           restful.DefaultContainer,

@@ -30,7 +30,6 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.32.0
-	github.com/undefinedlabs/go-mpatch v1.0.7
 	golang.org/x/crypto v0.25.0
 	golang.org/x/sync v0.8.0
 	google.golang.org/grpc v1.65.0
