@@ -162,6 +162,10 @@ func (te *test) run(ctx context.Context) {
 
 	assert.Equal(te.t, te.numberMachineInstances-te.numberAllocations, waiting)
 	assert.Len(te.t, ms, te.numberMachineInstances)
+
+	// TODO: we could use the remaining clients which are waiting for testing an "outage scenario",
+	// i.e. shutting down the grpc-servers, check that the clients do not give up and reconnect after
+	// bringing the servers back up (and vice versa).
 }
 
 func (te *test) startApiInstances(ctx context.Context) {
