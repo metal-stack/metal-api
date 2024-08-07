@@ -2,16 +2,15 @@ package test
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"testing"
 
+	"github.com/metal-stack/metal-lib/bus"
+	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
-
-func init() {
-	// prevent testcontainer logging mangle test and benchmark output
-	// log.SetOutput(io.Discard)
-}
 
 type ConnectionDetails struct {
 	Port     string
@@ -146,4 +145,47 @@ func StartMeilisearch(t testing.TB) (container testcontainers.Container, c *Conn
 	}
 
 	return meiliContainer, conn, err
+}
+
+func StartNsqd(t *testing.T, log *slog.Logger) (testcontainers.Container, bus.Publisher, *bus.Consumer) {
+	ctx := context.Background()
+
+	c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "nsqio/nsq:v1.3.0",
+			ExposedPorts: []string{"4150/tcp", "4151/tcp"},
+			WaitingFor: wait.ForAll(
+				wait.ForListeningPort("4150/tcp"),
+				wait.ForListeningPort("4151/tcp"),
+			),
+			Cmd: []string{"nsqd"},
+		},
+		Started: true,
+		Logger:  testcontainers.TestLogger(t),
+	})
+	require.NoError(t, err)
+
+	ip, err := c.Host(ctx)
+	require.NoError(t, err)
+
+	tcpPort, err := c.MappedPort(ctx, "4150")
+	require.NoError(t, err)
+	httpPort, err := c.MappedPort(ctx, "4151")
+	require.NoError(t, err)
+
+	consumer, err := bus.NewConsumer(log, nil)
+	require.NoError(t, err)
+
+	tcpAddress := fmt.Sprintf("%s:%d", ip, tcpPort.Int())
+	httpAddress := fmt.Sprintf("%s:%d", ip, httpPort.Int())
+
+	consumer.With(bus.NSQDs(tcpAddress))
+
+	publisher, err := bus.NewPublisher(log, &bus.PublisherConfig{
+		TCPAddress:   tcpAddress,
+		HTTPEndpoint: httpAddress,
+	})
+	require.NoError(t, err)
+
+	return c, publisher, consumer
 }

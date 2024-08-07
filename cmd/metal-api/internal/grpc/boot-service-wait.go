@@ -94,9 +94,6 @@ func (b *BootService) Wait(req *v1.BootServiceWaitRequest, srv v1.BootService_Wa
 }
 
 func (b *BootService) initWaitEndpoint() error {
-	if b.publisher == nil || b.consumer == nil {
-		return nil
-	}
 	channel := fmt.Sprintf("alloc-%s#ephemeral", uuid.NewString())
 	return b.consumer.With(bus.LogLevel(bus.Warning)).
 		MustRegister(metal.TopicAllocation.Name, channel).
