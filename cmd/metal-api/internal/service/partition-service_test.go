@@ -525,7 +525,7 @@ func TestPartitionCapacity(t *testing.T) {
 			},
 		},
 		{
-			name: "overbooked partition",
+			name: "overbooked partition, free count capped at 0",
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "")
 				m1.Waiting = true
@@ -555,7 +555,7 @@ func TestPartitionCapacity(t *testing.T) {
 							Size:             "size-a",
 							Total:            1,
 							Waiting:          1,
-							Free:             -2,
+							Free:             0,
 							Reservations:     3,
 							UsedReservations: 0,
 						},

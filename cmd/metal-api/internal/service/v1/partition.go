@@ -71,7 +71,6 @@ type ServerCapacity struct {
 	Allocated int `json:"allocated,omitempty" description:"allocated machines"`
 	// Free is the amount of machines in a partition that can be freely allocated at any given moment by a project.
 	// Effectively this is the amount of waiting machines minus the machines that are unavailable due to machine state or un-allocatable due to size reservations.
-	// This can also be a negative number indicating that this machine size is "overbooked", i.e. there are more reservations than waiting machines.
 	Free int `json:"free,omitempty" description:"free machines with this size (freely allocatable)"`
 	// Unavailable is the amount of machine in a partition that are currently not allocatable because they are not waiting or
 	// not in the machine state "available", e.g. locked or reserved.
