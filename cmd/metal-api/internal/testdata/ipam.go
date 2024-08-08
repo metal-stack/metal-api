@@ -23,7 +23,7 @@ func InitMockIpamData(dbMock *r.Mock, withIP bool) (ipam.IPAMer, error) {
 			return nil, fmt.Errorf("error creating ipam mock data: %w", err)
 		}
 	}
-	for _, prefix := range []metal.Prefix{prefix1, prefix2, prefix3} {
+	for _, prefix := range []metal.Prefix{prefix1, prefix2, prefix3, superPrefix, superPrefixV6} {
 		err := ipamer.CreatePrefix(ctx, prefix)
 		if err != nil {
 			return nil, fmt.Errorf("error creating ipam mock data: %w", err)

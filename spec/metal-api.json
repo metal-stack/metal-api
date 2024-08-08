@@ -255,6 +255,9 @@
     },
     "datastore.NetworkSearchQuery": {
       "properties": {
+        "addressfamily": {
+          "type": "string"
+        },
         "destinationprefixes": {
           "items": {
             "type": "string"
@@ -3548,6 +3551,10 @@
     },
     "v1.NetworkAllocateRequest": {
       "properties": {
+        "address_family": {
+          "description": "can be ipv4 or ipv6, defaults to ipv4",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3565,6 +3572,11 @@
           },
           "description": "free labels that you associate with this network.",
           "type": "object"
+        },
+        "length": {
+          "description": "the bitlen of the prefix to allocate, defaults to defaultchildprefixlength of super prefix",
+          "format": "byte",
+          "type": "integer"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3586,7 +3598,11 @@
           "description": "marks a network as shareable.",
           "type": "boolean"
         }
-      }
+      },
+      "required": [
+        "address_family",
+        "length"
+      ]
     },
     "v1.NetworkBase": {
       "properties": {
@@ -3613,6 +3629,19 @@
     },
     "v1.NetworkCreateRequest": {
       "properties": {
+        "addressfamily": {
+          "description": "the addressfamily either IPv4 or IPv6 of this network",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
+        "defaultchildprefixlength": {
+          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
+          "format": "byte",
+          "type": "integer"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3685,6 +3714,7 @@
         }
       },
       "required": [
+        "addressfamily",
         "destinationprefixes",
         "id",
         "nat",
@@ -3695,6 +3725,9 @@
     },
     "v1.NetworkFindRequest": {
       "properties": {
+        "addressfamily": {
+          "type": "string"
+        },
         "destinationprefixes": {
           "items": {
             "type": "string"
@@ -3746,6 +3779,19 @@
     "v1.NetworkImmutable": {
       "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
       "properties": {
+        "addressfamily": {
+          "description": "the addressfamily either IPv4 or IPv6 of this network",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
+        "defaultchildprefixlength": {
+          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
+          "format": "byte",
+          "type": "integer"
+        },
         "destinationprefixes": {
           "description": "the destination prefixes of this network",
           "items": {
@@ -3787,6 +3833,7 @@
         }
       },
       "required": [
+        "addressfamily",
         "destinationprefixes",
         "nat",
         "prefixes",
@@ -3796,6 +3843,14 @@
     },
     "v1.NetworkResponse": {
       "properties": {
+        "addressfamily": {
+          "description": "the addressfamily either IPv4 or IPv6 of this network",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "changed": {
           "description": "the last changed timestamp of this entity",
           "format": "date-time",
@@ -3807,6 +3862,11 @@
           "format": "date-time",
           "readOnly": true,
           "type": "string"
+        },
+        "defaultchildprefixlength": {
+          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
+          "format": "byte",
+          "type": "integer"
         },
         "description": {
           "description": "a description for this entity",
@@ -3884,6 +3944,7 @@
         }
       },
       "required": [
+        "addressfamily",
         "destinationprefixes",
         "id",
         "nat",
@@ -3991,13 +4052,6 @@
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       }
     },
@@ -4085,13 +4139,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [
@@ -4139,13 +4186,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [

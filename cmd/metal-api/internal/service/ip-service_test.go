@@ -52,13 +52,15 @@ func TestGetIPs(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
-	require.Len(t, result, 3)
+	require.Len(t, result, 4)
 	require.Equal(t, testdata.IP1.IPAddress, result[0].IPAddress)
 	require.Equal(t, testdata.IP1.Name, *result[0].Name)
 	require.Equal(t, testdata.IP2.IPAddress, result[1].IPAddress)
 	require.Equal(t, testdata.IP2.Name, *result[1].Name)
 	require.Equal(t, testdata.IP3.IPAddress, result[2].IPAddress)
 	require.Equal(t, testdata.IP3.Name, *result[2].Name)
+	require.Equal(t, testdata.IP4.IPAddress, result[3].IPAddress)
+	require.Equal(t, testdata.IP4.Name, *result[3].Name)
 }
 
 func TestGetIP(t *testing.T) {
@@ -83,6 +85,31 @@ func TestGetIP(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testdata.IP1.IPAddress, result.IPAddress)
 	require.Equal(t, testdata.IP1.Name, *result.Name)
+}
+
+func TestGetIPv6(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+
+	logger := slog.Default()
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
+	require.NoError(t, err)
+	container := restful.NewContainer().Add(ipservice)
+	req := httptest.NewRequest("GET", "/v1/ip/2001:0db8:85a3::1", nil)
+	container = injectViewer(logger, container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.IPResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, testdata.IP4.IPAddress, result.IPAddress)
+	require.Equal(t, testdata.IP4.Name, *result.Name)
 }
 
 func TestGetIPNotFound(t *testing.T) {
