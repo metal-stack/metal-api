@@ -369,6 +369,12 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
+	additionalRouteMapCIDRs, err := validateAdditionalRouteMapCIDRs(requestPayload.AdditionalAnnouncableCIDRs, privateSuper)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	if vrf != 0 {
 		err = acquireVRF(r.ds, vrf)
 		if err != nil {
@@ -389,17 +395,18 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 			Name:        name,
 			Description: description,
 		},
-		Prefixes:                 prefixes,
-		DestinationPrefixes:      destPrefixes,
-		DefaultChildPrefixLength: childPrefixLength,
-		PartitionID:              partitionID,
-		ProjectID:                projectID,
-		Nat:                      nat,
-		PrivateSuper:             privateSuper,
-		Underlay:                 underlay,
-		Vrf:                      vrf,
-		Labels:                   labels,
-		AddressFamilies:          addressFamilies,
+		Prefixes:                   prefixes,
+		DestinationPrefixes:        destPrefixes,
+		DefaultChildPrefixLength:   childPrefixLength,
+		PartitionID:                partitionID,
+		ProjectID:                  projectID,
+		Nat:                        nat,
+		PrivateSuper:               privateSuper,
+		Underlay:                   underlay,
+		Vrf:                        vrf,
+		Labels:                     labels,
+		AddressFamilies:            addressFamilies,
+		AdditionalAnnouncableCIDRs: additionalRouteMapCIDRs,
 	}
 
 	ctx := request.Request.Context()
@@ -424,6 +431,23 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	}
 
 	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+}
+
+func validateAdditionalRouteMapCIDRs(additionalCidrs []string, privateSuper bool) ([]string, error) {
+	var result []string
+	if len(additionalCidrs) > 0 {
+		if !privateSuper {
+			return nil, errors.New("additionalroutemapcidrs can only be set in a private super network")
+		}
+		for _, cidr := range additionalCidrs {
+			_, err := netip.ParsePrefix(cidr)
+			if err != nil {
+				return nil, fmt.Errorf("given cidr:%q in additionalroutemapcidrs is malformed:%s", cidr, err)
+			}
+			result = append(result, cidr)
+		}
+	}
+	return result, nil
 }
 
 func validatePrefixesAndAddressFamilies(prefixes, destinationPrefixes []string, defaultChildPrefixLength metal.ChildPrefixLength, privateSuper bool) (metal.Prefixes, metal.Prefixes, metal.AddressFamilies, error) {
@@ -821,6 +845,13 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 			return
 		}
 	}
+
+	additionalRouteMapCIDRs, err := validateAdditionalRouteMapCIDRs(requestPayload.AdditionalAnnouncableCIDRs, oldNetwork.PrivateSuper)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+	newNetwork.AdditionalAnnouncableCIDRs = additionalRouteMapCIDRs
 
 	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
 	if err != nil {
