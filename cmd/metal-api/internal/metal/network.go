@@ -220,6 +220,7 @@ type Network struct {
 	Shared                   bool              `rethinkdb:"shared" json:"shared"`
 	Labels                   map[string]string `rethinkdb:"labels" json:"labels"`
 	AddressFamilies          AddressFamilies   `rethinkdb:"addressfamily" json:"addressfamily"`
+	AdditionalRouteMapCIDRs  []string          `rethinkdb:"additionalroutemapcidrs" json:"additionalroutemapcidrs"  description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
 }
 
 type ChildPrefixLength map[AddressFamily]uint8

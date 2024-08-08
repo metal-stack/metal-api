@@ -3646,6 +3646,13 @@
     },
     "v1.NetworkCreateRequest": {
       "properties": {
+        "additionalroutemapcidrs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "addressfamilies": {
           "additionalProperties": {
             "type": "boolean"
@@ -3732,6 +3739,7 @@
         }
       },
       "required": [
+        "additionalroutemapcidrs",
         "addressfamilies",
         "destinationprefixes",
         "id",
@@ -3794,6 +3802,13 @@
     "v1.NetworkImmutable": {
       "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
       "properties": {
+        "additionalroutemapcidrs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "addressfamilies": {
           "additionalProperties": {
             "type": "boolean"
@@ -3849,6 +3864,7 @@
         }
       },
       "required": [
+        "additionalroutemapcidrs",
         "addressfamilies",
         "destinationprefixes",
         "nat",
@@ -3859,6 +3875,13 @@
     },
     "v1.NetworkResponse": {
       "properties": {
+        "additionalroutemapcidrs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "addressfamilies": {
           "additionalProperties": {
             "type": "boolean"
@@ -3965,6 +3988,7 @@
         }
       },
       "required": [
+        "additionalroutemapcidrs",
         "addressfamilies",
         "destinationprefixes",
         "id",
@@ -3978,6 +4002,13 @@
     },
     "v1.NetworkUpdateRequest": {
       "properties": {
+        "additionalroutemapcidrs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -4017,6 +4048,7 @@
         }
       },
       "required": [
+        "additionalroutemapcidrs",
         "id"
       ]
     },
