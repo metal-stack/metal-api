@@ -350,6 +350,14 @@ tryAgain:
 	return s
 }
 
+func (rs *RethinkStore) DBName() string {
+	return rs.dbname
+}
+
+func (rs *RethinkStore) QueryExecutor() r.QueryExecutor {
+	return rs.session
+}
+
 func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id string) error {
 	res, err := table.Get(id).Run(rs.session)
 	if err != nil {
