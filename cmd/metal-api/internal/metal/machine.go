@@ -235,9 +235,6 @@ func (r IngressRule) Validate() error {
 	if err := validateCIDRs(r.From); err != nil {
 		return err
 	}
-	if err := validateCIDRs(slices.Concat(r.From, r.To)); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -279,7 +276,7 @@ func validateCIDRs(cidrs []string) error {
 		var newaf string
 		if p.Addr().Is4() {
 			newaf = "ipv4"
-		} else {
+		} else if p.Addr().Is6() {
 			newaf = "ipv6"
 		}
 		if af != "" && af != newaf {

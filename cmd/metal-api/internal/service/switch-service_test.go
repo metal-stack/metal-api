@@ -403,7 +403,8 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := makeBGPFilterFirewall(tt.args.machine)
+			r := switchResource{}
+			got, _ := r.makeBGPFilterFirewall(tt.args.machine)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterFirewall() = %v, want %v", got, tt.want)
 			}
@@ -412,6 +413,9 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 }
 
 func TestMakeBGPFilterMachine(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+
 	type args struct {
 		machine metal.Machine
 		ipsMap  metal.IPsMap
@@ -493,10 +497,17 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 			want: v1.NewBGPFilter([]string{}, []string{"212.89.42.1/32"}),
 		},
 	}
+
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
+			// FIXME return super network with additionalroutemapcidrs set
+			mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+			mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+
+			r := switchResource{webResource: webResource{ds: ds}}
+
+			got, _ := r.makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterMachine() = %v, want %v", got, tt.want)
 			}
@@ -603,7 +614,8 @@ func TestMakeSwitchNics(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.machines)
+			r := switchResource{}
+			got, _ := r.makeSwitchNics(tt.args.s, tt.args.ips, tt.args.machines)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeSwitchNics() = %v, want %v", got, tt.want)
 			}

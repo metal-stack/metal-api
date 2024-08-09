@@ -1396,6 +1396,14 @@ func findWaitingMachine(ctx context.Context, ds *datastore.RethinkStore, allocat
 // is enabled to clean up networks that were already created.
 func makeNetworks(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
 	for _, n := range networks {
+		if n == nil || n.network == nil {
+			continue
+		}
+		if len(n.network.AddressFamilies) == 0 {
+			n.network.AddressFamilies = metal.AddressFamilies{
+				metal.IPv4AddressFamily: true,
+			}
+		}
 		machineNetwork, err := makeMachineNetwork(ctx, ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return err
@@ -1472,10 +1480,12 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	// - user specifies administrative networks, i.e. underlay or privatesuper networks
 	// - user's private network is specified with noauto but no specific IPs are given: this would yield a machine with no ip address
 
-	specNetworks := make(map[string]*allocationNetwork)
-	var primaryPrivateNetwork *allocationNetwork
-	var privateNetworks []*allocationNetwork
-	var privateSharedNetworks []*allocationNetwork
+	var (
+		specNetworks          = make(map[string]*allocationNetwork)
+		primaryPrivateNetwork *allocationNetwork
+		privateNetworks       []*allocationNetwork
+		privateSharedNetworks []*allocationNetwork
+	)
 
 	for _, networkSpec := range allocationSpec.Networks {
 		auto := true
@@ -1575,13 +1585,13 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		network.ips = append(network.ips, *ip)
 	}
 
-	for _, pn := range privateNetworks {
-		if pn.network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
-			return nil, fmt.Errorf("private network %q must be located in the partition where the machine is going to be placed", pn.network.ID)
+	for _, privateNetwork := range privateNetworks {
+		if privateNetwork.network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
+			return nil, fmt.Errorf("private network %q must be located in the partition where the machine is going to be placed", privateNetwork.network.ID)
 		}
 
-		if !pn.auto && len(pn.ips) == 0 {
-			return nil, fmt.Errorf("the private network %q has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address", pn.network.ID)
+		if !privateNetwork.auto && len(privateNetwork.ips) == 0 {
+			return nil, fmt.Errorf("the private network %q has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address", privateNetwork.network.ID)
 		}
 	}
 
@@ -1612,25 +1622,29 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 
 func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
-		ipAddress, ipParentCidr, err := allocateRandomIP(ctx, n.network, ipamer)
-		if err != nil {
-			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
+
+		for af := range n.network.AddressFamilies {
+			addressFamily := metal.ToAddressFamily(string(af))
+			ipAddress, ipParentCidr, err := allocateRandomIP(ctx, n.network, ipamer, &addressFamily)
+			if err != nil {
+				return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
+			}
+			ip := &metal.IP{
+				IPAddress:        ipAddress,
+				ParentPrefixCidr: ipParentCidr,
+				Name:             allocationSpec.Name,
+				Description:      "autoassigned",
+				NetworkID:        n.network.ID,
+				Type:             metal.Ephemeral,
+				ProjectID:        allocationSpec.ProjectID,
+			}
+			ip.AddMachineId(allocationSpec.UUID)
+			err = ds.CreateIP(ip)
+			if err != nil {
+				return nil, err
+			}
+			n.ips = append(n.ips, *ip)
 		}
-		ip := &metal.IP{
-			IPAddress:        ipAddress,
-			ParentPrefixCidr: ipParentCidr,
-			Name:             allocationSpec.Name,
-			Description:      "autoassigned",
-			NetworkID:        n.network.ID,
-			Type:             metal.Ephemeral,
-			ProjectID:        allocationSpec.ProjectID,
-		}
-		ip.AddMachineId(allocationSpec.UUID)
-		err = ds.CreateIP(ip)
-		if err != nil {
-			return nil, err
-		}
-		n.ips = append(n.ips, *ip)
 	}
 
 	// from the makeNetworks call, a lot of ips might be set in this network

@@ -1487,6 +1487,14 @@
     },
     "v1.IPAllocateRequest": {
       "properties": {
+        "addressfamily": {
+          "description": "the addressfamily to allocate a ip address from the given network, defaults to IPv4",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -1524,6 +1532,7 @@
         }
       },
       "required": [
+        "addressfamily",
         "networkid",
         "projectid",
         "type"
@@ -3548,6 +3557,14 @@
     },
     "v1.NetworkAllocateRequest": {
       "properties": {
+        "addressfamily": {
+          "description": "the addressfamily to allocate a child network defaults. If not specified, the child network inherits the addressfamilies from the parent.",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3566,6 +3583,13 @@
           "description": "free labels that you associate with this network.",
           "type": "object"
         },
+        "length": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "the bitlen of the prefix to allocate, defaults to defaultchildprefixlength of super prefix",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -3573,6 +3597,10 @@
         "nat": {
           "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
+        },
+        "parentnetworkid": {
+          "description": "the parent network from which this network should be allocated",
+          "type": "string"
         },
         "partitionid": {
           "description": "the partition this network belongs to",
@@ -3586,7 +3614,12 @@
           "description": "marks a network as shareable.",
           "type": "boolean"
         }
-      }
+      },
+      "required": [
+        "addressfamily",
+        "length",
+        "parentnetworkid"
+      ]
     },
     "v1.NetworkBase": {
       "properties": {
@@ -3613,6 +3646,27 @@
     },
     "v1.NetworkCreateRequest": {
       "properties": {
+        "additionalroutemapcidrs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "addressfamilies": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
+          "type": "object"
+        },
+        "defaultchildprefixlength": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3685,6 +3739,8 @@
         }
       },
       "required": [
+        "additionalroutemapcidrs",
+        "addressfamilies",
         "destinationprefixes",
         "id",
         "nat",
@@ -3746,6 +3802,27 @@
     "v1.NetworkImmutable": {
       "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
       "properties": {
+        "additionalroutemapcidrs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "addressfamilies": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
+          "type": "object"
+        },
+        "defaultchildprefixlength": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
+        },
         "destinationprefixes": {
           "description": "the destination prefixes of this network",
           "items": {
@@ -3787,6 +3864,8 @@
         }
       },
       "required": [
+        "additionalroutemapcidrs",
+        "addressfamilies",
         "destinationprefixes",
         "nat",
         "prefixes",
@@ -3796,6 +3875,20 @@
     },
     "v1.NetworkResponse": {
       "properties": {
+        "additionalroutemapcidrs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "addressfamilies": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
+          "type": "object"
+        },
         "changed": {
           "description": "the last changed timestamp of this entity",
           "format": "date-time",
@@ -3807,6 +3900,13 @@
           "format": "date-time",
           "readOnly": true,
           "type": "string"
+        },
+        "defaultchildprefixlength": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
         },
         "description": {
           "description": "a description for this entity",
@@ -3871,7 +3971,11 @@
         },
         "usage": {
           "$ref": "#/definitions/v1.NetworkUsage",
-          "description": "usage of ips and prefixes in this network"
+          "description": "usage of IPv4 ips and prefixes in this network"
+        },
+        "usagev6": {
+          "$ref": "#/definitions/v1.NetworkUsage",
+          "description": "usage of IPv6 ips and prefixes in this network"
         },
         "vrf": {
           "description": "the vrf this network is associated with",
@@ -3884,17 +3988,27 @@
         }
       },
       "required": [
+        "additionalroutemapcidrs",
+        "addressfamilies",
         "destinationprefixes",
         "id",
         "nat",
         "prefixes",
         "privatesuper",
         "underlay",
-        "usage"
+        "usage",
+        "usagev6"
       ]
     },
     "v1.NetworkUpdateRequest": {
       "properties": {
+        "additionalroutemapcidrs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3934,6 +4048,7 @@
         }
       },
       "required": [
+        "additionalroutemapcidrs",
         "id"
       ]
     },
@@ -3991,13 +4106,6 @@
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       }
     },
@@ -4085,13 +4193,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [
@@ -4139,13 +4240,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [

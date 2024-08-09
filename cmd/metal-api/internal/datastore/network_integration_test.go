@@ -65,6 +65,9 @@ func (_ *networkTestable) defaultBody(n *metal.Network) *metal.Network {
 	if n.DestinationPrefixes == nil {
 		n.DestinationPrefixes = metal.Prefixes{}
 	}
+	if n.AdditionalRouteMapCIDRs == nil {
+		n.AdditionalRouteMapCIDRs = []string{}
+	}
 	return n
 }
 
