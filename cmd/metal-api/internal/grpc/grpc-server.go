@@ -44,7 +44,7 @@ type ServerConfig struct {
 	Consumer                 *bus.Consumer
 	Store                    *datastore.RethinkStore
 	Logger                   *slog.Logger
-	GrpcPort                 int
+	Listener                 net.Listener
 	TlsEnabled               bool
 	CaCertFile               string
 	ServerCertFile           string
@@ -54,8 +54,6 @@ type ServerConfig struct {
 	BMCSuperUserPasswordFile string
 	Auditing                 auditing.Auditing
 	IPMISuperUser            metal.MachineIPMISuperUser
-
-	integrationTestAllocator chan string
 }
 
 func Run(cfg *ServerConfig) error {
@@ -64,6 +62,9 @@ func Run(cfg *ServerConfig) error {
 	}
 	if cfg.CheckInterval <= 0 {
 		cfg.CheckInterval = defaultCheckInterval
+	}
+	if cfg.Publisher == nil || cfg.Consumer == nil {
+		return fmt.Errorf("nsq publisher and consumer must be specified")
 	}
 
 	kaep := keepalive.EnforcementPolicy{
@@ -164,21 +165,7 @@ func Run(cfg *ServerConfig) error {
 	v1.RegisterEventServiceServer(grpcServer, eventService)
 	v1.RegisterBootServiceServer(grpcServer, bootService)
 
-	// this is only for the integration test of this package
-	if cfg.integrationTestAllocator != nil {
-		go func() {
-			for {
-				machineID := <-cfg.integrationTestAllocator
-				bootService.handleAllocation(machineID)
-			}
-		}()
-	}
-
-	addr := fmt.Sprintf(":%d", cfg.GrpcPort)
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
+	listener := cfg.Listener
 
 	if cfg.TlsEnabled {
 		cert, err := os.ReadFile(cfg.ServerCertFile)

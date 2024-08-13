@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -51,17 +52,34 @@ var (
 
 func TestMachineAllocationIntegration(t *testing.T) {
 	machineCount := 30
+	log := slog.Default()
 
-	// Setup
-	rs, container := setupTestEnvironment(machineCount, t)
-	defer rs.Close()
+	nsqContainer, publisher, consumer := test.StartNsqd(t, log)
+	rethinkContainer, cd, err := test.StartRethink(t)
+	require.NoError(t, err)
+
+	defer func() {
+		_ = rethinkContainer.Terminate(context.Background())
+		_ = nsqContainer.Terminate(context.Background())
+	}()
+
+	rs := datastore.New(log, cd.IP+":"+cd.Port, cd.DB, cd.User, cd.Password)
+	rs.VRFPoolRangeMax = 1000
+	rs.ASNPoolRangeMax = 1000
+
+	err = rs.Connect()
+	require.NoError(t, err)
+
+	err = rs.Initialize()
+	require.NoError(t, err)
+
+	webContainer, listener := setupTestEnvironment(machineCount, t, rs, publisher, consumer)
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	port := 50006
-	conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
+	conn, err := grpc.NewClient(listener.Addr().String(), opts...)
 	require.NoError(t, err)
 
 	c := grpcv1.NewBootServiceClient(conn)
@@ -116,7 +134,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 			err := retry.Do(
 				func() error {
 					var err2 error
-					ma, err2 = allocMachine(container, ar)
+					ma, err2 = allocMachine(webContainer, ar)
 					if err2 != nil {
 						t.Logf("machine allocation failed, retrying:%v", err2)
 						return err2
@@ -168,7 +186,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 				func() error {
 					// TODO add switch config in testdata to have switch updates covered
 					var err2 error
-					_, err2 = freeMachine(container, id)
+					_, err2 = freeMachine(webContainer, id)
 					if err2 != nil {
 						t.Logf("machine free failed, retrying:%v", err2)
 						return err2
@@ -287,20 +305,8 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 	}
 }
 
-func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
+func setupTestEnvironment(machineCount int, t *testing.T, ds *datastore.RethinkStore, publisher bus.Publisher, consumer *bus.Consumer) (*restful.Container, net.Listener) {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-
-	_, c, err := test.StartRethink(t)
-	require.NoError(t, err)
-
-	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
-	rs.VRFPoolRangeMax = 1000
-	rs.ASNPoolRangeMax = 1000
-
-	err = rs.Connect()
-	require.NoError(t, err)
-	err = rs.Initialize()
-	require.NoError(t, err)
 
 	psc := &mdmv1mock.ProjectServiceClient{}
 	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
@@ -329,30 +335,35 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 
 	metalIPAMer := ipam.New(ipamclient)
 
-	createTestdata(machineCount, rs, metalIPAMer, t)
+	createTestdata(machineCount, ds, metalIPAMer, t)
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
 
 	go func() {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{
 			Context:          context.Background(),
-			Store:            rs,
-			Publisher:        NopPublisher{},
+			Store:            ds,
+			Publisher:        publisher,
+			Consumer:         consumer,
+			Listener:         listener,
 			Logger:           log,
-			GrpcPort:         50006,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
 		})
 		if err != nil {
-			t.Fail()
+			t.Errorf("grpc server shutdown unexpectedly: %s", err)
 		}
 	}()
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), metalIPAMer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
+	ms, err := NewMachine(log, ds, publisher, bus.NewEndpoints(consumer, publisher), metalIPAMer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter, log))
-	return rs, container
+
+	return container, listener
 }
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {

@@ -39,7 +39,7 @@ test-unit:
 
 .PHONY: test-integration
 test-integration:
-	go test -v -tags=integration -timeout 600s -p 1 ./...
+	go test -v -count=1 -tags=integration -timeout 600s -p 1 ./...
 
 .PHONY: check-diff
 check-diff: spec
