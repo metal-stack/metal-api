@@ -14,6 +14,7 @@ import (
 	"github.com/avast/retry-go/v4"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+	"go4.org/netipx"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -849,6 +850,9 @@ func (r *switchResource) makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap)
 		if underlay != nil && underlay.ContainsIP(i.IPAddress) {
 			continue
 		}
+
+		// TODO machine BGPFilter must not contain firewall private network IPs
+
 		// Allow all other ip addresses allocated for the project.
 		ipwithMask, err := ipWithMask(i.IPAddress)
 		if err != nil {
@@ -857,7 +861,11 @@ func (r *switchResource) makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap)
 		cidrs = append(cidrs, ipwithMask)
 	}
 
-	return v1.NewBGPFilter(vnis, cidrs), nil
+	compactedCidrs, err := compactCidrs(cidrs)
+	if err != nil {
+		return v1.BGPFilter{}, err
+	}
+	return v1.NewBGPFilter(vnis, compactedCidrs), nil
 }
 
 func ipWithMask(ip string) (string, error) {
@@ -866,6 +874,28 @@ func ipWithMask(ip string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%s/%d", ip, parsed.BitLen()), nil
+}
+
+func compactCidrs(cidrs []string) ([]string, error) {
+	// compact all cidrs which are used to be added to the route map
+	// to find the smallest sorted set of prefixes which covers all cidrs which need to be added.
+	var ipsetBuilder netipx.IPSetBuilder
+	for _, cidr := range cidrs {
+		parsed, err := netip.ParsePrefix(cidr)
+		if err != nil {
+			return nil, err
+		}
+		ipsetBuilder.AddPrefix(parsed)
+	}
+	set, err := ipsetBuilder.IPSet()
+	if err != nil {
+		return nil, fmt.Errorf("unable to create ipset:%w", err)
+	}
+	var compactedCidrs []string
+	for _, pfx := range set.Prefixes() {
+		compactedCidrs = append(compactedCidrs, pfx.String())
+	}
+	return compactedCidrs, nil
 }
 
 func (r *switchResource) makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) (v1.BGPFilter, error) {

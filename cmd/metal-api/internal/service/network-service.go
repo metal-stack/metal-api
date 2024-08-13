@@ -442,7 +442,7 @@ func validateAdditionalRouteMapCIDRs(additionalCidrs []string, privateSuper bool
 		for _, cidr := range additionalCidrs {
 			_, err := netip.ParsePrefix(cidr)
 			if err != nil {
-				return nil, fmt.Errorf("given cidr:%q in additionalroutemapcidrs is malformed:%s", cidr, err)
+				return nil, fmt.Errorf("given cidr:%q in additionalroutemapcidrs is malformed:%w", cidr, err)
 			}
 			result = append(result, cidr)
 		}
