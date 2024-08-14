@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -403,7 +404,8 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := makeBGPFilterFirewall(tt.args.machine)
+			r := switchResource{}
+			got, _ := r.makeBGPFilterFirewall(tt.args.machine)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterFirewall() = %v, want %v", got, tt.want)
 			}
@@ -412,6 +414,8 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 }
 
 func TestMakeBGPFilterMachine(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+
 	type args struct {
 		machine metal.Machine
 		ipsMap  metal.IPsMap
@@ -446,29 +450,33 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 						Project: "project",
 						MachineNetworks: []*metal.MachineNetwork{
 							{
-								IPs:      []string{"10.1.0.1"},
-								Prefixes: []string{"10.2.0.0/22", "10.1.0.0/22"},
-								Vrf:      1234,
-								Private:  true,
+								NetworkID: "1",
+								IPs:       []string{"10.1.0.1"},
+								Prefixes:  []string{"10.2.0.0/22", "10.1.0.0/22"},
+								Vrf:       1234,
+								Private:   true,
 							},
 							{
-								IPs:      []string{"10.0.0.2", "10.0.0.1"},
-								Vrf:      0,
-								Underlay: true,
+								NetworkID: "2",
+								IPs:       []string{"10.0.0.2", "10.0.0.1"},
+								Vrf:       0,
+								Underlay:  true,
 							},
 							{
-								IPs: []string{"212.89.42.2", "212.89.42.1"},
-								Vrf: 104009,
+								NetworkID: "3",
+								IPs:       []string{"212.89.42.2", "212.89.42.1"},
+								Vrf:       104009,
 							},
 							{
-								IPs: []string{"2001::"},
-								Vrf: 104010,
+								NetworkID: "4",
+								IPs:       []string{"2001::"},
+								Vrf:       104010,
 							},
 						},
 					},
 				},
 			},
-			want: v1.NewBGPFilter([]string{}, []string{"10.1.0.0/22", "10.2.0.0/22", "100.127.1.1/32", "2001::1/128", "212.89.42.1/32", "212.89.42.2/32"}),
+			want: v1.NewBGPFilter([]string{}, []string{"10.1.0.0/22", "10.2.0.0/22", "100.127.1.1/32", "10.240.0.0/12", "2001::1/128", "212.89.42.1/32", "212.89.42.2/32"}),
 		},
 		{
 			name: "allow only allocated ips",
@@ -483,8 +491,9 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 						Project: "project",
 						MachineNetworks: []*metal.MachineNetwork{
 							{
-								IPs: []string{"212.89.42.2", "212.89.42.1"},
-								Vrf: 104009,
+								NetworkID: "5",
+								IPs:       []string{"212.89.42.2", "212.89.42.1"},
+								Vrf:       104009,
 							},
 						},
 					},
@@ -493,10 +502,16 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 			want: v1.NewBGPFilter([]string{}, []string{"212.89.42.1/32"}),
 		},
 	}
+
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
+			mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything())).Return(testdata.Partition1PrivateSuperNetwork, nil)
+
+			r := switchResource{webResource: webResource{ds: ds, log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))}}
+
+			got, _ := r.makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterMachine() = %v, want %v", got, tt.want)
 			}
@@ -603,7 +618,8 @@ func TestMakeSwitchNics(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.machines)
+			r := switchResource{}
+			got, _ := r.makeSwitchNics(tt.args.s, tt.args.ips, tt.args.machines)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeSwitchNics() = %v, want %v", got, tt.want)
 			}

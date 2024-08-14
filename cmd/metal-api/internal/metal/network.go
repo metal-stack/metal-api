@@ -207,17 +207,18 @@ func (p *Prefix) equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes            Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
-	DestinationPrefixes Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-	PartitionID         string            `rethinkdb:"partitionid" json:"partitionid"`
-	ProjectID           string            `rethinkdb:"projectid" json:"projectid"`
-	ParentNetworkID     string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
-	Vrf                 uint              `rethinkdb:"vrf" json:"vrf"`
-	PrivateSuper        bool              `rethinkdb:"privatesuper" json:"privatesuper"`
-	Nat                 bool              `rethinkdb:"nat" json:"nat"`
-	Underlay            bool              `rethinkdb:"underlay" json:"underlay"`
-	Shared              bool              `rethinkdb:"shared" json:"shared"`
-	Labels              map[string]string `rethinkdb:"labels" json:"labels"`
+	Prefixes                   Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
+	DestinationPrefixes        Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+	PartitionID                string            `rethinkdb:"partitionid" json:"partitionid"`
+	ProjectID                  string            `rethinkdb:"projectid" json:"projectid"`
+	ParentNetworkID            string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
+	Vrf                        uint              `rethinkdb:"vrf" json:"vrf"`
+	PrivateSuper               bool              `rethinkdb:"privatesuper" json:"privatesuper"`
+	Nat                        bool              `rethinkdb:"nat" json:"nat"`
+	Underlay                   bool              `rethinkdb:"underlay" json:"underlay"`
+	Shared                     bool              `rethinkdb:"shared" json:"shared"`
+	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
+	AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
 }
 
 // Networks is a list of networks.

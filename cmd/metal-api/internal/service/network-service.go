@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/netip"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -358,6 +359,12 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
+	additionalAnnouncableCIDRs, err := validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, privateSuper)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	if vrf != 0 {
 		err = acquireVRF(r.ds, vrf)
 		if err != nil {
@@ -378,15 +385,16 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 			Name:        name,
 			Description: description,
 		},
-		Prefixes:            prefixes,
-		DestinationPrefixes: destPrefixes,
-		PartitionID:         partitionID,
-		ProjectID:           projectID,
-		Nat:                 nat,
-		PrivateSuper:        privateSuper,
-		Underlay:            underlay,
-		Vrf:                 vrf,
-		Labels:              labels,
+		Prefixes:                   prefixes,
+		DestinationPrefixes:        destPrefixes,
+		PartitionID:                partitionID,
+		ProjectID:                  projectID,
+		Nat:                        nat,
+		PrivateSuper:               privateSuper,
+		Underlay:                   underlay,
+		Vrf:                        vrf,
+		Labels:                     labels,
+		AdditionalAnnouncableCIDRs: additionalAnnouncableCIDRs,
 	}
 
 	ctx := request.Request.Context()
@@ -407,6 +415,23 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	usage := getNetworkUsage(ctx, nw, r.ipamer)
 
 	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+}
+
+func validateAdditionalAnnouncableCIDRs(additionalCidrs []string, privateSuper bool) ([]string, error) {
+	var result []string
+	if len(additionalCidrs) > 0 {
+		if !privateSuper {
+			return nil, errors.New("additionalannouncablecidrs can only be set in a private super network")
+		}
+		for _, cidr := range additionalCidrs {
+			_, err := netip.ParsePrefix(cidr)
+			if err != nil {
+				return nil, fmt.Errorf("given cidr:%q in additionalannouncablecidrs is malformed:%w", cidr, err)
+			}
+			result = append(result, cidr)
+		}
+	}
+	return result, nil
 }
 
 func (r *networkResource) allocateNetwork(request *restful.Request, response *restful.Response) {
@@ -669,6 +694,13 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 			return
 		}
 	}
+
+	additionalAnnouncableCIDRs, err := validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, oldNetwork.PrivateSuper)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+	newNetwork.AdditionalAnnouncableCIDRs = additionalAnnouncableCIDRs
 
 	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
 	if err != nil {

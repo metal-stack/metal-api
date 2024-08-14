@@ -144,7 +144,7 @@ func (r *switchResource) findSwitch(request *restful.Request, response *restful.
 		return
 	}
 
-	resp, err := makeSwitchResponse(s, r.ds)
+	resp, err := r.makeSwitchResponse(s)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -160,7 +160,7 @@ func (r *switchResource) listSwitches(request *restful.Request, response *restfu
 		return
 	}
 
-	resp, err := makeSwitchResponseList(ss, r.ds)
+	resp, err := r.makeSwitchResponseList(ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -184,7 +184,7 @@ func (r *switchResource) findSwitches(request *restful.Request, response *restfu
 		return
 	}
 
-	resp, err := makeSwitchResponseList(ss, r.ds)
+	resp, err := r.makeSwitchResponseList(ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -223,7 +223,7 @@ func (r *switchResource) deleteSwitch(request *restful.Request, response *restfu
 		return
 	}
 
-	resp, err := makeSwitchResponse(s, r.ds)
+	resp, err := r.makeSwitchResponse(s)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -388,7 +388,7 @@ func (r *switchResource) toggleSwitchPort(request *restful.Request, response *re
 		}
 	}
 
-	resp, err := makeSwitchResponse(&newSwitch, r.ds)
+	resp, err := r.makeSwitchResponse(&newSwitch)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -437,7 +437,7 @@ func (r *switchResource) updateSwitch(request *restful.Request, response *restfu
 		return
 	}
 
-	resp, err := makeSwitchResponse(&newSwitch, r.ds)
+	resp, err := r.makeSwitchResponse(&newSwitch)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -553,7 +553,7 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 
 	}
 
-	resp, err := makeSwitchResponse(s, r.ds)
+	resp, err := r.makeSwitchResponse(s)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -772,22 +772,22 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 	return finalNics, nil
 }
 
-func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.SwitchResponse, error) {
-	p, ips, machines, ss, err := findSwitchReferencedEntities(s, ds)
+func (r *switchResource) makeSwitchResponse(s *metal.Switch) (*v1.SwitchResponse, error) {
+	p, ips, machines, ss, err := findSwitchReferencedEntities(s, r.ds)
 	if err != nil {
 		return nil, err
 	}
 
-	nics, err := makeSwitchNics(s, ips, machines)
+	nics, err := r.makeSwitchNics(s, ips, machines)
 	if err != nil {
 		return nil, err
 	}
-	cons := makeSwitchCons(s)
+	cons := r.makeSwitchCons(s)
 
 	return v1.NewSwitchResponse(s, ss, p, nics, cons), nil
 }
 
-func makeBGPFilterFirewall(m metal.Machine) (v1.BGPFilter, error) {
+func (r *switchResource) makeBGPFilterFirewall(m metal.Machine) (v1.BGPFilter, error) {
 	vnis := []string{}
 	cidrs := []string{}
 
@@ -809,7 +809,7 @@ func makeBGPFilterFirewall(m metal.Machine) (v1.BGPFilter, error) {
 	return v1.NewBGPFilter(vnis, cidrs), nil
 }
 
-func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) (v1.BGPFilter, error) {
+func (r *switchResource) makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) (v1.BGPFilter, error) {
 	vnis := []string{}
 	cidrs := []string{}
 
@@ -826,6 +826,23 @@ func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) (v1.BGPFilter, erro
 	// Allow all prefixes of the private network
 	if private != nil {
 		cidrs = append(cidrs, private.Prefixes...)
+
+		privateNetwork, err := r.ds.FindNetworkByID(private.NetworkID)
+		if err != nil && !metal.IsNotFound(err) {
+			return v1.BGPFilter{}, err
+		}
+		if privateNetwork != nil {
+			parentNetwork, err := r.ds.FindNetworkByID(privateNetwork.ParentNetworkID)
+			if err != nil && !metal.IsNotFound(err) {
+				return v1.BGPFilter{}, err
+			}
+			// Only for private networks, AdditionalAnnouncableCIDRs are applied.
+			// they contain usually the pod- and service- cidrs in a kubernetes cluster
+			if parentNetwork != nil && len(parentNetwork.AdditionalAnnouncableCIDRs) > 0 {
+				r.log.Debug("makeBGPFilterMachine", "additional cidrs", parentNetwork.AdditionalAnnouncableCIDRs)
+				cidrs = append(cidrs, parentNetwork.AdditionalAnnouncableCIDRs...)
+			}
+		}
 	}
 	for _, i := range ips[m.Allocation.Project] {
 		// No need to add /32 addresses of the primary network to the whitelist.
@@ -884,7 +901,7 @@ func compactCidrs(cidrs []string) ([]string, error) {
 	return compactedCidrs, nil
 }
 
-func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) (v1.BGPFilter, error) {
+func (r *switchResource) makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) (v1.BGPFilter, error) {
 	var (
 		filter v1.BGPFilter
 		err    error
@@ -894,16 +911,16 @@ func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) (v1.BGPFilter,
 		// vrf "default" means: the firewall was successfully allocated and the switch port configured
 		// otherwise the port is still not configured yet (pxe-setup) and a BGPFilter would break the install routine
 		if vrf == "default" {
-			filter, err = makeBGPFilterFirewall(m)
+			filter, err = r.makeBGPFilterFirewall(m)
 		}
 	} else {
-		filter, err = makeBGPFilterMachine(m, ips)
+		filter, err = r.makeBGPFilterMachine(m, ips)
 	}
 
 	return filter, err
 }
 
-func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) (v1.SwitchNics, error) {
+func (r *switchResource) makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) (v1.SwitchNics, error) {
 	machinesByID := map[string]*metal.Machine{}
 	for i, m := range machines {
 		machinesByID[m.ID] = &machines[i]
@@ -924,7 +941,7 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 		m := machinesBySwp[n.Name]
 		var filter *v1.BGPFilter
 		if m != nil && m.Allocation != nil {
-			f, err := makeBGPFilter(*m, n.Vrf, ips)
+			f, err := r.makeBGPFilter(*m, n.Vrf, ips)
 			if err != nil {
 				return nil, err
 			}
@@ -955,7 +972,7 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 	return nics, nil
 }
 
-func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
+func (r *switchResource) makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	cons := []v1.SwitchConnection{}
 
 	nicMap := s.Nics.ByName()
@@ -1026,14 +1043,14 @@ func findSwitchReferencedEntities(s *metal.Switch, ds *datastore.RethinkStore) (
 	return p, ips.ByProjectID(), m, ss, nil
 }
 
-func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {
-	pMap, ips, err := getSwitchReferencedEntityMaps(ds)
+func (r *switchResource) makeSwitchResponseList(ss metal.Switches) ([]*v1.SwitchResponse, error) {
+	pMap, ips, err := getSwitchReferencedEntityMaps(r.ds)
 	if err != nil {
 		return nil, err
 	}
 
 	result := []*v1.SwitchResponse{}
-	m, err := ds.ListMachines()
+	m, err := r.ds.ListMachines()
 	if err != nil {
 		return nil, fmt.Errorf("could not find machines: %w", err)
 	}
@@ -1046,12 +1063,12 @@ func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v
 			p = &partitionEntity
 		}
 
-		nics, err := makeSwitchNics(&sw, ips, m)
+		nics, err := r.makeSwitchNics(&sw, ips, m)
 		if err != nil {
 			return nil, err
 		}
-		cons := makeSwitchCons(&sw)
-		ss, err := ds.GetSwitchStatus(sw.ID)
+		cons := r.makeSwitchCons(&sw)
+		ss, err := r.ds.GetSwitchStatus(sw.ID)
 		if err != nil && !metal.IsNotFound(err) {
 			return nil, err
 		}
