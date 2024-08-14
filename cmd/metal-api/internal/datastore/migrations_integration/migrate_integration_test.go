@@ -5,7 +5,6 @@ package migrations_integration
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"time"
@@ -236,13 +235,13 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 	n1fetched, err := rs.FindNetworkByID(n1.ID)
 	require.NoError(t, err)
 	require.NotNil(t, n1fetched)
-	require.Equal(t, p1.PrivateNetworkPrefixLength, n1fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily], fmt.Sprintf("childprefixlength:%v", n1fetched.DefaultChildPrefixLength))
+	require.Equal(t, p1.PrivateNetworkPrefixLength, n1fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily], "childprefixlength:%v", n1fetched.DefaultChildPrefixLength)
 	require.True(t, n1fetched.AddressFamilies[metal.IPv4AddressFamily])
 
 	n2fetched, err := rs.FindNetworkByID(n2.ID)
 	require.NoError(t, err)
 	require.NotNil(t, n2fetched)
-	require.Equal(t, p2.PrivateNetworkPrefixLength, n2fetched.DefaultChildPrefixLength[metal.IPv6AddressFamily], fmt.Sprintf("childprefixlength:%v", n2fetched.DefaultChildPrefixLength))
+	require.Equal(t, p2.PrivateNetworkPrefixLength, n2fetched.DefaultChildPrefixLength[metal.IPv6AddressFamily], "childprefixlength:%v", n2fetched.DefaultChildPrefixLength)
 	require.True(t, n2fetched.AddressFamilies[metal.IPv6AddressFamily])
 
 	n3fetched, err := rs.FindNetworkByID(n3.ID)

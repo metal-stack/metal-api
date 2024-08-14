@@ -831,13 +831,14 @@ func (r *switchResource) makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap)
 		if err != nil {
 			return v1.BGPFilter{}, err
 		}
-		parentNetwork, err := r.ds.FindNetworkByID(privateNetwork.ID)
-		if err != nil {
+		parentNetwork, err := r.ds.FindNetworkByID(privateNetwork.ParentNetworkID)
+		if err != nil && !metal.IsNotFound(err) {
 			return v1.BGPFilter{}, err
 		}
 		// Only for private networks, additionalRouteMapCidrs are applied.
 		// they contain usually the pod- and service- cidrs in a kubernetes cluster
 		if len(parentNetwork.AdditionalAnnouncableCIDRs) > 0 {
+			r.log.Debug("makeBGPFilterMachine", "additional cidrs", parentNetwork.AdditionalAnnouncableCIDRs)
 			cidrs = append(cidrs, parentNetwork.AdditionalAnnouncableCIDRs...)
 		}
 	}

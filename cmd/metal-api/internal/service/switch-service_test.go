@@ -505,7 +505,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 			mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 
-			r := switchResource{webResource: webResource{ds: ds}}
+			r := switchResource{webResource: webResource{ds: ds, log: slog.Default()}}
 
 			got, _ := r.makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
 			if !reflect.DeepEqual(got, tt.want) {
