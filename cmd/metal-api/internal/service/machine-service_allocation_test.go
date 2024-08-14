@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -226,7 +227,7 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v
 	resp := w.Result()
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
+		return v1.MachineResponse{}, errors.New(w.Body.String())
 	}
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -248,7 +249,7 @@ func freeMachine(container *restful.Container, id string) (v1.MachineResponse, e
 	resp := w.Result()
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
+		return v1.MachineResponse{}, errors.New(w.Body.String())
 	}
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
