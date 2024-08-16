@@ -25,7 +25,7 @@ type NetworkImmutable struct {
 	VrfShared                  *bool                   `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)" optional:"true"`
 	ParentNetworkID            *string                 `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
 	AddressFamilies            metal.AddressFamilies   `json:"addressfamilies" description:"the addressfamilies in this network, either IPv4 or IPv6 or both"`
-	AdditionalAnnouncableCIDRs []string                `json:"additionalannouncablecidrs"  description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork" optional:"true"`
+	AdditionalAnnouncableCIDRs []string                `json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork" optional:"true"`
 }
 
 // NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.
@@ -67,7 +67,7 @@ type NetworkUpdateRequest struct {
 	DestinationPrefixes        []string          `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
 	Labels                     map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
 	Shared                     *bool             `json:"shared" description:"marks a network as shareable." optional:"true"`
-	AdditionalAnnouncableCIDRs []string          `json:"additionalannouncablecidrs"  description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork" optional:"true"`
+	AdditionalAnnouncableCIDRs []string          `json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork" optional:"true"`
 }
 
 // NetworkResponse holds all properties returned in a FindNetwork or GetNetwork request.

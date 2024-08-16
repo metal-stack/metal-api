@@ -160,7 +160,7 @@ func (r *switchResource) listSwitches(request *restful.Request, response *restfu
 		return
 	}
 
-	resp, err := r.makeSwitchResponseList(ss, r.ds)
+	resp, err := r.makeSwitchResponseList(ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -184,7 +184,7 @@ func (r *switchResource) findSwitches(request *restful.Request, response *restfu
 		return
 	}
 
-	resp, err := r.makeSwitchResponseList(ss, r.ds)
+	resp, err := r.makeSwitchResponseList(ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -828,18 +828,20 @@ func (r *switchResource) makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap)
 		cidrs = append(cidrs, private.Prefixes...)
 
 		privateNetwork, err := r.ds.FindNetworkByID(private.NetworkID)
-		if err != nil {
-			return v1.BGPFilter{}, err
-		}
-		parentNetwork, err := r.ds.FindNetworkByID(privateNetwork.ParentNetworkID)
 		if err != nil && !metal.IsNotFound(err) {
 			return v1.BGPFilter{}, err
 		}
-		// Only for private networks, additionalRouteMapCidrs are applied.
-		// they contain usually the pod- and service- cidrs in a kubernetes cluster
-		if len(parentNetwork.AdditionalAnnouncableCIDRs) > 0 {
-			r.log.Debug("makeBGPFilterMachine", "additional cidrs", parentNetwork.AdditionalAnnouncableCIDRs)
-			cidrs = append(cidrs, parentNetwork.AdditionalAnnouncableCIDRs...)
+		if privateNetwork != nil {
+			parentNetwork, err := r.ds.FindNetworkByID(privateNetwork.ParentNetworkID)
+			if err != nil && !metal.IsNotFound(err) {
+				return v1.BGPFilter{}, err
+			}
+			// Only for private networks, AdditionalAnnouncableCIDRs are applied.
+			// they contain usually the pod- and service- cidrs in a kubernetes cluster
+			if parentNetwork != nil && len(parentNetwork.AdditionalAnnouncableCIDRs) > 0 {
+				r.log.Debug("makeBGPFilterMachine", "additional cidrs", parentNetwork.AdditionalAnnouncableCIDRs)
+				cidrs = append(cidrs, parentNetwork.AdditionalAnnouncableCIDRs...)
+			}
 		}
 	}
 	for _, i := range ips[m.Allocation.Project] {
@@ -1041,14 +1043,14 @@ func findSwitchReferencedEntities(s *metal.Switch, ds *datastore.RethinkStore) (
 	return p, ips.ByProjectID(), m, ss, nil
 }
 
-func (r *switchResource) makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {
-	pMap, ips, err := getSwitchReferencedEntityMaps(ds)
+func (r *switchResource) makeSwitchResponseList(ss metal.Switches) ([]*v1.SwitchResponse, error) {
+	pMap, ips, err := getSwitchReferencedEntityMaps(r.ds)
 	if err != nil {
 		return nil, err
 	}
 
 	result := []*v1.SwitchResponse{}
-	m, err := ds.ListMachines()
+	m, err := r.ds.ListMachines()
 	if err != nil {
 		return nil, fmt.Errorf("could not find machines: %w", err)
 	}
@@ -1066,7 +1068,7 @@ func (r *switchResource) makeSwitchResponseList(ss metal.Switches, ds *datastore
 			return nil, err
 		}
 		cons := r.makeSwitchCons(&sw)
-		ss, err := ds.GetSwitchStatus(sw.ID)
+		ss, err := r.ds.GetSwitchStatus(sw.ID)
 		if err != nil && !metal.IsNotFound(err) {
 			return nil, err
 		}

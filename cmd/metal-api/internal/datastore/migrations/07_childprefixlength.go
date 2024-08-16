@@ -16,7 +16,7 @@ func init() {
 	}
 	datastore.MustRegisterMigration(datastore.Migration{
 		Name:    "migrate partition.childprefixlength to tenant super network",
-		Version: 6,
+		Version: 7,
 		Up: func(db *r.Term, session r.QueryExecutor, rs *datastore.RethinkStore) error {
 			nws, err := rs.ListNetworks()
 			if err != nil {
