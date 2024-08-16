@@ -97,6 +97,20 @@ func (rs *RethinkStore) SearchIPs(q *IPSearchQuery, ips *metal.IPs) error {
 	return rs.searchEntities(q.generateTerm(rs), ips)
 }
 
+// FindIPsByProjects returns all ips of given projects.
+// FIXME no test present to check if the query actually works
+// according to https://stackoverflow.com/questions/44424377/rethinkdb-query-filter-against-multiple-values-for-single-key it should :-)
+func (rs *RethinkStore) FindIPsByProjects(projects []string) (metal.IPs, error) {
+	q := *rs.ipTable()
+	q = q.Filter(func(row r.Term) r.Term {
+		return row.Field("projectid").Contains(r.Expr(projects))
+	})
+
+	var ips metal.IPs
+	err := rs.searchEntities(&q, &ips)
+	return ips, err
+}
+
 // ListIPs returns all ips.
 func (rs *RethinkStore) ListIPs() (metal.IPs, error) {
 	ips := make([]metal.IP, 0)
