@@ -20,7 +20,7 @@ require (
 	github.com/looplab/fsm v1.0.2
 	github.com/metal-stack/go-ipam v1.14.5
 	github.com/metal-stack/masterdata-api v0.11.4
-	github.com/metal-stack/metal-lib v0.18.1
+	github.com/metal-stack/metal-lib v0.18.2-0.20240823130720-3e1110e36514
 	github.com/metal-stack/security v0.8.1
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
@@ -36,6 +36,13 @@ require (
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
+)
+
+require (
+	github.com/Masterminds/squirrel v1.5.4 // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
+	github.com/lopezator/migrator v0.3.1 // indirect
 )
 
 replace (

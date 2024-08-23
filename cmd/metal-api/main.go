@@ -287,11 +287,19 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
 	rootCmd.Flags().Bool("auditing-enabled", false, "enable auditing")
-	rootCmd.Flags().String("auditing-url", "http://localhost:7700", "url of the auditing service")
-	rootCmd.Flags().String("auditing-api-key", "secret", "api key for the auditing service")
-	rootCmd.Flags().String("auditing-index-prefix", "auditing", "auditing index prefix")
-	rootCmd.Flags().String("auditing-index-interval", "@daily", "auditing index creation interval, can be one of @hourly|@daily|@monthly")
-	rootCmd.Flags().Int64("auditing-keep", 14, "the amount of indexes to keep until cleanup")
+
+	rootCmd.Flags().String("auditing-meili-url", "http://localhost:7700", "url of the auditing service")
+	rootCmd.Flags().String("auditing-meili-api-key", "secret", "api key for the auditing service")
+	rootCmd.Flags().String("auditing-meili-index-prefix", "auditing", "auditing index prefix")
+	rootCmd.Flags().String("auditing-meili-index-interval", "@daily", "auditing index creation interval, can be one of @hourly|@daily|@monthly")
+	rootCmd.Flags().Int64("auditing-meili-keep", 14, "the amount of indexes to keep until cleanup")
+
+	rootCmd.Flags().String("auditing-timescaledb-host", "", "host of the auditing service")
+	rootCmd.Flags().String("auditing-timescaledb-port", "", "port of the auditing service")
+	rootCmd.Flags().String("auditing-timescaledb-db", "", "database name of the auditing service")
+	rootCmd.Flags().String("auditing-timescaledb-user", "", "user for the auditing service")
+	rootCmd.Flags().String("auditing-timescaledb-password", "", "password for the auditing service")
+	rootCmd.Flags().String("auditing-timescaledb-retention", "", "the time until audit traces are cleaned up")
 
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
 	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
@@ -691,7 +699,7 @@ func initAuth(lg *slog.Logger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
-func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser metal.MachineIPMISuperUser) *restfulspec.Config {
+func initRestServices(audit []auditing.Auditing, withauth bool, ipmiSuperUser metal.MachineIPMISuperUser) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
 		log.Fatal("base path must start and end with a slash")
@@ -757,7 +765,7 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 		releaseVersion = pointer.Pointer(viper.GetString("release-version"))
 	}
 
-	restful.DefaultContainer.Add(service.NewAudit(logger.WithGroup("audit-service"), audit))
+	restful.DefaultContainer.Add(service.NewAudit(logger.WithGroup("audit-service"), pointer.FirstOrZero(audit)))
 	restful.DefaultContainer.Add(service.NewPartition(logger.WithGroup("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.WithGroup("image-service"), ds))
 	restful.DefaultContainer.Add(service.NewSize(logger.WithGroup("size-service"), ds, mdc))
@@ -790,8 +798,8 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
 	}
 
-	if audit != nil {
-		httpFilter, err := auditing.HttpFilter(audit, logger.WithGroup("audit-middleware"))
+	for _, backend := range audit {
+		httpFilter, err := auditing.HttpFilter(backend, logger.WithGroup("audit-middleware"))
 		if err != nil {
 			log.Fatalf("unable to create http filter for auditing: %s", err)
 		}
@@ -908,7 +916,7 @@ func evaluateVPNConnected() error {
 }
 
 // might return (nil, nil) if auditing is disabled!
-func createAuditingClient(log *slog.Logger) (auditing.Auditing, error) {
+func createAuditingClient(log *slog.Logger) ([]auditing.Auditing, error) {
 	isEnabled := viper.GetBool("auditing-enabled")
 	if !isEnabled {
 		log.Warn("auditing is disabled, can be enabled by setting --auditing-enabled=true")
@@ -916,15 +924,46 @@ func createAuditingClient(log *slog.Logger) (auditing.Auditing, error) {
 	}
 
 	c := auditing.Config{
-		Component:        "metal-api",
-		URL:              viper.GetString("auditing-url"),
-		APIKey:           viper.GetString("auditing-api-key"),
-		IndexPrefix:      viper.GetString("auditing-index-prefix"),
-		RotationInterval: auditing.Interval(viper.GetString("auditing-index-interval")),
-		Keep:             viper.GetInt64("auditing-keep"),
-		Log:              log, //FIXME
+		Component: "metal-api",
+		Log:       log,
 	}
-	return auditing.New(c)
+
+	var backends []auditing.Auditing
+
+	if viper.IsSet("auditing-timescaledb-host") {
+		backend, err := auditing.NewTimescaleDB(c, auditing.TimescaleDbConfig{
+			Host:      viper.GetString("auditing-timescaledb-host"),
+			Port:      viper.GetString("auditing-timescaledb-port"),
+			DB:        viper.GetString("auditing-timescaledb-db"),
+			User:      viper.GetString("auditing-timescaledb-user"),
+			Password:  viper.GetString("auditing-timescaledb-password"),
+			Retention: viper.GetString("auditing-timescaledb-retention"),
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		backends = append(backends, backend)
+	}
+
+	if viper.IsSet("auditing-meili-api-key") {
+		backend, err := auditing.NewMeilisearch(c, auditing.MeilisearchConfig{
+			URL:              viper.GetString("auditing-meili-url"),
+			APIKey:           viper.GetString("auditing-meili-api-key"),
+			IndexPrefix:      viper.GetString("auditing-meili-index-prefix"),
+			RotationInterval: auditing.Interval(viper.GetString("auditing-meili-index-interval")),
+			Keep:             viper.GetInt64("auditing-meili-keep"),
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		backends = append(backends, backend)
+	}
+
+	return backends, nil
 }
 
 func run() error {
