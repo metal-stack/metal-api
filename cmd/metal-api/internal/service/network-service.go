@@ -418,19 +418,24 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 }
 
 func validateAdditionalAnnouncableCIDRs(additionalCidrs []string, privateSuper bool) ([]string, error) {
-	var result []string
-	if len(additionalCidrs) > 0 {
-		if !privateSuper {
-			return nil, errors.New("additionalannouncablecidrs can only be set in a private super network")
-		}
-		for _, cidr := range additionalCidrs {
-			_, err := netip.ParsePrefix(cidr)
-			if err != nil {
-				return nil, fmt.Errorf("given cidr:%q in additionalannouncablecidrs is malformed:%w", cidr, err)
-			}
-			result = append(result, cidr)
-		}
+	if len(additionalCidrs) == 0 {
+		return nil, nil
 	}
+
+	if !privateSuper {
+		return nil, errors.New("additionalannouncablecidrs can only be set in a private super network")
+	}
+
+	var result []string
+
+	for _, cidr := range additionalCidrs {
+		_, err := netip.ParsePrefix(cidr)
+		if err != nil {
+			return nil, fmt.Errorf("given cidr:%q in additionalannouncablecidrs is malformed:%w", cidr, err)
+		}
+		result = append(result, cidr)
+	}
+
 	return result, nil
 }
 
