@@ -608,7 +608,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("no supernetwork found")))
 		return
 	}
-	if superNetwork.DefaultChildPrefixLength == nil || len(superNetwork.DefaultChildPrefixLength) == 0 {
+	if len(superNetwork.DefaultChildPrefixLength) == 0 {
 		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("supernetwork %s has no defaultchildprefixlength specified", superNetwork.ID)))
 		return
 	}
