@@ -170,7 +170,6 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 	if requestPayload.Labels != nil {
 		labels = requestPayload.Labels
 	}
-
 	var imageURL string
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL

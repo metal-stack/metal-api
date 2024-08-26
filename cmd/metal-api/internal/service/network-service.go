@@ -493,7 +493,7 @@ func validatePrefixesAndAddressFamilies(prefixes, destinationPrefixes []string, 
 			if ipprefix.Addr().Is6() && af == metal.IPv4AddressFamily {
 				continue
 			}
-			if length <= uint8(ipprefix.Bits()) {
+			if int(length) <= ipprefix.Bits() {
 				return nil, nil, nil, fmt.Errorf("given defaultchildprefixlength %d is not greater than prefix length of:%s", length, p.String())
 			}
 		}
