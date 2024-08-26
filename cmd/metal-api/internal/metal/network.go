@@ -218,7 +218,7 @@ type Network struct {
 	Underlay                   bool              `rethinkdb:"underlay" json:"underlay"`
 	Shared                     bool              `rethinkdb:"shared" json:"shared"`
 	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
-	AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
+	AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks"`
 }
 
 // Networks is a list of networks.

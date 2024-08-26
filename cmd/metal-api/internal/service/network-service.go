@@ -359,7 +359,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	additionalAnnouncableCIDRs, err := validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, privateSuper)
+	err = validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, privateSuper)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -394,7 +394,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		Underlay:                   underlay,
 		Vrf:                        vrf,
 		Labels:                     labels,
-		AdditionalAnnouncableCIDRs: additionalAnnouncableCIDRs,
+		AdditionalAnnouncableCIDRs: requestPayload.AdditionalAnnouncableCIDRs,
 	}
 
 	ctx := request.Request.Context()
@@ -417,26 +417,23 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 }
 
-func validateAdditionalAnnouncableCIDRs(additionalCidrs []string, privateSuper bool) ([]string, error) {
+func validateAdditionalAnnouncableCIDRs(additionalCidrs []string, privateSuper bool) error {
 	if len(additionalCidrs) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	if !privateSuper {
-		return nil, errors.New("additionalannouncablecidrs can only be set in a private super network")
+		return errors.New("additionalannouncablecidrs can only be set in a private super network")
 	}
-
-	var result []string
 
 	for _, cidr := range additionalCidrs {
 		_, err := netip.ParsePrefix(cidr)
 		if err != nil {
-			return nil, fmt.Errorf("given cidr:%q in additionalannouncablecidrs is malformed:%w", cidr, err)
+			return fmt.Errorf("given cidr:%q in additionalannouncablecidrs is malformed:%w", cidr, err)
 		}
-		result = append(result, cidr)
 	}
 
-	return result, nil
+	return nil
 }
 
 func (r *networkResource) allocateNetwork(request *restful.Request, response *restful.Response) {
@@ -700,12 +697,12 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		}
 	}
 
-	additionalAnnouncableCIDRs, err := validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, oldNetwork.PrivateSuper)
+	err = validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, oldNetwork.PrivateSuper)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
-	newNetwork.AdditionalAnnouncableCIDRs = additionalAnnouncableCIDRs
+	newNetwork.AdditionalAnnouncableCIDRs = requestPayload.AdditionalAnnouncableCIDRs
 
 	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
 	if err != nil {

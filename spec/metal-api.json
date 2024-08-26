@@ -3614,7 +3614,7 @@
     "v1.NetworkCreateRequest": {
       "properties": {
         "additionalannouncablecidrs": {
-          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks",
           "items": {
             "type": "string"
           },
@@ -3754,7 +3754,7 @@
       "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
       "properties": {
         "additionalannouncablecidrs": {
-          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks",
           "items": {
             "type": "string"
           },
@@ -3811,7 +3811,7 @@
     "v1.NetworkResponse": {
       "properties": {
         "additionalannouncablecidrs": {
-          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks",
           "items": {
             "type": "string"
           },
@@ -3917,7 +3917,7 @@
     "v1.NetworkUpdateRequest": {
       "properties": {
         "additionalannouncablecidrs": {
-          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork",
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks",
           "items": {
             "type": "string"
           },
