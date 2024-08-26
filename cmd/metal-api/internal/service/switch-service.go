@@ -997,9 +997,12 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 }
 
 func findSwitchReferencedEntities(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, *metal.SwitchStatus, error) {
-	var err error
-	var p *metal.Partition
-	var m metal.Machines
+	var (
+		err      error
+		p        *metal.Partition
+		ms       metal.Machines
+		projects []string
+	)
 
 	if s.PartitionID != "" {
 		p, err = ds.FindPartition(s.PartitionID)
@@ -1007,13 +1010,17 @@ func findSwitchReferencedEntities(s *metal.Switch, ds *datastore.RethinkStore) (
 			return nil, nil, nil, nil, fmt.Errorf("switch %q references partition, but partition %q cannot be found in database: %w", s.ID, s.PartitionID, err)
 		}
 
-		err = ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &m)
+		err = ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &ms)
 		if err != nil {
 			return nil, nil, nil, nil, fmt.Errorf("could not search machines of partition %q for switch %q: %w", s.PartitionID, s.ID, err)
 		}
 	}
 
-	ips, err := ds.ListIPs()
+	for project := range ms.ByProjectID() {
+		projects = append(projects, project)
+	}
+
+	ips, err := ds.FindIPsByProjects(projects)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
 	}
@@ -1023,7 +1030,7 @@ func findSwitchReferencedEntities(s *metal.Switch, ds *datastore.RethinkStore) (
 		return nil, nil, nil, nil, fmt.Errorf("switchStatus could not be listed: %w", err)
 	}
 
-	return p, ips.ByProjectID(), m, ss, nil
+	return p, ips.ByProjectID(), ms, ss, nil
 }
 
 func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {

@@ -891,6 +891,11 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("image")).Return(TestImages, nil)
 	mock.On(r.DB("mockdb").Table("network")).Return(TestNetworks, nil)
 	mock.On(r.DB("mockdb").Table("ip")).Return(TestIPs, nil)
+
+	// FIXME still broken
+	// mock.On(r.DB("mockdb").Table("ip").Filter(func(var_273 r.Term) r.Term { return var_273.Field("projectid").Contains([]string{"p1", "p2"}) })).Return(nil, nil)
+	// mock.On(r.DB("mockdb").Table("ip").Filter(func(var_409 r.Term) r.Term { return var_409.Field("projectid").Contains([]string{}) })).Return(nil, nil)
+
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
 	mock.On(r.DB("mockdb").Table("switchstatus")).Return(TestSwitchStates, nil)
