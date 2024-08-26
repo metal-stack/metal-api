@@ -348,8 +348,8 @@ func (r *projectResource) setProjectQuota(project *mdmv1.Project) (*v1.Project, 
 	if qs.Ip == nil {
 		qs.Ip = &v1.Quota{}
 	}
-	machineUsage := int32(len(ms))
-	ipUsage := int32(len(ips))
+	machineUsage := int32(len(ms)) // nolint:gosec
+	ipUsage := int32(len(ips))     // nolint:gosec
 	qs.Machine.Used = &machineUsage
 	qs.Ip.Used = &ipUsage
 
