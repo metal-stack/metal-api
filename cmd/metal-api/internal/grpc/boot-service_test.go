@@ -130,8 +130,8 @@ func TestBootService_Register(t *testing.T) {
 					Cpus: []*v1.MachineCPU{
 						{
 							Model:   "Intel Xeon Silver",
-							Cores:   uint32(tt.numcores),
-							Threads: uint32(tt.numcores),
+							Cores:   uint32(tt.numcores), // nolint:gosec
+							Threads: uint32(tt.numcores), // nolint:gosec
 						},
 					},
 					Nics: []*v1.MachineNic{
