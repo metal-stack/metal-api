@@ -23,8 +23,9 @@ var (
 			Role:    metal.RoleMachine,
 			MachineNetworks: []*metal.MachineNetwork{
 				{
-					Private: true,
-					Vrf:     1,
+					NetworkID: "3",
+					Private:   true,
+					Vrf:       1,
 				},
 			},
 		},

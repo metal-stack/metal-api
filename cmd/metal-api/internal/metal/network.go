@@ -235,7 +235,7 @@ type NetworkUsage struct {
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
-// ByID creates an indexed map of partitions where the id is the index.
+// ByID creates an indexed map of networks where the id is the index.
 func (nws Networks) ByID() NetworkMap {
 	res := make(NetworkMap)
 	for i, nw := range nws {
