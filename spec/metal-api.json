@@ -7914,6 +7914,13 @@
         "operationId": "updateNetwork",
         "parameters": [
           {
+            "default": false,
+            "description": "if true update forcefully",
+            "in": "query",
+            "name": "force",
+            "type": "boolean"
+          },
+          {
             "in": "body",
             "name": "body",
             "required": true,

@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/netip"
+	"slices"
+	"strconv"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -105,6 +107,7 @@ func (r *networkResource) webService() *restful.WebService {
 		To(admin(r.updateNetwork)).
 		Operation("updateNetwork").
 		Doc("updates a network. if the network was changed since this one was read, a conflict is returned").
+		Param(ws.QueryParameter("force", "if true update forcefully").DataType("boolean").DefaultValue("false")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkUpdateRequest{}).
 		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
@@ -610,8 +613,20 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 }
 
 func (r *networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.NetworkUpdateRequest
-	err := request.ReadEntity(&requestPayload)
+	var (
+		requestPayload v1.NetworkUpdateRequest
+		forceParam     = request.QueryParameter("force")
+	)
+	if forceParam == "" {
+		forceParam = "false"
+	}
+
+	force, err := strconv.ParseBool(forceParam)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+	err = request.ReadEntity(&requestPayload)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -702,6 +717,13 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+	for _, oldcidr := range oldNetwork.AdditionalAnnouncableCIDRs {
+		if !force && !slices.Contains(requestPayload.AdditionalAnnouncableCIDRs, oldcidr) {
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("you cannot remove %q from additionalannouncablecidrs without force flag set", oldcidr)))
+			return
+		}
+	}
+
 	newNetwork.AdditionalAnnouncableCIDRs = requestPayload.AdditionalAnnouncableCIDRs
 
 	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
