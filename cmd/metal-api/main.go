@@ -957,7 +957,7 @@ func run() error {
 	restful.DefaultContainer.ServiceErrorHandler(func(serviceErr restful.ServiceError, request *restful.Request, response *restful.Response) {
 		response.Header().Set("Content-Type", "application/json")
 		response.WriteHeader(serviceErr.Code)
-		err := response.WriteAsJson(httperrors.NewHTTPError(serviceErr.Code, fmt.Errorf(serviceErr.Message)))
+		err := response.WriteAsJson(httperrors.NewHTTPError(serviceErr.Code, errors.New(serviceErr.Message)))
 		if err != nil {
 			logger.Error("Failed to send response", "error", err)
 			return
