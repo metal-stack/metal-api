@@ -68,12 +68,22 @@ func Test_Migration(t *testing.T) {
 				ID: "1",
 			},
 		}
+		n = &metal.Network{
+			Base: metal.Base{
+				ID:   "tenant-super",
+				Name: "tenant-super",
+			},
+			PrivateSuper: true,
+		}
 	)
 
 	err = rs.UpsertProvisioningEventContainer(ec)
 	require.NoError(t, err)
 
 	err = rs.CreateMachine(m)
+	require.NoError(t, err)
+
+	err = rs.CreateNetwork(n)
 	require.NoError(t, err)
 
 	updateM := *m
@@ -88,6 +98,12 @@ func Test_Migration(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotEmpty(t, m.Allocation.UUID, "allocation uuid was not generated")
+
+	n, err = rs.FindNetworkByID("tenant-super")
+	require.NoError(t, err)
+
+	assert.NotEmpty(t, n)
+	assert.Equal(t, []string{"10.240.0.0/12"}, n.AdditionalAnnouncableCIDRs)
 
 	ec, err = rs.FindProvisioningEventContainer("1")
 	require.NoError(t, err)
