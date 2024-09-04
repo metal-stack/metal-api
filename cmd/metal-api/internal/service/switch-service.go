@@ -632,7 +632,7 @@ func (r *switchResource) migrate(request *restful.Request, response *restful.Res
 		return
 	}
 
-	resp, err := makeSwitchResponse(s, r.ds)
+	resp, err := r.makeSwitchResponse(s)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
