@@ -172,7 +172,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 	}
 	prefixLength := uint8(22)
 	if requestPayload.PrivateNetworkPrefixLength != nil {
-		prefixLength = uint8(*requestPayload.PrivateNetworkPrefixLength)
+		prefixLength = uint8(*requestPayload.PrivateNetworkPrefixLength) // nolint:gosec
 		if prefixLength < 16 || prefixLength > 30 {
 			r.sendError(request, response, httperrors.BadRequest(errors.New("private network prefix length is out of range")))
 			return
