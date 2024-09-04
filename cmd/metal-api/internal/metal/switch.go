@@ -2,6 +2,8 @@ package metal
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -24,10 +26,19 @@ type Switch struct {
 type Switches []Switch
 
 type SwitchOS struct {
-	Vendor           string `rethinkdb:"vendor" json:"vendor"`
-	Version          string `rethinkdb:"version" json:"version"`
-	MetalCoreVersion string `rethinkdb:"metal_core_version" json:"metal_core_version"`
+	Vendor           SwitchOSVendor `rethinkdb:"vendor" json:"vendor"`
+	Version          string         `rethinkdb:"version" json:"version"`
+	MetalCoreVersion string         `rethinkdb:"metal_core_version" json:"metal_core_version"`
 }
+
+// SwitchOSVendor is an enum denoting the name of a switch OS
+type SwitchOSVendor string
+
+// The enums for switch OS vendors
+const (
+	SwitchOSVendorSonic   SwitchOSVendor = "SONiC"
+	SwitchOSVendorCumulus SwitchOSVendor = "Cumulus"
+)
 
 // Connection between switch port and machine.
 type Connection struct {
@@ -143,4 +154,198 @@ func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
 		nics = append(nics, *e)
 	}
 	s.Nics = nics
+}
+
+// TranslateNicMap creates a NicMap where the keys are translated to the naming convention of the target OS
+//
+// example mapping from cumulus to sonic for one single port:
+//
+//	map[string]Nic {
+//		"swp0s1": Nic{
+//			Name: "Ethernet1",
+//			MacAddress: ""
+//		}
+//	}
+func (s *Switch) TranslateNicMap(targetOS SwitchOSVendor) (NicMap, error) {
+	nicMap := s.Nics.ByName()
+	translatedNicMap := make(NicMap)
+
+	if s.OS.Vendor == targetOS {
+		return nicMap, nil
+	}
+
+	ports := make([]string, 0)
+	for name := range nicMap {
+		ports = append(ports, name)
+	}
+
+	lines, err := getLinesFromPortNames(ports, s.OS.Vendor)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range ports {
+		targetPort, err := mapPortName(p, s.OS.Vendor, targetOS, lines)
+		if err != nil {
+			return nil, err
+		}
+
+		nic, ok := nicMap[p]
+		if !ok {
+			return nil, fmt.Errorf("an unknown error occured during port name translation")
+		}
+		translatedNicMap[targetPort] = nic
+	}
+
+	return translatedNicMap, nil
+}
+
+// MapPortNames creates a dictionary that maps the naming convention of this switch's OS to that of the target OS
+func (s *Switch) MapPortNames(targetOS SwitchOSVendor) (map[string]string, error) {
+	nics := s.Nics.ByName()
+	portNamesMap := make(map[string]string, len(s.Nics))
+
+	ports := make([]string, 0)
+	for name := range nics {
+		ports = append(ports, name)
+	}
+
+	lines, err := getLinesFromPortNames(ports, s.OS.Vendor)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range ports {
+		targetPort, err := mapPortName(p, s.OS.Vendor, targetOS, lines)
+		if err != nil {
+			return nil, err
+		}
+		portNamesMap[p] = targetPort
+	}
+
+	return portNamesMap, nil
+}
+
+func mapPortName(port string, sourceOS, targetOS SwitchOSVendor, allLines []int) (string, error) {
+	line, err := portNameToLine(port, sourceOS)
+	if err != nil {
+		return "", fmt.Errorf("unable to get line number from port name, %w", err)
+	}
+
+	if targetOS == SwitchOSVendorCumulus {
+		return cumulusPortByLineNumber(line, allLines), nil
+	}
+	if targetOS == SwitchOSVendorSonic {
+		return sonicPortByLineNumber(line), nil
+	}
+
+	return "", fmt.Errorf("unknown target switch os %s", targetOS)
+}
+
+func getLinesFromPortNames(ports []string, os SwitchOSVendor) ([]int, error) {
+	lines := make([]int, 0)
+	for _, p := range ports {
+		l, err := portNameToLine(p, os)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get line number from port name, %w", err)
+		}
+
+		lines = append(lines, l)
+	}
+
+	return lines, nil
+}
+
+func portNameToLine(port string, os SwitchOSVendor) (int, error) {
+	if os == SwitchOSVendorSonic {
+		return sonicPortNameToLine(port)
+	}
+	if os == SwitchOSVendorCumulus {
+		return cumulusPortNameToLine(port)
+	}
+	return 0, fmt.Errorf("unknow switch os %s", os)
+}
+
+func sonicPortNameToLine(port string) (int, error) {
+	// to prevent accidentally parsing a substring to a negative number
+	if strings.Contains(port, "-") {
+		return 0, fmt.Errorf("invalid token '-' in port name %s", port)
+	}
+
+	prefix, lineString, found := strings.Cut(port, "Ethernet")
+	if !found {
+		return 0, fmt.Errorf("invalid port name %s, expected to find prefix 'Ethernet'", port)
+	}
+
+	if prefix != "" {
+		return 0, fmt.Errorf("invalid port name %s, port name is expected to start with 'Ethernet'", port)
+	}
+
+	line, err := strconv.Atoi(lineString)
+	if err != nil {
+		return 0, fmt.Errorf("unable to convert port name to line number: %w", err)
+	}
+
+	return line, nil
+}
+
+func cumulusPortNameToLine(port string) (int, error) {
+	// to prevent accidentally parsing a substring to a negative number
+	if strings.Contains(port, "-") {
+		return 0, fmt.Errorf("invalid token '-' in port name %s", port)
+	}
+
+	prefix, suffix, found := strings.Cut(port, "swp")
+	if !found {
+		return 0, fmt.Errorf("invalid port name %s, expected to find prefix 'swp'", port)
+	}
+
+	if prefix != "" {
+		return 0, fmt.Errorf("invalid port name %s, port name is expected to start with 'swp'", port)
+	}
+
+	var line int
+
+	countString, indexString, found := strings.Cut(suffix, "s")
+	if !found {
+		count, err := strconv.Atoi(suffix)
+		if err != nil {
+			return 0, fmt.Errorf("unable to convert port name to line number: %w", err)
+		}
+		line = count * 4
+	} else {
+		count, err := strconv.Atoi(countString)
+		if err != nil {
+			return 0, fmt.Errorf("unable to convert port name to line number: %w", err)
+		}
+
+		index, err := strconv.Atoi(indexString)
+		if err != nil {
+			return 0, fmt.Errorf("unable to convert port name to line number: %w", err)
+		}
+		line = count*4 + index
+	}
+
+	return line, nil
+}
+
+func sonicPortByLineNumber(line int) string {
+	return fmt.Sprintf("Ethernet%d", line)
+}
+
+func cumulusPortByLineNumber(line int, allLines []int) string {
+	if line%4 > 0 {
+		return fmt.Sprintf("swp%ds%d", line/4, line%4)
+	}
+
+	for _, l := range allLines {
+		if l == line {
+			continue
+		}
+		if l/4 == line/4 {
+			return fmt.Sprintf("swp%ds%d", line/4, line%4)
+		}
+	}
+
+	return fmt.Sprintf("swp%d", line/4)
 }
