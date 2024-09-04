@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/netip"
+	"slices"
+	"strconv"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -104,6 +107,7 @@ func (r *networkResource) webService() *restful.WebService {
 		To(admin(r.updateNetwork)).
 		Operation("updateNetwork").
 		Doc("updates a network. if the network was changed since this one was read, a conflict is returned").
+		Param(ws.QueryParameter("force", "if true update forcefully").DataType("boolean").DefaultValue("false")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkUpdateRequest{}).
 		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
@@ -358,6 +362,12 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
+	err = validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, privateSuper)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	if vrf != 0 {
 		err = acquireVRF(r.ds, vrf)
 		if err != nil {
@@ -378,15 +388,16 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 			Name:        name,
 			Description: description,
 		},
-		Prefixes:            prefixes,
-		DestinationPrefixes: destPrefixes,
-		PartitionID:         partitionID,
-		ProjectID:           projectID,
-		Nat:                 nat,
-		PrivateSuper:        privateSuper,
-		Underlay:            underlay,
-		Vrf:                 vrf,
-		Labels:              labels,
+		Prefixes:                   prefixes,
+		DestinationPrefixes:        destPrefixes,
+		PartitionID:                partitionID,
+		ProjectID:                  projectID,
+		Nat:                        nat,
+		PrivateSuper:               privateSuper,
+		Underlay:                   underlay,
+		Vrf:                        vrf,
+		Labels:                     labels,
+		AdditionalAnnouncableCIDRs: requestPayload.AdditionalAnnouncableCIDRs,
 	}
 
 	ctx := request.Request.Context()
@@ -407,6 +418,25 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	usage := getNetworkUsage(ctx, nw, r.ipamer)
 
 	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+}
+
+func validateAdditionalAnnouncableCIDRs(additionalCidrs []string, privateSuper bool) error {
+	if len(additionalCidrs) == 0 {
+		return nil
+	}
+
+	if !privateSuper {
+		return errors.New("additionalannouncablecidrs can only be set in a private super network")
+	}
+
+	for _, cidr := range additionalCidrs {
+		_, err := netip.ParsePrefix(cidr)
+		if err != nil {
+			return fmt.Errorf("given cidr:%q in additionalannouncablecidrs is malformed:%w", cidr, err)
+		}
+	}
+
+	return nil
 }
 
 func (r *networkResource) allocateNetwork(request *restful.Request, response *restful.Response) {
@@ -583,8 +613,20 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 }
 
 func (r *networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.NetworkUpdateRequest
-	err := request.ReadEntity(&requestPayload)
+	var (
+		requestPayload v1.NetworkUpdateRequest
+		forceParam     = request.QueryParameter("force")
+	)
+	if forceParam == "" {
+		forceParam = "false"
+	}
+
+	force, err := strconv.ParseBool(forceParam)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+	err = request.ReadEntity(&requestPayload)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -669,6 +711,20 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 			return
 		}
 	}
+
+	err = validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, oldNetwork.PrivateSuper)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+	for _, oldcidr := range oldNetwork.AdditionalAnnouncableCIDRs {
+		if !force && !slices.Contains(requestPayload.AdditionalAnnouncableCIDRs, oldcidr) {
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("you cannot remove %q from additionalannouncablecidrs without force flag set", oldcidr)))
+			return
+		}
+	}
+
+	newNetwork.AdditionalAnnouncableCIDRs = requestPayload.AdditionalAnnouncableCIDRs
 
 	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
 	if err != nil {

@@ -23,8 +23,9 @@ var (
 			Role:    metal.RoleMachine,
 			MachineNetworks: []*metal.MachineNetwork{
 				{
-					Private: true,
-					Vrf:     1,
+					NetworkID: "3",
+					Private:   true,
+					Vrf:       1,
 				},
 			},
 		},
@@ -323,13 +324,14 @@ var (
 		Base: metal.Base{
 			ID: "super-tenant-network-1",
 		},
-		Prefixes:        metal.Prefixes{{IP: "10.0.0.0", Length: "16"}},
-		PartitionID:     Partition1.ID,
-		ParentNetworkID: "",
-		ProjectID:       "",
-		PrivateSuper:    true,
-		Nat:             false,
-		Underlay:        false,
+		Prefixes:                   metal.Prefixes{{IP: "10.0.0.0", Length: "16"}},
+		PartitionID:                Partition1.ID,
+		ParentNetworkID:            "",
+		ProjectID:                  "",
+		PrivateSuper:               true,
+		Nat:                        false,
+		Underlay:                   false,
+		AdditionalAnnouncableCIDRs: []string{"10.240.0.0/12"},
 	}
 
 	Partition2PrivateSuperNetwork = metal.Network{
