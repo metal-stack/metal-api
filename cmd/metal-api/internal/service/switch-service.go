@@ -773,12 +773,12 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 }
 
 func (r *switchResource) makeSwitchResponse(s *metal.Switch) (*v1.SwitchResponse, error) {
-	p, ips, machines, ss, err := findSwitchReferencedEntities(s, r.ds)
+	p, nws, ips, machines, ss, err := r.findSwitchReferencedEntities(s)
 	if err != nil {
 		return nil, err
 	}
 
-	nics, err := r.makeSwitchNics(s, ips, machines)
+	nics, err := r.makeSwitchNics(s, nws, ips, machines)
 	if err != nil {
 		return nil, err
 	}
@@ -809,7 +809,7 @@ func (r *switchResource) makeBGPFilterFirewall(m metal.Machine) (v1.BGPFilter, e
 	return v1.NewBGPFilter(vnis, cidrs), nil
 }
 
-func (r *switchResource) makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) (v1.BGPFilter, error) {
+func (r *switchResource) makeBGPFilterMachine(m metal.Machine, nws metal.NetworkMap, ips metal.IPsMap) (v1.BGPFilter, error) {
 	vnis := []string{}
 	cidrs := []string{}
 
@@ -827,21 +827,19 @@ func (r *switchResource) makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap)
 	if private != nil {
 		cidrs = append(cidrs, private.Prefixes...)
 
-		privateNetwork, err := r.ds.FindNetworkByID(private.NetworkID)
-		if err != nil && !metal.IsNotFound(err) {
-			return v1.BGPFilter{}, err
+		privateNetwork, ok := nws[private.NetworkID]
+		if !ok {
+			return v1.BGPFilter{}, fmt.Errorf("no private network found for ID:%s", private.NetworkID)
 		}
-		if privateNetwork != nil {
-			parentNetwork, err := r.ds.FindNetworkByID(privateNetwork.ParentNetworkID)
-			if err != nil && !metal.IsNotFound(err) {
-				return v1.BGPFilter{}, err
-			}
-			// Only for private networks, AdditionalAnnouncableCIDRs are applied.
-			// they contain usually the pod- and service- cidrs in a kubernetes cluster
-			if parentNetwork != nil && len(parentNetwork.AdditionalAnnouncableCIDRs) > 0 {
-				r.log.Debug("makeBGPFilterMachine", "additional cidrs", parentNetwork.AdditionalAnnouncableCIDRs)
-				cidrs = append(cidrs, parentNetwork.AdditionalAnnouncableCIDRs...)
-			}
+		parentNetwork, ok := nws[privateNetwork.ParentNetworkID]
+		if !ok {
+			return v1.BGPFilter{}, fmt.Errorf("no parent network found for ID:%s", privateNetwork.ParentNetworkID)
+		}
+		// Only for private networks, AdditionalAnnouncableCIDRs are applied.
+		// they contain usually the pod- and service- cidrs in a kubernetes cluster
+		if len(parentNetwork.AdditionalAnnouncableCIDRs) > 0 {
+			r.log.Debug("makeBGPFilterMachine", "additional cidrs", parentNetwork.AdditionalAnnouncableCIDRs)
+			cidrs = append(cidrs, parentNetwork.AdditionalAnnouncableCIDRs...)
 		}
 	}
 	for _, i := range ips[m.Allocation.Project] {
@@ -901,7 +899,7 @@ func compactCidrs(cidrs []string) ([]string, error) {
 	return compactedCidrs, nil
 }
 
-func (r *switchResource) makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) (v1.BGPFilter, error) {
+func (r *switchResource) makeBGPFilter(m metal.Machine, vrf string, nws metal.NetworkMap, ips metal.IPsMap) (v1.BGPFilter, error) {
 	var (
 		filter v1.BGPFilter
 		err    error
@@ -914,13 +912,13 @@ func (r *switchResource) makeBGPFilter(m metal.Machine, vrf string, ips metal.IP
 			filter, err = r.makeBGPFilterFirewall(m)
 		}
 	} else {
-		filter, err = r.makeBGPFilterMachine(m, ips)
+		filter, err = r.makeBGPFilterMachine(m, nws, ips)
 	}
 
 	return filter, err
 }
 
-func (r *switchResource) makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) (v1.SwitchNics, error) {
+func (r *switchResource) makeSwitchNics(s *metal.Switch, nws metal.NetworkMap, ips metal.IPsMap, machines metal.Machines) (v1.SwitchNics, error) {
 	machinesByID := map[string]*metal.Machine{}
 	for i, m := range machines {
 		machinesByID[m.ID] = &machines[i]
@@ -941,7 +939,7 @@ func (r *switchResource) makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machi
 		m := machinesBySwp[n.Name]
 		var filter *v1.BGPFilter
 		if m != nil && m.Allocation != nil {
-			f, err := r.makeBGPFilter(*m, n.Vrf, ips)
+			f, err := r.makeBGPFilter(*m, n.Vrf, nws, ips)
 			if err != nil {
 				return nil, err
 			}
@@ -1013,38 +1011,45 @@ func (r *switchResource) makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	return cons
 }
 
-func findSwitchReferencedEntities(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, *metal.SwitchStatus, error) {
-	var err error
-	var p *metal.Partition
-	var m metal.Machines
+func (r *switchResource) findSwitchReferencedEntities(s *metal.Switch) (*metal.Partition, metal.NetworkMap, metal.IPsMap, metal.Machines, *metal.SwitchStatus, error) {
+	var (
+		err error
+		p   *metal.Partition
+		m   metal.Machines
+	)
 
 	if s.PartitionID != "" {
-		p, err = ds.FindPartition(s.PartitionID)
+		p, err = r.ds.FindPartition(s.PartitionID)
 		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("switch %q references partition, but partition %q cannot be found in database: %w", s.ID, s.PartitionID, err)
+			return nil, nil, nil, nil, nil, fmt.Errorf("switch %q references partition, but partition %q cannot be found in database: %w", s.ID, s.PartitionID, err)
 		}
 
-		err = ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &m)
+		err = r.ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &m)
 		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("could not search machines of partition %q for switch %q: %w", s.PartitionID, s.ID, err)
+			return nil, nil, nil, nil, nil, fmt.Errorf("could not search machines of partition %q for switch %q: %w", s.PartitionID, s.ID, err)
 		}
 	}
 
-	ips, err := ds.ListIPs()
+	ips, err := r.ds.ListIPs()
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
 	}
 
-	ss, err := ds.GetSwitchStatus(s.ID)
+	nws, err := r.ds.ListNetworks()
+	if err != nil {
+		return nil, nil, nil, nil, nil, fmt.Errorf("networks could not be listed: %w", err)
+	}
+
+	ss, err := r.ds.GetSwitchStatus(s.ID)
 	if err != nil && !metal.IsNotFound(err) {
-		return nil, nil, nil, nil, fmt.Errorf("switchStatus could not be listed: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("switchStatus could not be listed: %w", err)
 	}
 
-	return p, ips.ByProjectID(), m, ss, nil
+	return p, nws.ByID(), ips.ByProjectID(), m, ss, nil
 }
 
 func (r *switchResource) makeSwitchResponseList(ss metal.Switches) ([]*v1.SwitchResponse, error) {
-	pMap, ips, err := getSwitchReferencedEntityMaps(r.ds)
+	pMap, nws, ips, err := getSwitchReferencedEntityMaps(r.ds)
 	if err != nil {
 		return nil, err
 	}
@@ -1063,7 +1068,7 @@ func (r *switchResource) makeSwitchResponseList(ss metal.Switches) ([]*v1.Switch
 			p = &partitionEntity
 		}
 
-		nics, err := r.makeSwitchNics(&sw, ips, m)
+		nics, err := r.makeSwitchNics(&sw, nws, ips, m)
 		if err != nil {
 			return nil, err
 		}
@@ -1078,16 +1083,19 @@ func (r *switchResource) makeSwitchResponseList(ss metal.Switches) ([]*v1.Switch
 	return result, nil
 }
 
-func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore) (metal.PartitionMap, metal.IPsMap, error) {
+func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore) (metal.PartitionMap, metal.NetworkMap, metal.IPsMap, error) {
 	p, err := ds.ListPartitions()
 	if err != nil {
-		return nil, nil, fmt.Errorf("partitions could not be listed: %w", err)
+		return nil, nil, nil, fmt.Errorf("partitions could not be listed: %w", err)
 	}
 
 	ips, err := ds.ListIPs()
 	if err != nil {
-		return nil, nil, fmt.Errorf("ips could not be listed: %w", err)
+		return nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
 	}
-
-	return p.ByID(), ips.ByProjectID(), nil
+	nws, err := ds.ListNetworks()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("networks could not be listed: %w", err)
+	}
+	return p.ByID(), nws.ByID(), ips.ByProjectID(), nil
 }

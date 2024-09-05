@@ -23,14 +23,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_MigrationProvisioningEventContainer(t *testing.T) {
+func Test_Migration(t *testing.T) {
 	container, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 	defer func() {
 		_ = container.Terminate(context.Background())
 	}()
 
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
@@ -69,12 +69,22 @@ func Test_MigrationProvisioningEventContainer(t *testing.T) {
 				ID: "1",
 			},
 		}
+		n = &metal.Network{
+			Base: metal.Base{
+				ID:   "tenant-super",
+				Name: "tenant-super",
+			},
+			PrivateSuper: true,
+		}
 	)
 
 	err = rs.UpsertProvisioningEventContainer(ec)
 	require.NoError(t, err)
 
 	err = rs.CreateMachine(m)
+	require.NoError(t, err)
+
+	err = rs.CreateNetwork(n)
 	require.NoError(t, err)
 
 	updateM := *m
@@ -89,6 +99,12 @@ func Test_MigrationProvisioningEventContainer(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotEmpty(t, m.Allocation.UUID, "allocation uuid was not generated")
+
+	n, err = rs.FindNetworkByID("tenant-super")
+	require.NoError(t, err)
+
+	assert.NotEmpty(t, n)
+	assert.Equal(t, []string{"10.240.0.0/12"}, n.AdditionalAnnouncableCIDRs)
 
 	ec, err = rs.FindProvisioningEventContainer("1")
 	require.NoError(t, err)

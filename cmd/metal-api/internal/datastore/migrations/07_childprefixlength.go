@@ -28,18 +28,27 @@ func init() {
 				if err != nil {
 					return err
 				}
+				if cursor.IsNil() {
+					_ = cursor.Close()
+					continue
+				}
 				var partition tmpPartition
 				err = cursor.One(&partition)
 				if err != nil {
+					_ = cursor.Close()
 					return err
 				}
-
+				err = cursor.Close()
+				if err != nil {
+					return err
+				}
 				new := old
 
 				var (
 					af                       metal.AddressFamily
 					defaultChildPrefixLength = metal.ChildPrefixLength{}
 				)
+				// FIXME check all prefixes
 				parsed, err := netip.ParsePrefix(new.Prefixes[0].String())
 				if err != nil {
 					return err
@@ -70,10 +79,6 @@ func init() {
 
 				}
 				err = rs.UpdateNetwork(&old, &new)
-				if err != nil {
-					return err
-				}
-				err = cursor.Close()
 				if err != nil {
 					return err
 				}

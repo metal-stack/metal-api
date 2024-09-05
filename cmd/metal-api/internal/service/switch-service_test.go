@@ -419,6 +419,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 	type args struct {
 		machine metal.Machine
 		ipsMap  metal.IPsMap
+		nws     metal.NetworkMap
 	}
 	tests := []struct {
 		name string
@@ -445,6 +446,20 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 						IPAddress: "2001::1",
 					},
 				}},
+				nws: metal.NetworkMap{
+					"tenant-super": metal.Network{
+						PrivateSuper:               true,
+						AdditionalAnnouncableCIDRs: []string{"10.240.0.0/12"},
+					},
+					"1": metal.Network{
+						Base: metal.Base{ID: "1"},
+						Prefixes: metal.Prefixes{
+							{IP: "10.2.0.0", Length: "22"},
+							{IP: "10.1.0.0", Length: "22"},
+						},
+						ParentNetworkID: "tenant-super",
+					},
+				},
 				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						Project: "project",
@@ -510,7 +525,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 
 			r := switchResource{webResource: webResource{ds: ds, log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))}}
 
-			got, _ := r.makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
+			got, _ := r.makeBGPFilterMachine(tt.args.machine, tt.args.nws, tt.args.ipsMap)
 
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterMachine() = %v, want %v", got, tt.want)
@@ -523,6 +538,7 @@ func TestMakeSwitchNics(t *testing.T) {
 	type args struct {
 		s        *metal.Switch
 		ips      metal.IPsMap
+		nws      metal.NetworkMap
 		machines metal.Machines
 	}
 	tests := []struct {
@@ -619,7 +635,7 @@ func TestMakeSwitchNics(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			r := switchResource{}
-			got, _ := r.makeSwitchNics(tt.args.s, tt.args.ips, tt.args.machines)
+			got, _ := r.makeSwitchNics(tt.args.s, tt.args.nws, tt.args.ips, tt.args.machines)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeSwitchNics() = %v, want %v", got, tt.want)
 			}
@@ -1473,6 +1489,7 @@ func Test_SwitchDelete(t *testing.T) {
 				mock.On(r.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
 				mock.On(r.DB("mockdb").Table("switchstatus").Get("switch-1")).Return(nil, nil)
 				mock.On(r.DB("mockdb").Table("ip")).Return(nil, nil)
+				mock.On(r.DB("mockdb").Table("network")).Return(nil, nil)
 			},
 			want: &v1.SwitchResponse{
 				Common: v1.Common{
@@ -1522,6 +1539,7 @@ func Test_SwitchDelete(t *testing.T) {
 				mock.On(r.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
 				mock.On(r.DB("mockdb").Table("switchstatus").Get("switch-1")).Return(nil, nil)
 				mock.On(r.DB("mockdb").Table("ip")).Return(nil, nil)
+				mock.On(r.DB("mockdb").Table("network")).Return(nil, nil)
 			},
 			force: true,
 			want: &v1.SwitchResponse{
