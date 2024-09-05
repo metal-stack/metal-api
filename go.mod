@@ -2,8 +2,6 @@ module github.com/metal-stack/metal-api
 
 go 1.23
 
-toolchain go1.23.0
-
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/Masterminds/semver/v3 v3.3.0
@@ -38,11 +36,6 @@ require (
 	google.golang.org/grpc v1.66.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
-)
-
-require (
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.19.0 // indirect
-	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 )
 
 replace (
@@ -201,8 +194,10 @@ require (
 	go.mongodb.org/mongo-driver v1.16.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.54.0 // indirect
 	go.opentelemetry.io/otel v1.29.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.29.0 // indirect
 	go.opentelemetry.io/otel/metric v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0
+	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
