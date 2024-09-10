@@ -64,7 +64,7 @@ func (r *auditResource) find(request *restful.Request, response *restful.Respons
 		return
 	}
 
-	backendResult, err := r.a.Search(auditing.EntryFilter{
+	backendResult, err := r.a.Search(request.Request.Context(), auditing.EntryFilter{
 		Limit:        requestPayload.Limit,
 		From:         requestPayload.From,
 		To:           requestPayload.To,

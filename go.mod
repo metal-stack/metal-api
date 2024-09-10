@@ -2,6 +2,8 @@ module github.com/metal-stack/metal-api
 
 go 1.22
 
+replace github.com/metal-stack/metal-lib => ../metal-lib
+
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/Masterminds/semver/v3 v3.2.1
@@ -20,7 +22,7 @@ require (
 	github.com/looplab/fsm v1.0.2
 	github.com/metal-stack/go-ipam v1.14.5
 	github.com/metal-stack/masterdata-api v0.11.4
-	github.com/metal-stack/metal-lib v0.18.1
+	github.com/metal-stack/metal-lib v0.18.2-0.20240826135712-504fccc29464
 	github.com/metal-stack/security v0.8.1
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
@@ -37,6 +39,8 @@ require (
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
+
+require github.com/lopezator/migrator v0.3.1 // indirect
 
 replace (
 	// Newer versions do not export base entities which are used to composite other entities.
