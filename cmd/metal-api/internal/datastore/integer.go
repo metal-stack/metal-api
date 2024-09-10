@@ -225,7 +225,7 @@ func makeRange(min, max uint) []integer {
 	a := make([]integer, max-min+1)
 	for i := range a {
 		a[i] = integer{
-			ID: min + uint(i),
+			ID: min + uint(i), // nolint:gosec
 		}
 	}
 	return a
