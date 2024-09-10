@@ -179,7 +179,7 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 			},
 		},
 	}
-	ts.registerSwitch(sonic1)
+	ts.registerSwitch(sonic2)
 	ts.migrateSwitch(cumulus2, sonic2, wantConnections)
 
 	wantMachineNics = metal.Nics{
@@ -379,17 +379,19 @@ func (ts *testService) migrateSwitch(oldSwitch, newSwitch metal.Switch, wantConn
 	wantSwitch.Mode = metal.SwitchOperational
 	wantSwitch.MachineConnections = wantConnections
 
-	var res v1.SwitchResponse
-
 	smr := v1.SwitchMigrateRequest{
 		OldSwitchID: oldSwitch.ID,
 		NewSwitchID: newSwitch.ID,
 	}
-	ts.switchMigrate(ts.t, smr, &res)
 
+	var res v1.SwitchResponse
+	ts.switchMigrate(ts.t, smr, &res)
 	status := ts.switchGet(ts.t, wantSwitch.ID, &res)
 	require.Equal(ts.t, http.StatusOK, status)
 	ts.checkSwitchResponse(wantSwitch, &res)
+
+	status = ts.switchDelete(ts.t, oldSwitch.ID, &res)
+	require.Equal(ts.t, http.StatusOK, status)
 }
 
 func (ts *testService) setReplaceMode(id string) {

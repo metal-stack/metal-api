@@ -601,25 +601,13 @@ func (r *switchResource) migrate(request *restful.Request, response *restful.Res
 		return
 	}
 
-	twin, err := r.findTwinSwitch(old)
+	s, err := adoptConfiguration(old, new)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	s, err := adoptFromTwin(old, twin, new)
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
-	nicMap, err := s.TranslateNicMap(old.OS.Vendor)
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
-	err = r.adjustMachineConnections(old.MachineConnections, nicMap)
+	err = r.migrateMachineConnections(old, s)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -712,8 +700,6 @@ func (r *switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch,
 
 // adoptFromTwin adopts the switch configuration found at the neighboring twin switch to a replacement switch.
 func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
-	s := *new
-
 	if new.PartitionID != old.PartitionID {
 		return nil, fmt.Errorf("old and new switch belong to different partitions, old: %v, new: %v", old.PartitionID, new.PartitionID)
 	}
@@ -725,16 +711,22 @@ func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
 	}
 	if len(twin.MachineConnections) == 0 {
 		// twin switch has no machine connections, switch may be used immediately, replace mode is unnecessary
+		s := *new
 		s.Mode = metal.SwitchOperational
 		return &s, nil
 	}
 
-	newNics, err := adoptNics(twin, new)
+	return adoptConfiguration(twin, new)
+}
+
+func adoptConfiguration(existing, new *metal.Switch) (*metal.Switch, error) {
+	s := *new
+	newNics, err := adoptNics(existing, new)
 	if err != nil {
 		return nil, fmt.Errorf("could not adopt nic configuration from twin, err: %w", err)
 	}
 
-	newMachineConnections, err := adoptMachineConnections(twin, new)
+	newMachineConnections, err := adoptMachineConnections(existing, new)
 	if err != nil {
 		return nil, err
 	}
@@ -812,6 +804,27 @@ func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap
 	}
 
 	return newConnectionMap, nil
+}
+
+// migrateMachineConnections removes all machine connections from the old switch and adds them to the new one. this enables switch deletion after migration is completed.
+func (r *switchResource) migrateMachineConnections(old, new *metal.Switch) error {
+	nicMap, err := new.TranslateNicMap(old.OS.Vendor)
+	if err != nil {
+		return err
+	}
+
+	err = r.adjustMachineConnections(old.MachineConnections, nicMap)
+	if err != nil {
+		return err
+	}
+
+	return r.removeSwitchMachineConnections(old)
+}
+
+func (r *switchResource) removeSwitchMachineConnections(sw *metal.Switch) error {
+	new := *sw
+	new.MachineConnections = make(metal.ConnectionMap)
+	return r.ds.UpdateSwitch(sw, &new)
 }
 
 // adjustMachineConnections updates the neighbor entries for all machines connected to the switch
