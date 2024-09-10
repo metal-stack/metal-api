@@ -27,7 +27,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-func TestSwitchReplacementIntegration(t *testing.T) {
+func TestSwitchMigrationIntegration(t *testing.T) {
 	ts := createTestService(t)
 	defer ts.terminate()
 
@@ -50,7 +50,7 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		RackID:      testRackID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
-	ts.registerSwitch(cumulus1, true)
+	ts.registerSwitch(cumulus1)
 
 	cumulus2 := metal.Switch{
 		Base: metal.Base{
@@ -67,7 +67,7 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 		RackID:      testRackID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
-	ts.registerSwitch(cumulus2, true)
+	ts.registerSwitch(cumulus2)
 
 	m := &metal.Machine{
 		Base: metal.Base{
@@ -104,7 +104,7 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 
 	sonic1 := metal.Switch{
 		Base: metal.Base{
-			ID: cumulus1.ID,
+			ID: "test-switch01-sonic",
 		},
 		Nics: []metal.Nic{
 			{
@@ -127,7 +127,8 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 			},
 		},
 	}
-	ts.replaceSwitch(sonic1, wantConnections)
+	ts.registerSwitch(sonic1)
+	ts.migrateSwitch(cumulus1, sonic1, wantConnections)
 
 	wantMachineNics := metal.Nics{
 		{
@@ -155,7 +156,7 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 
 	sonic2 := metal.Switch{
 		Base: metal.Base{
-			ID: cumulus2.ID,
+			ID: "test-switch02-sonic",
 		},
 		Nics: []metal.Nic{
 			{
@@ -178,7 +179,8 @@ func TestSwitchReplacementIntegration(t *testing.T) {
 			},
 		},
 	}
-	ts.replaceSwitch(sonic2, wantConnections)
+	ts.registerSwitch(sonic1)
+	ts.migrateSwitch(cumulus2, sonic2, wantConnections)
 
 	wantMachineNics = metal.Nics{
 		{
@@ -286,6 +288,14 @@ func (ts *testService) machineGet(t *testing.T, mid string, response interface{}
 	return webRequestGet(t, ts.machineService, &testUserDirectory.admin, emptyBody{}, "/v1/machine/"+mid, response)
 }
 
+func (ts *testService) switchMigrate(t *testing.T, smr v1.SwitchMigrateRequest, response interface{}) int {
+	return webRequestPost(t, ts.switchService, &testUserDirectory.edit, smr, "/v1/switch/migrate", response)
+}
+
+func (ts *testService) switchDelete(t *testing.T, sid string, response interface{}) int {
+	return webRequestDelete(t, ts.switchService, &testUserDirectory.admin, emptyBody{}, "/v1/switch/"+sid, response)
+}
+
 func (ts *testService) createPartition(id, name, description string) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "I am a downloadable content")
@@ -319,7 +329,7 @@ func (ts *testService) createPartition(id, name, description string) {
 
 }
 
-func (ts *testService) registerSwitch(sw metal.Switch, isNewId bool) {
+func (ts *testService) registerSwitch(sw metal.Switch) {
 	nics := make([]v1.SwitchNic, 0)
 	for _, nic := range sw.Nics {
 		nic := v1.SwitchNic{
@@ -345,13 +355,9 @@ func (ts *testService) registerSwitch(sw metal.Switch, isNewId bool) {
 		},
 	}
 
-	wantStatus := http.StatusOK
-	if isNewId {
-		wantStatus = http.StatusCreated
-	}
 	var res v1.SwitchResponse
 	status := ts.switchRegister(ts.t, srr, &res)
-	require.Equal(ts.t, wantStatus, status)
+	require.Equal(ts.t, http.StatusCreated, status)
 	ts.checkSwitchResponse(sw, &res)
 }
 
@@ -368,14 +374,19 @@ func (ts *testService) createMachine(m *metal.Machine) {
 	require.NoError(ts.t, err)
 }
 
-func (ts *testService) replaceSwitch(newSwitch metal.Switch, wantConnections metal.ConnectionMap) {
-	ts.setReplaceMode(newSwitch.ID)
-	ts.registerSwitch(newSwitch, false)
+func (ts *testService) migrateSwitch(oldSwitch, newSwitch metal.Switch, wantConnections metal.ConnectionMap) {
 	wantSwitch := newSwitch
 	wantSwitch.Mode = metal.SwitchOperational
 	wantSwitch.MachineConnections = wantConnections
 
 	var res v1.SwitchResponse
+
+	smr := v1.SwitchMigrateRequest{
+		OldSwitchID: oldSwitch.ID,
+		NewSwitchID: newSwitch.ID,
+	}
+	ts.switchMigrate(ts.t, smr, &res)
+
 	status := ts.switchGet(ts.t, wantSwitch.ID, &res)
 	require.Equal(ts.t, http.StatusOK, status)
 	ts.checkSwitchResponse(wantSwitch, &res)
