@@ -27,13 +27,12 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-func TestSwitchMigrationIntegration(t *testing.T) {
+func TestSwitchMigrateIntegration(t *testing.T) {
 	ts := createTestService(t)
 	defer ts.terminate()
 
 	testPartitionID := "test-partition"
 	testRackID := "test-rack"
-	ts.createPartition(testPartitionID, testPartitionID, "Test Partition")
 
 	cumulus1 := metal.Switch{
 		Base: metal.Base{
@@ -50,7 +49,6 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 		RackID:      testRackID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
-	ts.registerSwitch(cumulus1)
 
 	cumulus2 := metal.Switch{
 		Base: metal.Base{
@@ -67,7 +65,6 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 		RackID:      testRackID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
-	ts.registerSwitch(cumulus2)
 
 	m := &metal.Machine{
 		Base: metal.Base{
@@ -100,7 +97,6 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 			},
 		},
 	}
-	ts.createMachine(m)
 
 	sonic1 := metal.Switch{
 		Base: metal.Base{
@@ -116,7 +112,8 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 		RackID:      testRackID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
 	}
-	wantConnections := metal.ConnectionMap{
+
+	wantConnections1 := metal.ConnectionMap{
 		m.ID: metal.Connections{
 			{
 				Nic: metal.Nic{
@@ -127,10 +124,8 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 			},
 		},
 	}
-	ts.registerSwitch(sonic1)
-	ts.migrateSwitch(cumulus1, sonic1, wantConnections)
 
-	wantMachineNics := metal.Nics{
+	wantMachineNics1 := metal.Nics{
 		{
 			Name:       m.Hardware.Nics[0].Name,
 			MacAddress: m.Hardware.Nics[0].MacAddress,
@@ -152,7 +147,6 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 			},
 		},
 	}
-	ts.checkMachineNics(m.ID, wantMachineNics)
 
 	sonic2 := metal.Switch{
 		Base: metal.Base{
@@ -168,7 +162,8 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 		RackID:      testRackID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
 	}
-	wantConnections = metal.ConnectionMap{
+
+	wantConnections2 := metal.ConnectionMap{
 		m.ID: metal.Connections{
 			{
 				Nic: metal.Nic{
@@ -179,10 +174,8 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 			},
 		},
 	}
-	ts.registerSwitch(sonic2)
-	ts.migrateSwitch(cumulus2, sonic2, wantConnections)
 
-	wantMachineNics = metal.Nics{
+	wantMachineNics2 := metal.Nics{
 		{
 			Name:       m.Hardware.Nics[0].Name,
 			MacAddress: m.Hardware.Nics[0].MacAddress,
@@ -204,7 +197,204 @@ func TestSwitchMigrationIntegration(t *testing.T) {
 			},
 		},
 	}
-	ts.checkMachineNics(m.ID, wantMachineNics)
+
+	ts.createPartition(testPartitionID, testPartitionID, "Test Partition")
+
+	ts.registerSwitch(cumulus1, true)
+	ts.registerSwitch(cumulus2, true)
+	ts.createMachine(m)
+
+	ts.registerSwitch(sonic1, true)
+	ts.migrateSwitch(cumulus1, sonic1, wantConnections1)
+	ts.checkMachineNics(m.ID, wantMachineNics1)
+
+	ts.registerSwitch(sonic2, true)
+	ts.migrateSwitch(cumulus2, sonic2, wantConnections2)
+	ts.checkMachineNics(m.ID, wantMachineNics2)
+}
+
+func TestSwitchReplaceIntegration(t *testing.T) {
+	ts := createTestService(t)
+	defer ts.terminate()
+
+	testPartitionID := "test-partition"
+	testRackID := "test-rack"
+
+	cumulus1 := metal.Switch{
+		Base: metal.Base{
+			ID:   "test-switch01",
+			Name: "",
+		},
+		Nics: []metal.Nic{
+			{
+				MacAddress: "aa:aa:aa:aa:aa:aa",
+				Name:       "swp1",
+			},
+		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+	}
+
+	cumulus2 := metal.Switch{
+		Base: metal.Base{
+			ID:   "test-switch02",
+			Name: "",
+		},
+		Nics: []metal.Nic{
+			{
+				MacAddress: "bb:bb:bb:bb:bb:bb",
+				Name:       "swp1",
+			},
+		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+	}
+
+	m := &metal.Machine{
+		Base: metal.Base{
+			ID: "test-machine",
+		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		Hardware: metal.MachineHardware{
+			Nics: []metal.Nic{
+				{
+					Name:       "eth0",
+					MacAddress: "11:11:11:11:11:11",
+					Neighbors: []metal.Nic{
+						{
+							Name:       cumulus1.Nics[0].Name,
+							MacAddress: cumulus1.Nics[0].MacAddress,
+						},
+					},
+				},
+				{
+					Name:       "eth1",
+					MacAddress: "22:22:22:22:22:22",
+					Neighbors: []metal.Nic{
+						{
+							Name:       cumulus2.Nics[0].Name,
+							MacAddress: cumulus2.Nics[0].MacAddress,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cumulus3 := metal.Switch{
+		Base: metal.Base{
+			ID: "test-switch01",
+		},
+		Nics: []metal.Nic{
+			{
+				MacAddress: "cc:cc:cc:cc:cc:cc",
+				Name:       "swp1",
+			},
+		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+	}
+
+	wantConnections1 := metal.ConnectionMap{
+		m.ID: metal.Connections{
+			{
+				Nic: metal.Nic{
+					Name:       cumulus3.Nics[0].Name,
+					MacAddress: cumulus3.Nics[0].MacAddress,
+				},
+				MachineID: m.ID,
+			},
+		},
+	}
+
+	wantMachineNics1 := metal.Nics{
+		{
+			Name:       m.Hardware.Nics[0].Name,
+			MacAddress: m.Hardware.Nics[0].MacAddress,
+			Neighbors: []metal.Nic{
+				{
+					Name:       cumulus3.Nics[0].Name,
+					MacAddress: cumulus3.Nics[0].MacAddress,
+				},
+			},
+		},
+		{
+			Name:       m.Hardware.Nics[1].Name,
+			MacAddress: m.Hardware.Nics[1].MacAddress,
+			Neighbors: []metal.Nic{
+				{
+					Name:       cumulus2.Nics[0].Name,
+					MacAddress: cumulus2.Nics[0].MacAddress,
+				},
+			},
+		},
+	}
+
+	sonic1 := metal.Switch{
+		Base: metal.Base{
+			ID: "test-switch02",
+		},
+		Nics: []metal.Nic{
+			{
+				MacAddress: "dd:dd:dd:dd:dd:dd",
+				Name:       "Ethernet4",
+			},
+		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
+	}
+
+	wantConnections2 := metal.ConnectionMap{
+		m.ID: metal.Connections{
+			{
+				Nic: metal.Nic{
+					Name:       sonic1.Nics[0].Name,
+					MacAddress: sonic1.Nics[0].MacAddress,
+				},
+				MachineID: m.ID,
+			},
+		},
+	}
+
+	wantMachineNics2 := metal.Nics{
+		{
+			Name:       m.Hardware.Nics[0].Name,
+			MacAddress: m.Hardware.Nics[0].MacAddress,
+			Neighbors: []metal.Nic{
+				{
+					Name:       cumulus3.Nics[0].Name,
+					MacAddress: cumulus3.Nics[0].MacAddress,
+				},
+			},
+		},
+		{
+			Name:       m.Hardware.Nics[1].Name,
+			MacAddress: m.Hardware.Nics[1].MacAddress,
+			Neighbors: []metal.Nic{
+				{
+					Name:       sonic1.Nics[0].Name,
+					MacAddress: sonic1.Nics[0].MacAddress,
+				},
+			},
+		},
+	}
+
+	ts.createPartition(testPartitionID, testPartitionID, "Test Partition")
+
+	ts.registerSwitch(cumulus1, true)
+	ts.registerSwitch(cumulus2, true)
+	ts.createMachine(m)
+
+	ts.replaceSwitch(cumulus3, wantConnections1)
+	ts.checkMachineNics(m.ID, wantMachineNics1)
+
+	ts.replaceSwitch(sonic1, wantConnections2)
+	ts.checkMachineNics(m.ID, wantMachineNics2)
 }
 
 type testService struct {
@@ -329,7 +519,7 @@ func (ts *testService) createPartition(id, name, description string) {
 
 }
 
-func (ts *testService) registerSwitch(sw metal.Switch) {
+func (ts *testService) registerSwitch(sw metal.Switch, isNewId bool) {
 	nics := make([]v1.SwitchNic, 0)
 	for _, nic := range sw.Nics {
 		nic := v1.SwitchNic{
@@ -355,9 +545,13 @@ func (ts *testService) registerSwitch(sw metal.Switch) {
 		},
 	}
 
+	wantStatus := http.StatusOK
+	if isNewId {
+		wantStatus = http.StatusCreated
+	}
 	var res v1.SwitchResponse
 	status := ts.switchRegister(ts.t, srr, &res)
-	require.Equal(ts.t, http.StatusCreated, status)
+	require.Equal(ts.t, wantStatus, status)
 	ts.checkSwitchResponse(sw, &res)
 }
 
@@ -392,6 +586,19 @@ func (ts *testService) migrateSwitch(oldSwitch, newSwitch metal.Switch, wantConn
 
 	status = ts.switchDelete(ts.t, oldSwitch.ID, &res)
 	require.Equal(ts.t, http.StatusOK, status)
+}
+
+func (ts *testService) replaceSwitch(newSwitch metal.Switch, wantConnections metal.ConnectionMap) {
+	ts.setReplaceMode(newSwitch.ID)
+	ts.registerSwitch(newSwitch, false)
+	wantSwitch := newSwitch
+	wantSwitch.Mode = metal.SwitchOperational
+	wantSwitch.MachineConnections = wantConnections
+
+	var res v1.SwitchResponse
+	status := ts.switchGet(ts.t, wantSwitch.ID, &res)
+	require.Equal(ts.t, http.StatusOK, status)
+	ts.checkSwitchResponse(wantSwitch, &res)
 }
 
 func (ts *testService) setReplaceMode(id string) {
