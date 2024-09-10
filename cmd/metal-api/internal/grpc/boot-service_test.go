@@ -40,7 +40,7 @@ func TestBootService_Register(t *testing.T) {
 		name                 string
 		uuid                 string
 		numcores             int
-		memory               int
+		memory               uint64
 		dbsizes              []metal.Size
 		dbmachines           metal.Machines
 		neighbormac1         metal.MacAddress
@@ -121,7 +121,7 @@ func TestBootService_Register(t *testing.T) {
 			req := &v1.BootServiceRegisterRequest{
 				Uuid: tt.uuid,
 				Hardware: &v1.MachineHardware{
-					Memory: uint64(tt.memory),
+					Memory: tt.memory,
 					Disks: []*v1.MachineBlockDevice{
 						{
 							Size: 1000000000000,
