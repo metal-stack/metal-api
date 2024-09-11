@@ -45,6 +45,7 @@ type MachineAllocation struct {
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 	AllocationUUID   string                    `json:"allocationuuid" description:"a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time."`
 	FirewallRules    *FirewallRules            `json:"firewall_rules,omitempty" description:"a set of firewall rules to apply" optional:"true"`
+	DNSServers       []string                  `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
 }
 
 type FirewallRules struct {
@@ -218,6 +219,7 @@ type MachineAllocateRequest struct {
 	Networks           MachineAllocationNetworks `json:"networks" description:"the networks that this machine will be placed in." optional:"true"`
 	IPs                []string                  `json:"ips" description:"the ips to attach to this machine additionally" optional:"true"`
 	PlacementTags      []string                  `json:"placement_tags,omitempty" description:"by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags"`
+	DNSServers         []string                  `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
 }
 
 type MachineAllocationNetworks []MachineAllocationNetwork

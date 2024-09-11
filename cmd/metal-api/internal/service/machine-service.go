@@ -78,6 +78,7 @@ type machineAllocationSpec struct {
 	PlacementTags      []string
 	EgressRules        []metal.EgressRule
 	IngressRules       []metal.IngressRule
+	DNSServers         []string
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -1154,6 +1155,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		PlacementTags:      machineRequest.PlacementTags,
 		EgressRules:        egress,
 		IngressRules:       ingress,
+		DNSServers:         machineRequest.DNSServers,
 	}, nil
 }
 
@@ -1237,6 +1239,7 @@ func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.Ret
 		VPN:             allocationSpec.VPN,
 		FirewallRules:   firewallRules,
 		UUID:            uuid.New().String(),
+		DNSServers:      allocationSpec.DNSServers,
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {

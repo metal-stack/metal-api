@@ -153,6 +153,7 @@ type MachineAllocation struct {
 	VPN              *MachineVPN       `rethinkdb:"vpn" json:"vpn"`
 	UUID             string            `rethinkdb:"uuid" json:"uuid"`
 	FirewallRules    *FirewallRules    `rethinkdb:"firewall_rules" json:"firewall_rules"`
+	DNSServers       []string          `rethinkdb:"dns_servers" json:"dns_servers"`
 }
 
 type FirewallRules struct {
