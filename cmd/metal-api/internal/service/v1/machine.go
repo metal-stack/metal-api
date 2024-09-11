@@ -567,6 +567,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			VPN:              NewMachineVPN(m.Allocation.VPN),
 			AllocationUUID:   m.Allocation.UUID,
 			FirewallRules:    firewallRules,
+			DNSServers:       m.Allocation.DNSServers,
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall
