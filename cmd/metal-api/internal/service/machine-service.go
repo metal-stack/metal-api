@@ -7,10 +7,12 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
@@ -79,6 +81,7 @@ type machineAllocationSpec struct {
 	EgressRules        []metal.EgressRule
 	IngressRules       []metal.IngressRule
 	DNSServers         []string
+	NTPServers         []string
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -1134,6 +1137,32 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		return nil, fmt.Errorf("size:%s not found err:%w", sizeID, err)
 	}
 
+	if len(machineRequest.DNSServers) > 3 {
+		return nil, errors.New("please specify a maximum of three dns servers")
+	}
+	for _, dnsip := range machineRequest.DNSServers {
+		_, err := netip.ParseAddr(dnsip)
+		if err != nil {
+			return nil, fmt.Errorf("IP: %s for DNS server not correct err: %w", dnsip, err)
+		}
+	}
+
+	if len(machineRequest.NTPServers) <= 3 || len(machineRequest.NTPServers) > 5 {
+		return nil, errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
+	}
+	for _, ntpserver := range machineRequest.NTPServers {
+		if net.ParseIP(ntpserver) != nil {
+			_, err := netip.ParseAddr(ntpserver)
+			if err != nil {
+				return nil, fmt.Errorf("IP: %s for NTP server not correct err: %w", ntpserver, err)
+			}
+		} else {
+			if !govalidator.IsDNSName(ntpserver) {
+				return nil, fmt.Errorf("DNS name: %s for NTP server not correct err: %w", ntpserver, err)
+			}
+		}
+	}
+
 	return &machineAllocationSpec{
 		Creator:            user.EMail,
 		UUID:               uuid,
@@ -1156,6 +1185,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		EgressRules:        egress,
 		IngressRules:       ingress,
 		DNSServers:         machineRequest.DNSServers,
+		NTPServers:         machineRequest.NTPServers,
 	}, nil
 }
 
@@ -1240,6 +1270,7 @@ func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.Ret
 		FirewallRules:   firewallRules,
 		UUID:            uuid.New().String(),
 		DNSServers:      allocationSpec.DNSServers,
+		NTPServers:      allocationSpec.NTPServers,
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {
