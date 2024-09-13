@@ -46,6 +46,7 @@ type MachineAllocation struct {
 	AllocationUUID   string                    `json:"allocationuuid" description:"a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time."`
 	FirewallRules    *FirewallRules            `json:"firewall_rules,omitempty" description:"a set of firewall rules to apply" optional:"true"`
 	DNSServers       []string                  `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
+	NTPServers       []string                  `json:"ntp_servers,omitempty" description:"the ntp servers used for the machine" optional:"true"`
 }
 
 type FirewallRules struct {
@@ -220,6 +221,7 @@ type MachineAllocateRequest struct {
 	IPs                []string                  `json:"ips" description:"the ips to attach to this machine additionally" optional:"true"`
 	PlacementTags      []string                  `json:"placement_tags,omitempty" description:"by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags"`
 	DNSServers         []string                  `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
+	NTPServers         []string                  `json:"ntp_servers,omitempty" description:"the ntp servers used for the machine" optional:"true"`
 }
 
 type MachineAllocationNetworks []MachineAllocationNetwork
@@ -568,6 +570,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			AllocationUUID:   m.Allocation.UUID,
 			FirewallRules:    firewallRules,
 			DNSServers:       m.Allocation.DNSServers,
+			NTPServers:       m.Allocation.NTPServers,
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall
