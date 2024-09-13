@@ -250,7 +250,7 @@ func TestUpdatePartition(t *testing.T) {
 
 func TestPartitionCapacity(t *testing.T) {
 	var (
-		mockMachines = func(mock *r.Mock, reservations []metal.Reservation, ms ...metal.Machine) {
+		mockMachines = func(mock *r.Mock, liveliness metal.MachineLiveliness, reservations []metal.Reservation, ms ...metal.Machine) {
 			var (
 				sizes      metal.Sizes
 				events     metal.ProvisioningEventContainers
@@ -258,7 +258,7 @@ func TestPartitionCapacity(t *testing.T) {
 			)
 
 			for _, m := range ms {
-				ec := metal.ProvisioningEventContainer{Base: metal.Base{ID: m.ID}, Liveliness: metal.MachineLivelinessAlive}
+				ec := metal.ProvisioningEventContainer{Base: metal.Base{ID: m.ID}, Liveliness: liveliness}
 				if m.Waiting {
 					ec.Events = append(ec.Events, metal.ProvisioningEvent{
 						Event: metal.ProvisioningEventWaiting,
@@ -327,7 +327,7 @@ func TestPartitionCapacity(t *testing.T) {
 			name: "one allocated machine",
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
-				mockMachines(mock, nil, m1)
+				mockMachines(mock, metal.MachineLivelinessAlive, nil, m1)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -350,7 +350,7 @@ func TestPartitionCapacity(t *testing.T) {
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
 				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
-				mockMachines(mock, nil, m1, m2)
+				mockMachines(mock, metal.MachineLivelinessAlive, nil, m1, m2)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -373,7 +373,7 @@ func TestPartitionCapacity(t *testing.T) {
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
 				m1.IPMI.Address = ""
-				mockMachines(mock, nil, m1)
+				mockMachines(mock, metal.MachineLivelinessAlive, nil, m1)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -398,7 +398,7 @@ func TestPartitionCapacity(t *testing.T) {
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "")
 				m1.Waiting = true
-				mockMachines(mock, nil, m1)
+				mockMachines(mock, metal.MachineLivelinessAlive, nil, m1)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -417,12 +417,38 @@ func TestPartitionCapacity(t *testing.T) {
 			},
 		},
 		{
+			name: "one dead machine",
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "")
+				m1.Waiting = true
+
+				mockMachines(mock, metal.MachineLivelinessDead, nil, m1)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:           "size-a",
+							Total:          1,
+							Waiting:        1,
+							Faulty:         1,
+							Unavailable:    1,
+							FaultyMachines: []string{"1"},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "one waiting, one allocated machine",
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "")
 				m1.Waiting = true
 				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
-				mockMachines(mock, nil, m1, m2)
+				mockMachines(mock, metal.MachineLivelinessAlive, nil, m1, m2)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -448,7 +474,7 @@ func TestPartitionCapacity(t *testing.T) {
 				m1 := machineTpl("1", "partition-a", "size-a", "")
 				m1.Waiting = true
 				m1.State.Value = metal.AvailableState
-				mockMachines(mock, nil, m1)
+				mockMachines(mock, metal.MachineLivelinessAlive, nil, m1)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -471,7 +497,7 @@ func TestPartitionCapacity(t *testing.T) {
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "")
 				m1.Waiting = false
-				mockMachines(mock, nil, m1)
+				mockMachines(mock, metal.MachineLivelinessAlive, nil, m1)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -504,7 +530,7 @@ func TestPartitionCapacity(t *testing.T) {
 					},
 				}
 
-				mockMachines(mock, reservations, m1)
+				mockMachines(mock, metal.MachineLivelinessAlive, reservations, m1)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -543,7 +569,7 @@ func TestPartitionCapacity(t *testing.T) {
 					},
 				}
 
-				mockMachines(mock, reservations, m1)
+				mockMachines(mock, metal.MachineLivelinessAlive, reservations, m1)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -579,7 +605,7 @@ func TestPartitionCapacity(t *testing.T) {
 					},
 				}
 
-				mockMachines(mock, reservations, m1, m2, m3)
+				mockMachines(mock, metal.MachineLivelinessAlive, reservations, m1, m2, m3)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -617,7 +643,7 @@ func TestPartitionCapacity(t *testing.T) {
 					},
 				}
 
-				mockMachines(mock, reservations, m1, m2, m3)
+				mockMachines(mock, metal.MachineLivelinessAlive, reservations, m1, m2, m3)
 			},
 			want: []*v1.PartitionCapacity{
 				{
@@ -660,7 +686,7 @@ func TestPartitionCapacity(t *testing.T) {
 					},
 				}
 
-				mockMachines(mock, reservations, m1, m2, m3)
+				mockMachines(mock, metal.MachineLivelinessAlive, reservations, m1, m2, m3)
 			},
 			want: []*v1.PartitionCapacity{
 				{
