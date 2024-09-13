@@ -48,17 +48,42 @@ type PartitionCapacity struct {
 	ServerCapacities ServerCapacities `json:"servers" description:"servers available in this partition"`
 }
 
+// ServerCapacity holds the machine capacity of a partition of a specific size.
+// The amount of allocated, waiting and other machines sum up to the total amount of machines.
 type ServerCapacity struct {
-	Size             string   `json:"size" description:"the size of the server"`
-	Total            int      `json:"total" description:"total amount of servers with this size"`
-	Free             int      `json:"free" description:"free servers with this size"`
-	Allocated        int      `json:"allocated" description:"allocated servers with this size"`
-	Reservations     int      `json:"reservations" description:"the amount of reservations for this size"`
-	UsedReservations int      `json:"usedreservations" description:"the amount of used reservations for this size"`
-	Faulty           int      `json:"faulty" description:"servers with issues with this size"`
-	FaultyMachines   []string `json:"faultymachines" description:"servers with issues with this size"`
-	Other            int      `json:"other" description:"servers neither free, allocated or faulty with this size"`
-	OtherMachines    []string `json:"othermachines" description:"servers neither free, allocated or faulty with this size"`
+	// Size is the size id correlating to all counts in this server capacity.
+	Size string `json:"size" description:"the size of the machine"`
+
+	// Total is the total amount of machines for this size.
+	Total int `json:"total,omitempty" description:"total amount of machines with size"`
+
+	// PhonedHome is the amount of machines that are currently in the provisioning state "phoned home".
+	PhonedHome int `json:"phoned_home,omitempty" description:"machines in phoned home provisioning state"`
+	// Waiting is the amount of machines that are currently in the provisioning state "waiting".
+	Waiting int `json:"waiting,omitempty" description:"machines in waiting provisioning state"`
+	// Other is the amount of machines that are neither in the provisioning state waiting nor in phoned home but in another provisioning state.
+	Other int `json:"other,omitempty" description:"machines neither phoned home nor waiting but in another provisioning state"`
+	// OtherMachines contains the machine IDs for machines that were classified into "Other".
+	OtherMachines []string `json:"othermachines,omitempty" description:"machine ids neither allocated nor waiting with this size"`
+
+	// Allocated is the amount of machines that are currently allocated.
+	Allocated int `json:"allocated,omitempty" description:"allocated machines"`
+	// Free is the amount of machines in a partition that can be freely allocated at any given moment by a project.
+	// Effectively this is the amount of waiting machines minus the machines that are unavailable due to machine state or un-allocatable due to size reservations.
+	Free int `json:"free,omitempty" description:"free machines with this size (freely allocatable)"`
+	// Unavailable is the amount of machine in a partition that are currently not allocatable because they are not waiting or
+	// not in the machine state "available", e.g. locked or reserved.
+	Unavailable int `json:"unavailable,omitempty" description:"unavailable machines with this size"`
+
+	// Faulty is the amount of machines that are neither allocated nor in the pool of available machines because they report an error.
+	Faulty int `json:"faulty,omitempty" description:"machines with issues with this size"`
+	// FaultyMachines contains the machine IDs for machines that were classified into "Faulty".
+	FaultyMachines []string `json:"faultymachines,omitempty" description:"machine ids with issues with this size"`
+
+	// Reservations is the amount of reservations made for this size.
+	Reservations int `json:"reservations,omitempty" description:"the amount of reservations for this size"`
+	// UsedReservations is the amount of reservations already used up for this size.
+	UsedReservations int `json:"usedreservations,omitempty" description:"the amount of used reservations for this size"`
 }
 
 func NewPartitionResponse(p *metal.Partition) *PartitionResponse {

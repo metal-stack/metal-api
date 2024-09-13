@@ -369,7 +369,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	machinesWithIssues, err := issues.Find(&issues.Config{
 		Machines:        ms,
 		EventContainers: ecs,
-		Only:            issues.NotAllocatableIssueTypes(),
+		Omit:            []issues.Type{issues.TypeLastEventError},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to calculate machine issues: %w", err)
@@ -427,24 +427,32 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 		cap.Total++
 
-		if m.Allocation != nil {
-			cap.Allocated++
-			continue
-		}
-
 		if _, ok := machinesWithIssues[m.ID]; ok {
 			cap.Faulty++
 			cap.FaultyMachines = append(cap.FaultyMachines, m.ID)
-			continue
 		}
 
-		if m.State.Value == metal.AvailableState && metal.ProvisioningEventWaiting == pointer.FirstOrZero(ec.Events).Event {
+		// allocation dependent counts
+		switch {
+		case m.Allocation != nil:
+			cap.Allocated++
+		case m.Waiting && !m.PreAllocated && m.State.Value == metal.AvailableState:
+			// the free machine count considers the same aspects as the query for electing the machine candidate!
 			cap.Free++
-			continue
+		default:
+			cap.Unavailable++
 		}
 
-		cap.Other++
-		cap.OtherMachines = append(cap.OtherMachines, m.ID)
+		// provisioning state dependent counts
+		switch pointer.FirstOrZero(ec.Events).Event { //nolint:exhaustive
+		case metal.ProvisioningEventPhonedHome:
+			cap.PhonedHome++
+		case metal.ProvisioningEventWaiting:
+			cap.Waiting++
+		default:
+			cap.Other++
+			cap.OtherMachines = append(cap.OtherMachines, m.ID)
+		}
 	}
 
 	res := []v1.PartitionCapacity{}
@@ -457,10 +465,12 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 			size := sizesByID[cap.Size]
 
 			for _, reservation := range size.Reservations.ForPartition(pc.ID) {
-				reservation := reservation
+				usedReservations := min(len(machinesByProject[reservation.ProjectID].WithSize(size.ID).WithPartition(pc.ID)), reservation.Amount)
 
 				cap.Reservations += reservation.Amount
-				cap.UsedReservations += min(len(machinesByProject[reservation.ProjectID].WithSize(size.ID).WithPartition(pc.ID)), reservation.Amount)
+				cap.UsedReservations += usedReservations
+				cap.Free -= reservation.Amount - usedReservations
+				cap.Free = max(cap.Free, 0)
 			}
 		}
 
