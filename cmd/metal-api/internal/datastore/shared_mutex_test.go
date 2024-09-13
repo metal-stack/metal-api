@@ -16,6 +16,10 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
+func newLockOptAcquireTimeout(t time.Duration) *lockOptAcquireTimeout {
+	return &lockOptAcquireTimeout{timeout: t}
+}
+
 func Test_sharedMutex_reallyLocking(t *testing.T) {
 	defer mutexCleanup(t)
 	ctx := context.Background()
