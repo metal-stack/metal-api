@@ -4399,6 +4399,11 @@
     },
     "v1.ServerCapacity": {
       "properties": {
+        "allocatable": {
+          "description": "free machines with this size, size reservations are not considered",
+          "format": "int32",
+          "type": "integer"
+        },
         "allocated": {
           "description": "allocated machines",
           "format": "int32",
@@ -4435,6 +4440,11 @@
         },
         "phoned_home": {
           "description": "machines in phoned home provisioning state",
+          "format": "int32",
+          "type": "integer"
+        },
+        "remainingreservations": {
+          "description": "the amount of unused / remaining / open reservations for this size",
           "format": "int32",
           "type": "integer"
         },
