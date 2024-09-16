@@ -446,7 +446,8 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		case m.Allocation != nil:
 			cap.Allocated++
 		case m.Waiting && !m.PreAllocated && m.State.Value == metal.AvailableState && ec.Liveliness == metal.MachineLivelinessAlive:
-			// the free machine count considers the same aspects as the query for electing the machine candidate!
+			// the free and allocatable machine counts consider the same aspects as the query for electing the machine candidate!
+			cap.Allocatable++
 			cap.Free++
 		default:
 			cap.Unavailable++
@@ -469,8 +470,6 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		pc := pc
 
 		for _, cap := range pc.ServerCapacities {
-			cap := cap
-
 			size := sizesByID[cap.Size]
 
 			for _, reservation := range size.Reservations.ForPartition(pc.ID) {
@@ -481,6 +480,10 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 				cap.Free -= reservation.Amount - usedReservations
 				cap.Free = max(cap.Free, 0)
 			}
+		}
+
+		for _, cap := range pc.ServerCapacities {
+			cap.RemainingReservations = cap.Reservations - cap.UsedReservations
 		}
 
 		res = append(res, *pc)

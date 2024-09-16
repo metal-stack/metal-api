@@ -69,6 +69,9 @@ type ServerCapacity struct {
 
 	// Allocated is the amount of machines that are currently allocated.
 	Allocated int `json:"allocated,omitempty" description:"allocated machines"`
+	// Allocatable is the amount of machines in a partition is the amount of machines that can be allocated.
+	// Effectively this is the amount of waiting machines minus the machines that are unavailable due to machine state or un-allocatable. Size reservations are not considered in this count.
+	Allocatable int `json:"allocatable,omitempty" description:"free machines with this size, size reservations are not considered"`
 	// Free is the amount of machines in a partition that can be freely allocated at any given moment by a project.
 	// Effectively this is the amount of waiting machines minus the machines that are unavailable due to machine state or un-allocatable due to size reservations.
 	Free int `json:"free,omitempty" description:"free machines with this size (freely allocatable)"`
@@ -85,6 +88,8 @@ type ServerCapacity struct {
 	Reservations int `json:"reservations,omitempty" description:"the amount of reservations for this size"`
 	// UsedReservations is the amount of reservations already used up for this size.
 	UsedReservations int `json:"usedreservations,omitempty" description:"the amount of used reservations for this size"`
+	// RemainingReservations is the amount of reservations remaining for this size.
+	RemainingReservations int `json:"remainingreservations,omitempty" description:"the amount of unused / remaining / open reservations for this size"`
 }
 
 func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
