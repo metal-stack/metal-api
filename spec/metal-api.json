@@ -4399,39 +4399,54 @@
     },
     "v1.ServerCapacity": {
       "properties": {
+        "allocatable": {
+          "description": "free machines with this size, size reservations are not considered",
+          "format": "int32",
+          "type": "integer"
+        },
         "allocated": {
-          "description": "allocated servers with this size",
+          "description": "allocated machines",
           "format": "int32",
           "type": "integer"
         },
         "faulty": {
-          "description": "servers with issues with this size",
+          "description": "machines with issues with this size",
           "format": "int32",
           "type": "integer"
         },
         "faultymachines": {
-          "description": "servers with issues with this size",
+          "description": "machine ids with issues with this size",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "free": {
-          "description": "free servers with this size",
+          "description": "free machines with this size (freely allocatable)",
           "format": "int32",
           "type": "integer"
         },
         "other": {
-          "description": "servers neither free, allocated or faulty with this size",
+          "description": "machines neither phoned home nor waiting but in another provisioning state",
           "format": "int32",
           "type": "integer"
         },
         "othermachines": {
-          "description": "servers neither free, allocated or faulty with this size",
+          "description": "machine ids neither allocated nor waiting with this size",
           "items": {
             "type": "string"
           },
           "type": "array"
+        },
+        "phoned_home": {
+          "description": "machines in phoned home provisioning state",
+          "format": "int32",
+          "type": "integer"
+        },
+        "remainingreservations": {
+          "description": "the amount of unused / remaining / open reservations for this size",
+          "format": "int32",
+          "type": "integer"
         },
         "reservations": {
           "description": "the amount of reservations for this size",
@@ -4439,11 +4454,16 @@
           "type": "integer"
         },
         "size": {
-          "description": "the size of the server",
+          "description": "the size of the machine",
           "type": "string"
         },
         "total": {
-          "description": "total amount of servers with this size",
+          "description": "total amount of machines with size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "unavailable": {
+          "description": "unavailable machines with this size",
           "format": "int32",
           "type": "integer"
         },
@@ -4451,19 +4471,15 @@
           "description": "the amount of used reservations for this size",
           "format": "int32",
           "type": "integer"
+        },
+        "waiting": {
+          "description": "machines in waiting provisioning state",
+          "format": "int32",
+          "type": "integer"
         }
       },
       "required": [
-        "allocated",
-        "faulty",
-        "faultymachines",
-        "free",
-        "other",
-        "othermachines",
-        "reservations",
-        "size",
-        "total",
-        "usedreservations"
+        "size"
       ]
     },
     "v1.SizeConstraint": {
