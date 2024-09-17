@@ -723,7 +723,7 @@ func adoptConfiguration(existing, new *metal.Switch) (*metal.Switch, error) {
 	s := *new
 	newNics, err := adoptNics(existing, new)
 	if err != nil {
-		return nil, fmt.Errorf("could not adopt nic configuration from twin, err: %w", err)
+		return nil, fmt.Errorf("could not adopt existing nic configuration, err: %w", err)
 	}
 
 	newMachineConnections, err := adoptMachineConnections(existing, new)
