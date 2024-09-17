@@ -178,14 +178,14 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 		return err
 	}
 	// e.g. "swp0s0" -> "Ethernet0"
-	dictionary, err := s1.MapPortNames(s2.OS.Vendor)
+	switchPortMapping, err := s1.MapPortNames(s2.OS.Vendor)
 	if err != nil {
 		return fmt.Errorf("could not create port mapping %w", err)
 	}
 
 	for _, con := range s1.MachineConnections[m.ID] {
 		// get the corresponding interface name for s2
-		name, ok := dictionary[con.Nic.Name]
+		name, ok := switchPortMapping[con.Nic.Name]
 		if !ok {
 			return fmt.Errorf("could not translate port name %s to equivalent port name of switch os %s", con.Nic.Name, s1.OS.Vendor)
 		}
