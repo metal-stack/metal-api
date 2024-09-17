@@ -161,7 +161,7 @@ func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
 // example mapping from cumulus to sonic for one single port:
 //
 //	map[string]Nic {
-//		"swp0s1": Nic{
+//		"swp1s1": Nic{
 //			Name: "Ethernet1",
 //			MacAddress: ""
 //		}
@@ -312,7 +312,7 @@ func cumulusPortNameToLine(port string) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("unable to convert port name to line number: %w", err)
 		}
-		line = count * 4
+		line = (count - 1) * 4
 	} else {
 		count, err := strconv.Atoi(countString)
 		if err != nil {
@@ -323,7 +323,7 @@ func cumulusPortNameToLine(port string) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("unable to convert port name to line number: %w", err)
 		}
-		line = count*4 + index
+		line = (count-1)*4 + index
 	}
 
 	return line, nil
@@ -335,7 +335,7 @@ func sonicPortByLineNumber(line int) string {
 
 func cumulusPortByLineNumber(line int, allLines []int) string {
 	if line%4 > 0 {
-		return fmt.Sprintf("swp%ds%d", line/4, line%4)
+		return fmt.Sprintf("swp%ds%d", line/4+1, line%4)
 	}
 
 	for _, l := range allLines {
@@ -343,9 +343,9 @@ func cumulusPortByLineNumber(line int, allLines []int) string {
 			continue
 		}
 		if l/4 == line/4 {
-			return fmt.Sprintf("swp%ds%d", line/4, line%4)
+			return fmt.Sprintf("swp%ds%d", line/4+1, line%4)
 		}
 	}
 
-	return fmt.Sprintf("swp%d", line/4)
+	return fmt.Sprintf("swp%d", line/4+1)
 }

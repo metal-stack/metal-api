@@ -282,7 +282,7 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 	}
 }
 
-func TestSwitch_TranslateNicNames(t *testing.T) {
+func TestSwitch_TranslateNicMap(t *testing.T) {
 	tests := []struct {
 		name     string
 		sw       *Switch
@@ -323,10 +323,10 @@ func TestSwitch_TranslateNicNames(t *testing.T) {
 			},
 			targetOS: SwitchOSVendorCumulus,
 			want: map[string]*Nic{
-				"swp0s1": {Name: "Ethernet1"},
-				"swp0s2": {Name: "Ethernet2"},
-				"swp0s3": {Name: "Ethernet3"},
-				"swp1":   {Name: "Ethernet4"},
+				"swp1s1": {Name: "Ethernet1"},
+				"swp1s2": {Name: "Ethernet2"},
+				"swp1s3": {Name: "Ethernet3"},
+				"swp2":   {Name: "Ethernet4"},
 			},
 			wantErr: false,
 		},
@@ -357,19 +357,19 @@ func TestSwitch_MapPortNames(t *testing.T) {
 			name: "same os",
 			sw: &Switch{
 				Nics: []Nic{
-					{Name: "swp0s0"},
-					{Name: "swp0s1"},
-					{Name: "swp0s2"},
-					{Name: "swp0s3"},
+					{Name: "swp1s0"},
+					{Name: "swp1s1"},
+					{Name: "swp1s2"},
+					{Name: "swp1s3"},
 				},
 				OS: &SwitchOS{Vendor: SwitchOSVendorCumulus},
 			},
 			targetOS: SwitchOSVendorCumulus,
 			want: map[string]string{
-				"swp0s0": "swp0s0",
-				"swp0s1": "swp0s1",
-				"swp0s2": "swp0s2",
-				"swp0s3": "swp0s3",
+				"swp1s0": "swp1s0",
+				"swp1s1": "swp1s1",
+				"swp1s2": "swp1s2",
+				"swp1s3": "swp1s3",
 			},
 			wantErr: false,
 		},
@@ -377,19 +377,19 @@ func TestSwitch_MapPortNames(t *testing.T) {
 			name: "cumulus to sonic",
 			sw: &Switch{
 				Nics: []Nic{
-					{Name: "swp0s0"},
 					{Name: "swp1s0"},
-					{Name: "swp1s1"},
-					{Name: "swp1s2"},
+					{Name: "swp2s0"},
+					{Name: "swp2s1"},
+					{Name: "swp2s2"},
 				},
 				OS: &SwitchOS{Vendor: SwitchOSVendorCumulus},
 			},
 			targetOS: SwitchOSVendorSonic,
 			want: map[string]string{
-				"swp0s0": "Ethernet0",
-				"swp1s0": "Ethernet4",
-				"swp1s1": "Ethernet5",
-				"swp1s2": "Ethernet6",
+				"swp1s0": "Ethernet0",
+				"swp2s0": "Ethernet4",
+				"swp2s1": "Ethernet5",
+				"swp2s2": "Ethernet6",
 			},
 			wantErr: false,
 		},
@@ -406,10 +406,10 @@ func TestSwitch_MapPortNames(t *testing.T) {
 			},
 			targetOS: SwitchOSVendorCumulus,
 			want: map[string]string{
-				"Ethernet0": "swp0",
-				"Ethernet4": "swp1",
-				"Ethernet8": "swp2s0",
-				"Ethernet9": "swp2s1",
+				"Ethernet0": "swp1",
+				"Ethernet4": "swp2",
+				"Ethernet8": "swp3s0",
+				"Ethernet9": "swp3s1",
 			},
 			wantErr: false,
 		},
@@ -495,7 +495,7 @@ func Test_mapPortName(t *testing.T) {
 			sourceOS: SwitchOSVendorSonic,
 			targetOS: SwitchOSVendorCumulus,
 			allLines: []int{11},
-			want:     "swp2s3",
+			want:     "swp3s3",
 			wantErr:  nil,
 		},
 		{
@@ -503,8 +503,8 @@ func Test_mapPortName(t *testing.T) {
 			port:     "swp4s0",
 			sourceOS: SwitchOSVendorCumulus,
 			targetOS: SwitchOSVendorSonic,
-			allLines: []int{0, 4, 16, 17},
-			want:     "Ethernet16",
+			allLines: []int{0, 4, 12, 13},
+			want:     "Ethernet12",
 			wantErr:  nil,
 		},
 	}
@@ -560,7 +560,7 @@ func Test_getLinesFromPortNames(t *testing.T) {
 		},
 		{
 			name:    "cumulus conversion successful",
-			ports:   []string{"swp0", "swp1s3"},
+			ports:   []string{"swp1", "swp2s3"},
 			os:      SwitchOSVendorCumulus,
 			want:    []int{0, 7},
 			wantErr: false,
@@ -683,13 +683,13 @@ func Test_cumulusPortNameToLine(t *testing.T) {
 		{
 			name:    "convert line without breakout",
 			port:    "swp4",
-			want:    16,
+			want:    12,
 			wantErr: nil,
 		},
 		{
 			name:    "convert line with breakout",
 			port:    "swp3s3",
-			want:    15,
+			want:    11,
 			wantErr: nil,
 		},
 	}
@@ -718,31 +718,31 @@ func Test_cumulusPortByLineNumber(t *testing.T) {
 			name:     "only one line",
 			line:     4,
 			allLines: []int{4},
-			want:     "swp1",
+			want:     "swp2",
 		},
 		{
 			name:     "line number 0 without breakout",
 			line:     0,
 			allLines: []int{0, 4},
-			want:     "swp0",
+			want:     "swp1",
 		},
 		{
 			name:     "higher line number without breakout",
 			line:     4,
 			allLines: []int{0, 1, 2, 3, 4, 8},
-			want:     "swp1",
+			want:     "swp2",
 		},
 		{
 			name:     "line number divisible by 4 with breakout",
 			line:     4,
 			allLines: []int{4, 5, 6, 7},
-			want:     "swp1s0",
+			want:     "swp2s0",
 		},
 		{
 			name:     "line number not divisible by 4",
 			line:     13,
 			allLines: []int{13},
-			want:     "swp3s1",
+			want:     "swp4s1",
 		},
 	}
 	for _, tt := range tests {
