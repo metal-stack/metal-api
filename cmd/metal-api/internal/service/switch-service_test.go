@@ -1090,15 +1090,15 @@ func Test_adoptNics(t *testing.T) {
 					},
 					Nics: metal.Nics{
 						metal.Nic{
-							Name:       "Ethernet4",
+							Name:       "Ethernet0",
 							MacAddress: "bb:bb:bb:bb:bb:b2",
 						},
 						metal.Nic{
-							Name:       "Ethernet5",
+							Name:       "Ethernet1",
 							MacAddress: "bb:bb:bb:bb:bb:b3",
 						},
 						metal.Nic{
-							Name:       "Ethernet396",
+							Name:       "Ethernet392",
 							MacAddress: "bb:bb:bb:bb:bb:b4",
 						},
 					},
@@ -1106,18 +1106,18 @@ func Test_adoptNics(t *testing.T) {
 			},
 			want: metal.Nics{
 				metal.Nic{
-					Name:       "Ethernet396",
-					MacAddress: "bb:bb:bb:bb:bb:b4",
-				},
-				metal.Nic{
-					Name:       "Ethernet4",
+					Name:       "Ethernet0",
 					MacAddress: "bb:bb:bb:bb:bb:b2",
 					Vrf:        "vrf1",
 				},
 				metal.Nic{
-					Name:       "Ethernet5",
+					Name:       "Ethernet1",
 					MacAddress: "bb:bb:bb:bb:bb:b3",
 					Vrf:        "",
+				},
+				metal.Nic{
+					Name:       "Ethernet392",
+					MacAddress: "bb:bb:bb:bb:bb:b4",
 				},
 			},
 			wantErr: false,
@@ -1264,11 +1264,11 @@ func Test_adoptMachineConnections(t *testing.T) {
 					OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
 					Nics: metal.Nics{
 						metal.Nic{
-							Name:       "Ethernet4",
+							Name:       "Ethernet0",
 							MacAddress: "bb:bb:bb:bb:bb:b1",
 						},
 						metal.Nic{
-							Name:       "Ethernet5",
+							Name:       "Ethernet1",
 							MacAddress: "bb:bb:bb:bb:bb:b2",
 						},
 					},
@@ -1278,7 +1278,7 @@ func Test_adoptMachineConnections(t *testing.T) {
 				"m1": metal.Connections{
 					metal.Connection{
 						Nic: metal.Nic{
-							Name:       "Ethernet4",
+							Name:       "Ethernet0",
 							MacAddress: "bb:bb:bb:bb:bb:b1",
 						},
 					},
@@ -1286,7 +1286,7 @@ func Test_adoptMachineConnections(t *testing.T) {
 				"m2": metal.Connections{
 					metal.Connection{
 						Nic: metal.Nic{
-							Name:       "Ethernet5",
+							Name:       "Ethernet1",
 							MacAddress: "bb:bb:bb:bb:bb:b2",
 						},
 					},
@@ -1859,7 +1859,7 @@ func Test_adjustNics(t *testing.T) {
 			},
 			nicMap: map[string]*metal.Nic{
 				"swp1": {
-					Name:       "Ethernet4",
+					Name:       "Ethernet0",
 					MacAddress: "dd:dd:dd:dd:dd:dd",
 				},
 			},
@@ -1869,7 +1869,7 @@ func Test_adjustNics(t *testing.T) {
 					MacAddress: "11:11:11:11:11:11",
 					Neighbors: []metal.Nic{
 						{
-							Name:       "Ethernet4",
+							Name:       "Ethernet0",
 							MacAddress: "dd:dd:dd:dd:dd:dd",
 						},
 					},
