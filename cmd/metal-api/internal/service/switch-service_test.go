@@ -890,19 +890,19 @@ func Test_adoptFromTwin(t *testing.T) {
 					},
 					Nics: metal.Nics{
 						metal.Nic{
-							Name:       "Ethernet4",
+							Name:       "Ethernet0",
 							MacAddress: "bb:bb:bb:bb:bb:b1",
 						},
 						metal.Nic{
-							Name:       "Ethernet5",
+							Name:       "Ethernet1",
 							MacAddress: "bb:bb:bb:bb:bb:b2",
 						},
 						metal.Nic{
-							Name:       "Ethernet6",
+							Name:       "Ethernet2",
 							MacAddress: "bb:bb:bb:bb:bb:b3",
 						},
 						metal.Nic{
-							Name:       "Ethernet7",
+							Name:       "Ethernet3",
 							MacAddress: "bb:bb:bb:bb:bb:b4",
 						},
 					},
@@ -915,20 +915,20 @@ func Test_adoptFromTwin(t *testing.T) {
 				},
 				Nics: metal.Nics{
 					metal.Nic{
-						Name:       "Ethernet4",
+						Name:       "Ethernet0",
 						MacAddress: "bb:bb:bb:bb:bb:b1",
 						Vrf:        "1",
 					},
 					metal.Nic{
-						Name:       "Ethernet5",
+						Name:       "Ethernet1",
 						MacAddress: "bb:bb:bb:bb:bb:b2",
 					},
 					metal.Nic{
-						Name:       "Ethernet6",
+						Name:       "Ethernet2",
 						MacAddress: "bb:bb:bb:bb:bb:b3",
 					},
 					metal.Nic{
-						Name:       "Ethernet7",
+						Name:       "Ethernet3",
 						MacAddress: "bb:bb:bb:bb:bb:b4",
 					},
 				},
@@ -936,7 +936,7 @@ func Test_adoptFromTwin(t *testing.T) {
 					"m1": metal.Connections{
 						metal.Connection{
 							Nic: metal.Nic{
-								Name:       "Ethernet4",
+								Name:       "Ethernet0",
 								MacAddress: "bb:bb:bb:bb:bb:b1",
 							},
 						},
@@ -944,7 +944,7 @@ func Test_adoptFromTwin(t *testing.T) {
 					"fw1": metal.Connections{
 						metal.Connection{
 							Nic: metal.Nic{
-								Name:       "Ethernet5",
+								Name:       "Ethernet1",
 								MacAddress: "bb:bb:bb:bb:bb:b2",
 							},
 						},
