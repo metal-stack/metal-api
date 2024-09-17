@@ -105,7 +105,7 @@ func TestSwitchMigrateIntegration(t *testing.T) {
 		Nics: []metal.Nic{
 			{
 				MacAddress: "cc:cc:cc:cc:cc:cc",
-				Name:       "Ethernet4",
+				Name:       "Ethernet0",
 			},
 		},
 		PartitionID: testPartitionID,
@@ -155,7 +155,7 @@ func TestSwitchMigrateIntegration(t *testing.T) {
 		Nics: []metal.Nic{
 			{
 				MacAddress: "dd:dd:dd:dd:dd:dd",
-				Name:       "Ethernet4",
+				Name:       "Ethernet0",
 			},
 		},
 		PartitionID: testPartitionID,
@@ -341,7 +341,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 		Nics: []metal.Nic{
 			{
 				MacAddress: "dd:dd:dd:dd:dd:dd",
-				Name:       "Ethernet4",
+				Name:       "Ethernet0",
 			},
 		},
 		PartitionID: testPartitionID,
