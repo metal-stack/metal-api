@@ -615,8 +615,7 @@ func (r *switchResource) migrate(request *restful.Request, response *restful.Res
 
 	err = r.ds.UpdateSwitch(new, s)
 	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		// TODO: should machine connections be rolled back in case of error
+		r.sendError(request, response, defaultError(fmt.Errorf("failed to migrate switch %s to %s but partial changes might have been written to the database. undo partial changes by migrating in the opposite direction. %w", old.ID, new.ID, err)))
 		return
 	}
 
