@@ -684,13 +684,13 @@ func Test_cumulusPortNameToLine(t *testing.T) {
 			name:    "cannot convert swp0 because that would result in a negative line number",
 			port:    "swp0",
 			want:    0,
-			wantErr: fmt.Errorf("invalid port name would map to negative number"),
+			wantErr: fmt.Errorf("invalid port name swp0 would map to negative number"),
 		},
 		{
 			name:    "cannot convert swp0s1 because that would result in a negative line number",
 			port:    "swp0s1",
 			want:    0,
-			wantErr: fmt.Errorf("invalid port name would map to negative number"),
+			wantErr: fmt.Errorf("invalid port name swp0s1 would map to negative number"),
 		},
 		{
 			name:    "convert line without breakout",

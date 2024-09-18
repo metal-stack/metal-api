@@ -313,7 +313,7 @@ func cumulusPortNameToLine(port string) (int, error) {
 			return 0, fmt.Errorf("unable to convert port name to line number: %w", err)
 		}
 		if count <= 0 {
-			return 0, fmt.Errorf("invalid port name would map to negative number")
+			return 0, fmt.Errorf("invalid port name %s would map to negative number", port)
 		}
 		line = (count - 1) * 4
 	} else {
@@ -322,7 +322,7 @@ func cumulusPortNameToLine(port string) (int, error) {
 			return 0, fmt.Errorf("unable to convert port name to line number: %w", err)
 		}
 		if count <= 0 {
-			return 0, fmt.Errorf("invalid port name would map to negative number")
+			return 0, fmt.Errorf("invalid port name %s would map to negative number", port)
 		}
 
 		index, err := strconv.Atoi(indexString)

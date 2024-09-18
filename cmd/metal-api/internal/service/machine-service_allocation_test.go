@@ -369,7 +369,7 @@ func setupTestEnvironment(machineCount int, t *testing.T, ds *datastore.RethinkS
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {
 	for i := range machineCount {
-		id := fmt.Sprintf("WaitingMachine%d", i)
+		id := fmt.Sprintf("WaitingMachine%d", i+1)
 		m := &metal.Machine{
 			Base:        metal.Base{ID: id},
 			SizeID:      "s1",
@@ -411,12 +411,12 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IP
 	sw2nics := metal.Nics{}
 	for j := range machineCount {
 		sw1nic := metal.Nic{
-			Name:       fmt.Sprintf("swp%d", j),
-			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp1MacPrefix, j)),
+			Name:       fmt.Sprintf("swp%d", j+1),
+			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp1MacPrefix, j+1)),
 		}
 		sw2nic := metal.Nic{
-			Name:       fmt.Sprintf("swp%d", j),
-			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp2MacPrefix, j)),
+			Name:       fmt.Sprintf("swp%d", j+1),
+			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp2MacPrefix, j+1)),
 		}
 		sw1nics = append(sw1nics, sw1nic)
 		sw2nics = append(sw2nics, sw2nic)
