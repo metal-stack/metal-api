@@ -294,19 +294,19 @@ func TestSwitch_TranslateNicMap(t *testing.T) {
 			name: "both twins have the same os",
 			sw: &Switch{
 				Nics: []Nic{
-					{Name: "swp0s0"},
-					{Name: "swp0s1"},
-					{Name: "swp0s2"},
-					{Name: "swp0s3"},
+					{Name: "swp1s0"},
+					{Name: "swp1s1"},
+					{Name: "swp1s2"},
+					{Name: "swp1s3"},
 				},
 				OS: &SwitchOS{Vendor: SwitchOSVendorCumulus},
 			},
 			targetOS: SwitchOSVendorCumulus,
 			want: map[string]*Nic{
-				"swp0s0": {Name: "swp0s0"},
-				"swp0s1": {Name: "swp0s1"},
-				"swp0s2": {Name: "swp0s2"},
-				"swp0s3": {Name: "swp0s3"},
+				"swp1s0": {Name: "swp1s0"},
+				"swp1s1": {Name: "swp1s1"},
+				"swp1s2": {Name: "swp1s2"},
+				"swp1s3": {Name: "swp1s3"},
 			},
 			wantErr: false,
 		},
@@ -432,10 +432,10 @@ func TestSwitch_MapPortNames(t *testing.T) {
 			name: "cumulus names in sonic switch",
 			sw: &Switch{
 				Nics: []Nic{
-					{Name: "swp0s0"},
-					{Name: "swp0s1"},
-					{Name: "swp0s2"},
-					{Name: "swp0s3"},
+					{Name: "swp1s0"},
+					{Name: "swp1s1"},
+					{Name: "swp1s2"},
+					{Name: "swp1s3"},
 				},
 				OS: &SwitchOS{Vendor: SwitchOSVendorSonic},
 			},
@@ -447,7 +447,7 @@ func TestSwitch_MapPortNames(t *testing.T) {
 			name: "invalid name",
 			sw: &Switch{
 				Nics: []Nic{
-					{Name: "swp0s"},
+					{Name: "swp1s"},
 				},
 				OS: &SwitchOS{Vendor: SwitchOSVendorSonic},
 			},
@@ -532,7 +532,7 @@ func Test_getLinesFromPortNames(t *testing.T) {
 	}{
 		{
 			name:    "invalid switch os",
-			ports:   []string{"swp0", "swp1s2"},
+			ports:   []string{"swp1", "swp1s2"},
 			os:      "cumulus",
 			want:    nil,
 			wantErr: true,
@@ -546,7 +546,7 @@ func Test_getLinesFromPortNames(t *testing.T) {
 		},
 		{
 			name:    "mismatch between port names and os sonic",
-			ports:   []string{"swp0s0", "swp0s1"},
+			ports:   []string{"swp1s0", "swp1s1"},
 			os:      SwitchOSVendorSonic,
 			want:    nil,
 			wantErr: true,
@@ -597,9 +597,9 @@ func Test_sonicPortNameToLine(t *testing.T) {
 		},
 		{
 			name:    "missing prefix 'Ethernet'",
-			port:    "swp0s0",
+			port:    "swp1s0",
 			want:    0,
-			wantErr: fmt.Errorf("invalid port name swp0s0, expected to find prefix 'Ethernet'"),
+			wantErr: fmt.Errorf("invalid port name swp1s0, expected to find prefix 'Ethernet'"),
 		},
 		{
 			name:    "invalid prefix before 'Ethernet'",
@@ -635,7 +635,7 @@ func Test_sonicPortNameToLine(t *testing.T) {
 }
 
 func Test_cumulusPortNameToLine(t *testing.T) {
-	_, parseIntError1 := strconv.Atoi("0t0")
+	_, parseIntError1 := strconv.Atoi("1t0")
 	_, parseIntError2 := strconv.Atoi("_0")
 
 	tests := []struct {
@@ -658,13 +658,13 @@ func Test_cumulusPortNameToLine(t *testing.T) {
 		},
 		{
 			name:    "invalid prefix before 'swp'",
-			port:    "port_swp0s0",
+			port:    "port_swp1s0",
 			want:    0,
-			wantErr: fmt.Errorf("invalid port name port_swp0s0, port name is expected to start with 'swp'"),
+			wantErr: fmt.Errorf("invalid port name port_swp1s0, port name is expected to start with 'swp'"),
 		},
 		{
 			name:    "wrong delimiter",
-			port:    "swp0t0",
+			port:    "swp1t0",
 			want:    0,
 			wantErr: fmt.Errorf("unable to convert port name to line number: %w", parseIntError1),
 		},

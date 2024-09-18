@@ -1719,7 +1719,7 @@ func TestToggleSwitchNicWithoutMachine(t *testing.T) {
 	require.Equal(t, result.Message, fmt.Sprintf("switch %q does not have a connected machine at port %q", testdata.Switch1.ID, testdata.Switch1.Nics[1].Name))
 }
 
-func Test_adjustNics(t *testing.T) {
+func Test_adjustMachineNics(t *testing.T) {
 	tests := []struct {
 		name        string
 		nics        metal.Nics
@@ -1792,7 +1792,7 @@ func Test_adjustNics(t *testing.T) {
 					MacAddress: "11:11:11:11:11:11",
 					Neighbors: []metal.Nic{
 						{
-							Name:       "swp1",
+							Name:       "swp2",
 							MacAddress: "aa:aa:aa:aa:aa:aa",
 						},
 					},
@@ -1802,7 +1802,7 @@ func Test_adjustNics(t *testing.T) {
 					MacAddress: "11:11:11:11:11:22",
 					Neighbors: []metal.Nic{
 						{
-							Name:       "swp1",
+							Name:       "swp2",
 							MacAddress: "aa:aa:aa:aa:aa:bb",
 						},
 					},
@@ -1811,13 +1811,13 @@ func Test_adjustNics(t *testing.T) {
 			connections: []metal.Connection{
 				{
 					Nic: metal.Nic{
-						Name:       "swp1",
+						Name:       "swp2",
 						MacAddress: "aa:aa:aa:aa:aa:aa",
 					},
 				},
 			},
 			nicMap: map[string]*metal.Nic{
-				"swp0": {
+				"swp1": {
 					Name:       "Ethernet0",
 					MacAddress: "dd:dd:dd:dd:dd:dd",
 				},

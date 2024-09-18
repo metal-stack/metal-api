@@ -89,7 +89,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	e, _ := errgroup.WithContext(context.Background())
 	for i := range machineCount {
 		e.Go(func() error {
-			mr := createMachineRegisterRequest(i)
+			mr := createMachineRegisterRequest(i + 1)
 			err := retry.Do(
 				func() error {
 					var err2 error

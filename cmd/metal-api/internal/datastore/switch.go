@@ -177,7 +177,7 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 	if err != nil {
 		return err
 	}
-	// e.g. "swp0s0" -> "Ethernet0"
+	// e.g. "swp1s0" -> "Ethernet0"
 	switchPortMapping, err := s1.MapPortNames(s2.OS.Vendor)
 	if err != nil {
 		return fmt.Errorf("could not create port mapping %w", err)

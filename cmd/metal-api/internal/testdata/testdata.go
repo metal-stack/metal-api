@@ -551,7 +551,7 @@ var (
 			"1": metal.Connections{
 				metal.Connection{
 					Nic: metal.Nic{
-						Name:       "swp1",
+						Name:       "swp2",
 						MacAddress: metal.MacAddress("21:11:11:11:11:11"),
 					},
 					MachineID: "1",
@@ -613,7 +613,7 @@ var (
 	// Nics
 	Nic1 = metal.Nic{
 		MacAddress: metal.MacAddress("11:11:11:11:11:11"),
-		Name:       "swp0",
+		Name:       "swp1",
 		Neighbors: []metal.Nic{
 			{
 				MacAddress: "21:11:11:11:11:11",
@@ -625,7 +625,7 @@ var (
 	}
 	Nic2 = metal.Nic{
 		MacAddress: metal.MacAddress("21:11:11:11:11:11"),
-		Name:       "swp1",
+		Name:       "swp2",
 		Neighbors: []metal.Nic{
 			{
 				MacAddress: "11:11:11:11:11:11",
@@ -637,7 +637,7 @@ var (
 	}
 	Nic3 = metal.Nic{
 		MacAddress: metal.MacAddress("31:11:11:11:11:11"),
-		Name:       "swp2",
+		Name:       "swp3",
 		Neighbors: []metal.Nic{
 			{
 				MacAddress: "21:11:11:11:11:11",
@@ -649,7 +649,7 @@ var (
 	}
 	Nic4 = metal.Nic{
 		MacAddress: metal.MacAddress("41:11:11:11:11:11"),
-		Name:       "swp1",
+		Name:       "swp2",
 	}
 
 	// IPMIs
@@ -757,24 +757,6 @@ var (
 		"11:11:11:11:11:11",
 		"22:11:11:11:11:11",
 		"33:11:11:11:11:11",
-	}
-
-	// Create the Connections Array
-	TestConnections = []metal.Connection{
-		{
-			Nic: metal.Nic{
-				Name:       "swp1",
-				MacAddress: "11:11:11",
-			},
-			MachineID: "machine-1",
-		},
-		{
-			Nic: metal.Nic{
-				Name:       "swp2",
-				MacAddress: "22:11:11",
-			},
-			MachineID: "machine-2",
-		},
 	}
 
 	TestMachinesHardwares = []metal.MachineHardware{
