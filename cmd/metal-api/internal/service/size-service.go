@@ -140,7 +140,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/reservations/{id}").
-		To(admin(r.deleteSizeReservation)).
+		To(editor(r.deleteSizeReservation)).
 		Operation("deleteSizeReservation").
 		Doc("deletes an size reservation and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the size reservation").DataType("string")).
@@ -150,7 +150,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/reservations").
-		To(admin(r.createSizeReservation)).
+		To(editor(r.createSizeReservation)).
 		Operation("createSizeReservation").
 		Doc("create a size reservation. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -160,7 +160,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/reservations").
-		To(admin(r.updateSizeReservation)).
+		To(editor(r.updateSizeReservation)).
 		Operation("updateSizeReservation").
 		Doc("updates a size reservation. if the size reservation was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
