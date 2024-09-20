@@ -4817,6 +4817,46 @@
         "sizeid"
       ]
     },
+    "v1.SizeReservationUpdateRequest": {
+      "properties": {
+        "amount": {
+          "description": "the amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string"
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels associated with this size reservation.",
+          "type": "object"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partitionid": {
+          "description": "the partition id of this size reservation",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "amount",
+        "id",
+        "partitionid"
+      ]
+    },
     "v1.SizeReservationUsageResponse": {
       "properties": {
         "amount": {
@@ -9236,7 +9276,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.SizeUpdateRequest"
+              "$ref": "#/definitions/v1.SizeReservationUpdateRequest"
             }
           }
         ],

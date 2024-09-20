@@ -164,7 +164,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		Operation("updateSizeReservation").
 		Doc("updates a size reservation. if the size reservation was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.SizeUpdateRequest{}).
+		Reads(v1.SizeReservationUpdateRequest{}).
 		Returns(http.StatusOK, "OK", v1.SizeReservationResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
