@@ -31,6 +31,7 @@ var tables = []string{
 	"sharedmutex",
 	"size",
 	"sizeimageconstraint",
+	"sizereservation",
 	"switch",
 	"switchstatus",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
@@ -76,6 +77,11 @@ func New(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass s
 
 		sharedMutexCheckInterval: defaultSharedMutexCheckInterval,
 	}
+}
+
+// Session exported for migration unit test
+func (rs *RethinkStore) Session() r.QueryExecutor {
+	return rs.session
 }
 
 func multi(session r.QueryExecutor, tt ...r.Term) error {
@@ -211,6 +217,11 @@ func (rs *RethinkStore) filesystemLayoutTable() *r.Term {
 
 func (rs *RethinkStore) sizeImageConstraintTable() *r.Term {
 	res := r.DB(rs.dbname).Table("sizeimageconstraint")
+	return &res
+}
+
+func (rs *RethinkStore) sizeReservationTable() *r.Term {
+	res := r.DB(rs.dbname).Table("sizereservation")
 	return &res
 }
 

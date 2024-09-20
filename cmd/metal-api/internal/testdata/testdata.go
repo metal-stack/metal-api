@@ -191,13 +191,6 @@ var (
 				Max:  1000000000000,
 			},
 		},
-		Reservations: metal.Reservations{
-			{
-				Amount:       3,
-				PartitionIDs: []string{Partition1.ID},
-				ProjectID:    "p1",
-			},
-		},
 	}
 	Sz2 = metal.Size{
 		Base: metal.Base{

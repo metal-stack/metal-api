@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -342,35 +341,31 @@ func TestUpdateSize(t *testing.T) {
 	require.Equal(t, maxCores, result.SizeConstraints[0].Max)
 }
 
-func TestListSizeReservations(t *testing.T) {
+func TestListSizeReservationsUsage(t *testing.T) {
 	tests := []struct {
 		name          string
 		req           *v1.SizeReservationListRequest
 		dbMockFn      func(mock *r.Mock)
 		projectMockFn func(mock *testifymock.Mock)
-		want          []*v1.SizeReservationResponse
+		want          []*v1.SizeReservationUsageResponse
 	}{
 		{
-			name: "list reservations",
+			name: "list reservations usage",
 			req: &v1.SizeReservationListRequest{
 				SizeID:      pointer.Pointer("1"),
-				Tenant:      pointer.Pointer("t1"),
 				ProjectID:   pointer.Pointer("p1"),
 				PartitionID: pointer.Pointer("a"),
 			},
 			dbMockFn: func(mock *r.Mock) {
-				mock.On(r.DB("mockdb").Table("size").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.Sizes{
+				mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.SizeReservations{
 					{
 						Base: metal.Base{
 							ID: "1",
 						},
-						Reservations: metal.Reservations{
-							{
-								Amount:       3,
-								PartitionIDs: []string{"a"},
-								ProjectID:    "p1",
-							},
-						},
+						SizeID:       "1",
+						Amount:       3,
+						PartitionIDs: []string{"a"},
+						ProjectID:    "p1",
 					},
 				}, nil)
 				mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return(metal.Machines{
@@ -386,22 +381,22 @@ func TestListSizeReservations(t *testing.T) {
 					},
 				}, nil)
 			},
-			projectMockFn: func(mock *testifymock.Mock) {
-				mock.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{
-					Id:       wrapperspb.String("p1"),
-					TenantId: wrapperspb.String("t1"),
-				}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
-					{Meta: &mdmv1.Meta{Id: "p1"}, TenantId: "t1"},
-				}}, nil)
-			},
-			want: []*v1.SizeReservationResponse{
+			want: []*v1.SizeReservationUsageResponse{
 				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{
+							ID: "1",
+						},
+						Describable: v1.Describable{
+							Name:        pointer.Pointer(""),
+							Description: pointer.Pointer(""),
+						},
+					},
 					SizeID:             "1",
 					PartitionID:        "a",
-					Tenant:             "t1",
 					ProjectID:          "p1",
-					Reservations:       3,
-					UsedReservations:   1,
+					Amount:             3,
+					UsedAmount:         1,
 					ProjectAllocations: 1,
 				},
 			},
@@ -423,7 +418,7 @@ func TestListSizeReservations(t *testing.T) {
 				tt.projectMockFn(&projectMock.Mock)
 			}
 
-			code, got := genericWebRequest[[]*v1.SizeReservationResponse](t, ws, testViewUser, tt.req, "POST", "/v1/size/reservations")
+			code, got := genericWebRequest[[]*v1.SizeReservationUsageResponse](t, ws, testViewUser, tt.req, "POST", "/v1/size/reservations/usage")
 			assert.Equal(t, http.StatusOK, code)
 
 			if diff := cmp.Diff(tt.want, got); diff != "" {

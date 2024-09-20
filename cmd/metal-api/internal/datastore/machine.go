@@ -478,7 +478,15 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 		return nil, err
 	}
 
-	ok := checkSizeReservations(available, projectid, partitionid, partitionMachines.WithSize(size.ID).ByProjectID(), size)
+	var reservations metal.SizeReservations
+	err = rs.SearchSizeReservations(&SizeReservationSearchQuery{
+		Partition: &partitionid,
+	}, &reservations)
+	if err != nil {
+		return nil, err
+	}
+
+	ok := checkSizeReservations(available, projectid, partitionid, partitionMachines.WithSize(size.ID).ByProjectID(), reservations)
 	if !ok {
 		return nil, errors.New("no machine available")
 	}
@@ -504,20 +512,20 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 
 // checkSizeReservations returns true when an allocation is possible and
 // false when size reservations prevent the allocation for the given project in the given partition
-func checkSizeReservations(available metal.Machines, projectid, partitionid string, machinesByProject map[string]metal.Machines, size metal.Size) bool {
-	if size.Reservations == nil {
+func checkSizeReservations(available metal.Machines, projectid, partitionid string, machinesByProject map[string]metal.Machines, reservations metal.SizeReservations) bool {
+	if len(reservations) == 0 {
 		return true
 	}
 
 	var (
-		reservations = 0
+		amount = 0
 	)
 
-	for _, r := range size.Reservations.ForPartition(partitionid) {
+	for _, r := range reservations.ForPartition(partitionid) {
 		r := r
 
 		// sum up the amount of reservations
-		reservations += r.Amount
+		amount += r.Amount
 
 		alreadyAllocated := len(machinesByProject[r.ProjectID])
 
@@ -527,10 +535,10 @@ func checkSizeReservations(available metal.Machines, projectid, partitionid stri
 		}
 
 		// subtract already used up reservations of the project
-		reservations = max(reservations-alreadyAllocated, 0)
+		amount = max(amount-alreadyAllocated, 0)
 	}
 
-	return reservations < len(available)
+	return amount < len(available)
 }
 
 func spreadAcrossRacks(allMachines, projectMachines metal.Machines, tags []string) metal.Machines {
