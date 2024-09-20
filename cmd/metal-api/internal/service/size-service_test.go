@@ -252,15 +252,6 @@ func TestCreateSize(t *testing.T) {
 				Max:  100,
 			},
 		},
-		SizeReservations: []v1.SizeReservation{
-			{
-				Amount:       3,
-				ProjectID:    "a",
-				PartitionIDs: []string{testdata.Partition1.ID},
-				Description:  "test",
-				Labels:       map[string]string{"a": "b"},
-			},
-		},
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
