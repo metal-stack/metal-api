@@ -120,7 +120,7 @@ func (r *sizeResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/reservations/find").
 		To(r.findSizeReservations).
-		Operation("listSizeReservations").
+		Operation("findSizeReservations").
 		Doc("get all size reservations").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Metadata(auditing.Exclude, true).

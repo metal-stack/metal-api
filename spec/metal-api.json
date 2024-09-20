@@ -9317,7 +9317,7 @@
         "consumes": [
           "application/json"
         ],
-        "operationId": "listSizeReservations",
+        "operationId": "findSizeReservations",
         "parameters": [
           {
             "in": "body",
