@@ -5,7 +5,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
-// SizeSearchQuery can be used to search sizes.
+// SizeReservationSearchQuery can be used to search sizes.
 type SizeReservationSearchQuery struct {
 	ID        *string           `json:"id" optional:"true"`
 	SizeID    *string           `json:"sizeid" optional:"true"`
@@ -15,7 +15,6 @@ type SizeReservationSearchQuery struct {
 	Project   *string           `json:"project" optional:"true"`
 }
 
-// GenerateTerm generates the project search query term.
 func (s *SizeReservationSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	q := *rs.sizeReservationTable()
 

@@ -9195,21 +9195,11 @@
       }
     },
     "/v1/size/reservations": {
-      "post": {
+      "get": {
         "consumes": [
           "application/json"
         ],
         "operationId": "listSizeReservations",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.SizeReservationListRequest"
-            }
-          }
-        ],
         "produces": [
           "application/json"
         ],
@@ -9231,6 +9221,49 @@
           }
         },
         "summary": "get all size reservations",
+        "tags": [
+          "size"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateSizeReservation",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeReservationResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a size reservation. if the size reservation was changed since this one was read, a conflict is returned",
         "tags": [
           "size"
         ]
@@ -9274,6 +9307,48 @@
           }
         },
         "summary": "create a size reservation. if the given ID already exists a conflict is returned",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/reservations/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listSizeReservations",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeReservationListRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeReservationResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all size reservations",
         "tags": [
           "size"
         ]
@@ -9390,56 +9465,6 @@
           }
         },
         "summary": "get size reservation by id",
-        "tags": [
-          "size"
-        ]
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "updateSizeReservation",
-        "parameters": [
-          {
-            "description": "identifier of the size reservation",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.SizeUpdateRequest"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.SizeReservationResponse"
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "updates a size reservation. if the size reservation was changed since this one was read, a conflict is returned",
         "tags": [
           "size"
         ]

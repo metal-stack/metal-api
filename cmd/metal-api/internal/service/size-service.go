@@ -108,8 +108,18 @@ func (r *sizeResource) webService() *restful.WebService {
 
 	// size reservations
 
-	ws.Route(ws.POST("/reservations").
+	ws.Route(ws.GET("/reservations").
 		To(r.listSizeReservations).
+		Operation("listSizeReservations").
+		Doc("get all size reservations").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Writes([]v1.SizeReservationResponse{}).
+		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/reservations/find").
+		To(r.findSizeReservations).
 		Operation("listSizeReservations").
 		Doc("get all size reservations").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -149,11 +159,10 @@ func (r *sizeResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/reservations/{id}").
+	ws.Route(ws.POST("/reservations").
 		To(admin(r.updateSizeReservation)).
 		Operation("updateSizeReservation").
 		Doc("updates a size reservation. if the size reservation was changed since this one was read, a conflict is returned").
-		Param(ws.PathParameter("id", "identifier of the size reservation").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SizeUpdateRequest{}).
 		Returns(http.StatusOK, "OK", v1.SizeReservationResponse{}).
@@ -485,6 +494,33 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 	r.send(request, response, http.StatusOK, result)
 }
 
+func (r *sizeResource) findSizeReservations(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SizeReservationListRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	var rvs metal.SizeReservations
+	err = r.ds.SearchSizeReservations(&datastore.SizeReservationSearchQuery{
+		SizeID:    requestPayload.SizeID,
+		Partition: requestPayload.PartitionID,
+		Project:   requestPayload.ProjectID,
+	}, &rvs)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	result := []*v1.SizeReservationResponse{}
+	for i := range rvs {
+		result = append(result, v1.NewSizeReservationResponse(&rvs[i]))
+	}
+
+	r.send(request, response, http.StatusOK, result)
+}
+
 func (r *sizeResource) getSizeReservation(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
@@ -552,8 +588,6 @@ func (r *sizeResource) createSizeReservation(request *restful.Request, response 
 }
 
 func (r *sizeResource) updateSizeReservation(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-
 	var requestPayload v1.SizeReservationUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
@@ -561,7 +595,7 @@ func (r *sizeResource) updateSizeReservation(request *restful.Request, response 
 		return
 	}
 
-	oldRv, err := r.ds.FindSizeReservation(id)
+	oldRv, err := r.ds.FindSizeReservation(requestPayload.ID)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
