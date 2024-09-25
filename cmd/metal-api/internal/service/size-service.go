@@ -584,7 +584,7 @@ func (r *sizeResource) createSizeReservation(request *restful.Request, response 
 		return
 	}
 
-	r.send(request, response, http.StatusOK, v1.NewSizeReservationResponse(rv))
+	r.send(request, response, http.StatusCreated, v1.NewSizeReservationResponse(rv))
 }
 
 func (r *sizeResource) updateSizeReservation(request *restful.Request, response *restful.Response) {
