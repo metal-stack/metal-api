@@ -4698,6 +4698,10 @@
     },
     "v1.SizeReservationListRequest": {
       "properties": {
+        "id": {
+          "description": "the id of this size reservation",
+          "type": "string"
+        },
         "partitionid": {
           "description": "the partition id of this size reservation",
           "type": "string"

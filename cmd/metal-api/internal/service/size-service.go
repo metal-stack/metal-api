@@ -684,6 +684,7 @@ func (r *sizeResource) sizeReservationsUsage(request *restful.Request, response 
 
 	rvs := metal.SizeReservations{}
 	err = r.ds.SearchSizeReservations(&datastore.SizeReservationSearchQuery{
+		ID:        requestPayload.ID,
 		SizeID:    requestPayload.SizeID,
 		Partition: requestPayload.PartitionID,
 		Project:   requestPayload.ProjectID,
