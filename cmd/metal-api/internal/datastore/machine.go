@@ -481,6 +481,7 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 	var reservations metal.SizeReservations
 	err = rs.SearchSizeReservations(&SizeReservationSearchQuery{
 		Partition: &partitionid,
+		SizeID:    &size.ID,
 	}, &reservations)
 	if err != nil {
 		return nil, err
