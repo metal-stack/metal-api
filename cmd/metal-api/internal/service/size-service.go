@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -142,7 +143,7 @@ func (r *sizeResource) webService() *restful.WebService {
 	ws.Route(ws.DELETE("/reservations/{id}").
 		To(editor(r.deleteSizeReservation)).
 		Operation("deleteSizeReservation").
-		Doc("deletes an size reservation and returns the deleted entity").
+		Doc("deletes a size reservation and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the size reservation").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.SizeReservationResponse{}).
@@ -392,6 +393,20 @@ func (r *sizeResource) deleteSize(request *restful.Request, response *restful.Re
 		return
 	}
 
+	var rvs metal.SizeReservations
+	err = r.ds.SearchSizeReservations(&datastore.SizeReservationSearchQuery{
+		SizeID: &s.ID,
+	}, &rvs)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	if len(rvs) > 0 {
+		r.sendError(request, response, httperrors.UnprocessableEntity(errors.New("cannot delete size before all size reservations were removed")))
+		return
+	}
+
 	err = r.ds.DeleteSize(s)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -507,6 +522,7 @@ func (r *sizeResource) findSizeReservations(request *restful.Request, response *
 		SizeID:    requestPayload.SizeID,
 		Partition: requestPayload.PartitionID,
 		Project:   requestPayload.ProjectID,
+		ID:        requestPayload.ID,
 	}, &rvs)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -554,7 +570,7 @@ func (r *sizeResource) createSizeReservation(request *restful.Request, response 
 		Labels:       requestPayload.Labels,
 	}
 
-	ss, err := r.ds.ListSizes()
+	size, err := r.ds.FindSize(requestPayload.SizeID)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -566,13 +582,13 @@ func (r *sizeResource) createSizeReservation(request *restful.Request, response 
 		return
 	}
 
-	projects, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
+	project, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = rv.Validate(ss.ByID(), ps.ByID(), projectsByID(projects.Projects))
+	err = rv.Validate(metal.SizeMap{requestPayload.SizeID: *size}, ps.ByID(), map[string]*mdmv1.Project{requestPayload.ProjectID: project.Project})
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -623,7 +639,7 @@ func (r *sizeResource) updateSizeReservation(request *restful.Request, response 
 		rv.PartitionIDs = requestPayload.PartitionIDs
 	}
 
-	ss, err := r.ds.ListSizes()
+	size, err := r.ds.FindSize(rv.SizeID)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -635,13 +651,13 @@ func (r *sizeResource) updateSizeReservation(request *restful.Request, response 
 		return
 	}
 
-	projects, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
+	project, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: rv.ProjectID})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = rv.Validate(ss.ByID(), ps.ByID(), projectsByID(projects.Projects))
+	err = rv.Validate(metal.SizeMap{rv.SizeID: *size}, ps.ByID(), map[string]*mdmv1.Project{rv.ProjectID: project.Project})
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return

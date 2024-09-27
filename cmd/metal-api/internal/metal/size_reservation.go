@@ -43,22 +43,6 @@ func (rs *SizeReservations) ForPartition(partitionID string) SizeReservations {
 	return result
 }
 
-func (rs *SizeReservations) ForProject(projectID string) SizeReservations {
-	if rs == nil {
-		return nil
-	}
-
-	var result SizeReservations
-	for _, r := range *rs {
-		r := r
-		if r.ProjectID == projectID {
-			result = append(result, r)
-		}
-	}
-
-	return result
-}
-
 func (rs *SizeReservations) Validate(sizes SizeMap, partitions PartitionMap, projects map[string]*mdmv1.Project) error {
 	if rs == nil {
 		return nil

@@ -9415,7 +9415,7 @@
             }
           }
         },
-        "summary": "deletes an size reservation and returns the deleted entity",
+        "summary": "deletes a size reservation and returns the deleted entity",
         "tags": [
           "size"
         ]

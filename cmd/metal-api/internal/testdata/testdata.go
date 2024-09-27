@@ -867,6 +867,9 @@ func InitMockDBData(mock *r.Mock) {
 	}, nil)
 	mock.On(r.DB("mockdb").Table("integerpool").Get(r.MockAnything()).Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}}, nil)
 
+	// Find
+	mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything())).Return(metal.SizeReservations{}, nil)
+
 	// Default: Return Empty result
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything())).Return(EmptyResult, nil)

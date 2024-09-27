@@ -56,52 +56,6 @@ func TestReservations_ForPartition(t *testing.T) {
 	}
 }
 
-func TestReservations_ForProject(t *testing.T) {
-	tests := []struct {
-		name      string
-		rs        *SizeReservations
-		projectID string
-		want      SizeReservations
-	}{
-		{
-			name:      "nil",
-			rs:        nil,
-			projectID: "a",
-			want:      nil,
-		},
-		{
-			name: "correctly filtered",
-			rs: &SizeReservations{
-				{
-					ProjectID: "a",
-				},
-				{
-					ProjectID: "c",
-				},
-				{
-					ProjectID: "a",
-				},
-			},
-			projectID: "a",
-			want: SizeReservations{
-				{
-					ProjectID: "a",
-				},
-				{
-					ProjectID: "a",
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.ForProject(tt.projectID); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Reservations.ForProject() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestReservations_Validate(t *testing.T) {
 	tests := []struct {
 		name       string
