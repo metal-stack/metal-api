@@ -761,7 +761,7 @@ func Test_checkSizeReservations(t *testing.T) {
 	)
 
 	// 5 available, 3 reserved, project 0 can allocate
-	ok := checkSizeReservations(available, p0, partitionA, projectMachines, reservations)
+	ok := checkSizeReservations(available, p0, projectMachines, reservations)
 	require.True(t, ok)
 	allocate(available[0].ID, p0)
 
@@ -778,7 +778,7 @@ func Test_checkSizeReservations(t *testing.T) {
 	}, projectMachines)
 
 	// 4 available, 3 reserved, project 2 can allocate
-	ok = checkSizeReservations(available, p2, partitionA, projectMachines, reservations)
+	ok = checkSizeReservations(available, p2, projectMachines, reservations)
 	require.True(t, ok)
 	allocate(available[0].ID, p2)
 
@@ -797,7 +797,7 @@ func Test_checkSizeReservations(t *testing.T) {
 	}, projectMachines)
 
 	// 3 available, 3 reserved (1 used), project 0 can allocate
-	ok = checkSizeReservations(available, p0, partitionA, projectMachines, reservations)
+	ok = checkSizeReservations(available, p0, projectMachines, reservations)
 	require.True(t, ok)
 	allocate(available[0].ID, p0)
 
@@ -816,11 +816,11 @@ func Test_checkSizeReservations(t *testing.T) {
 	}, projectMachines)
 
 	// 2 available, 3 reserved (1 used), project 0 cannot allocate anymore
-	ok = checkSizeReservations(available, p0, partitionA, projectMachines, reservations)
+	ok = checkSizeReservations(available, p0, projectMachines, reservations)
 	require.False(t, ok)
 
 	// 2 available, 3 reserved (1 used), project 2 can allocate
-	ok = checkSizeReservations(available, p2, partitionA, projectMachines, reservations)
+	ok = checkSizeReservations(available, p2, projectMachines, reservations)
 	require.True(t, ok)
 	allocate(available[0].ID, p2)
 
@@ -839,13 +839,13 @@ func Test_checkSizeReservations(t *testing.T) {
 	}, projectMachines)
 
 	// 1 available, 3 reserved (2 used), project 0 and 2 cannot allocate anymore
-	ok = checkSizeReservations(available, p0, partitionA, projectMachines, reservations)
+	ok = checkSizeReservations(available, p0, projectMachines, reservations)
 	require.False(t, ok)
-	ok = checkSizeReservations(available, p2, partitionA, projectMachines, reservations)
+	ok = checkSizeReservations(available, p2, projectMachines, reservations)
 	require.False(t, ok)
 
 	// 1 available, 3 reserved (2 used), project 1 can allocate
-	ok = checkSizeReservations(available, p1, partitionA, projectMachines, reservations)
+	ok = checkSizeReservations(available, p1, projectMachines, reservations)
 	require.True(t, ok)
 	allocate(available[0].ID, p1)
 

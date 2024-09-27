@@ -486,7 +486,7 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 		return nil, err
 	}
 
-	ok := checkSizeReservations(available, projectid, partitionid, partitionMachines.WithSize(size.ID).ByProjectID(), reservations)
+	ok := checkSizeReservations(available, projectid, partitionMachines.WithSize(size.ID).ByProjectID(), reservations)
 	if !ok {
 		return nil, errors.New("no machine available")
 	}
@@ -512,7 +512,7 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 
 // checkSizeReservations returns true when an allocation is possible and
 // false when size reservations prevent the allocation for the given project in the given partition
-func checkSizeReservations(available metal.Machines, projectid, partitionid string, machinesByProject map[string]metal.Machines, reservations metal.SizeReservations) bool {
+func checkSizeReservations(available metal.Machines, projectid string, machinesByProject map[string]metal.Machines, reservations metal.SizeReservations) bool {
 	if len(reservations) == 0 {
 		return true
 	}
@@ -521,7 +521,7 @@ func checkSizeReservations(available metal.Machines, projectid, partitionid stri
 		amount = 0
 	)
 
-	for _, r := range reservations.ForPartition(partitionid) {
+	for _, r := range reservations {
 		r := r
 
 		// sum up the amount of reservations
