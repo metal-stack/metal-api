@@ -329,9 +329,12 @@ func (nics Nics) FilterByHostname(hostname string) (res Nics) {
 	return res
 }
 
+// NicMap maps nic names to the corresponding nics
+type NicMap map[string]*Nic
+
 // ByName creates a map (nic names --> nic) from a nic list.
-func (nics Nics) ByName() map[string]*Nic {
-	res := make(map[string]*Nic)
+func (nics Nics) ByName() NicMap {
+	res := make(NicMap)
 
 	for i, n := range nics {
 		res[n.Name] = &nics[i]
@@ -341,8 +344,8 @@ func (nics Nics) ByName() map[string]*Nic {
 }
 
 // ByIdentifier creates a map (nic identifier --> nic) from a nic list.
-func (nics Nics) ByIdentifier() map[string]*Nic {
-	res := make(map[string]*Nic)
+func (nics Nics) ByIdentifier() NicMap {
+	res := make(NicMap)
 
 	for i, n := range nics {
 		res[n.GetIdentifier()] = &nics[i]
