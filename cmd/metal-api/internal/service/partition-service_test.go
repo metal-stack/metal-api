@@ -250,7 +250,7 @@ func TestUpdatePartition(t *testing.T) {
 
 func TestPartitionCapacity(t *testing.T) {
 	var (
-		mockMachines = func(mock *r.Mock, liveliness metal.MachineLiveliness, reservations []metal.Reservation, ms ...metal.Machine) {
+		mockMachines = func(mock *r.Mock, liveliness metal.MachineLiveliness, reservations metal.SizeReservations, ms ...metal.Machine) {
 			var (
 				sizes      metal.Sizes
 				events     metal.ProvisioningEventContainers
@@ -283,12 +283,7 @@ func TestPartitionCapacity(t *testing.T) {
 				}
 			}
 
-			if len(reservations) > 0 {
-				for i := range sizes {
-					sizes[i].Reservations = append(sizes[i].Reservations, reservations...)
-				}
-			}
-
+			mock.On(r.DB("mockdb").Table("sizereservation")).Return(reservations, nil)
 			mock.On(r.DB("mockdb").Table("machine")).Return(ms, nil)
 			mock.On(r.DB("mockdb").Table("event")).Return(events, nil)
 			mock.On(r.DB("mockdb").Table("partition")).Return(partitions, nil)
@@ -525,8 +520,9 @@ func TestPartitionCapacity(t *testing.T) {
 				m1 := machineTpl("1", "partition-a", "size-a", "")
 				m1.Waiting = true
 
-				reservations := []metal.Reservation{
+				reservations := []metal.SizeReservation{
 					{
+						SizeID:       "size-a",
 						Amount:       1,
 						ProjectID:    "project-123",
 						PartitionIDs: []string{"partition-a"},
@@ -561,13 +557,15 @@ func TestPartitionCapacity(t *testing.T) {
 				m1 := machineTpl("1", "partition-a", "size-a", "")
 				m1.Waiting = true
 
-				reservations := []metal.Reservation{
+				reservations := []metal.SizeReservation{
 					{
+						SizeID:       "size-a",
 						Amount:       1,
 						ProjectID:    "project-123",
 						PartitionIDs: []string{"partition-a"},
 					},
 					{
+						SizeID:       "size-a",
 						Amount:       2,
 						ProjectID:    "project-456",
 						PartitionIDs: []string{"partition-a"},
@@ -604,8 +602,9 @@ func TestPartitionCapacity(t *testing.T) {
 				m3 := machineTpl("3", "partition-a", "size-a", "")
 				m3.Waiting = true
 
-				reservations := []metal.Reservation{
+				reservations := []metal.SizeReservation{
 					{
+						SizeID:       "size-a",
 						Amount:       2,
 						ProjectID:    "project-123",
 						PartitionIDs: []string{"partition-a"},
@@ -643,8 +642,9 @@ func TestPartitionCapacity(t *testing.T) {
 				m3 := machineTpl("3", "partition-a", "size-a", "")
 				m3.Waiting = true
 
-				reservations := []metal.Reservation{
+				reservations := []metal.SizeReservation{
 					{
+						SizeID:       "size-a",
 						Amount:       1,
 						ProjectID:    "project-123",
 						PartitionIDs: []string{"partition-a"},
@@ -682,13 +682,15 @@ func TestPartitionCapacity(t *testing.T) {
 				m3 := machineTpl("3", "partition-a", "size-a", "")
 				m3.Waiting = true
 
-				reservations := []metal.Reservation{
+				reservations := []metal.SizeReservation{
 					{
+						SizeID:       "size-a",
 						Amount:       2,
 						ProjectID:    "project-123",
 						PartitionIDs: []string{"partition-a"},
 					},
 					{
+						SizeID:       "size-a",
 						Amount:       2,
 						ProjectID:    "project-123",
 						PartitionIDs: []string{"partition-b"},

@@ -245,17 +245,13 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 		return
 	}
 
-	sizes, err := r.ds.ListSizes()
+	var sizeReservations metal.SizeReservations
+	err = r.ds.SearchSizeReservations(&datastore.SizeReservationSearchQuery{
+		Project: &id,
+	}, &sizeReservations)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
-	}
-
-	var sizeReservations metal.Reservations
-	for _, size := range sizes {
-		size := size
-
-		sizeReservations = size.Reservations.ForProject(id)
 	}
 
 	if len(sizeReservations) > 0 {
