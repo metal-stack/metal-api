@@ -601,6 +601,10 @@ func (r *switchResource) migrate(request *restful.Request, response *restful.Res
 		return
 	}
 
+	if len(new.MachineConnections) > 0 {
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("target switch already has machine connections")))
+	}
+
 	s, err := adoptConfiguration(old, new)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))

@@ -188,6 +188,37 @@ func TestReplaceSwitch(t *testing.T) {
 	require.Empty(t, result.Connections)
 }
 
+func TestSwitchMigrateConnectionsExistError(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := slog.Default()
+
+	switchservice := NewSwitch(log, ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	migrateRequest := v1.SwitchMigrateRequest{
+		OldSwitchID: testdata.Switch2.ID,
+		NewSwitchID: testdata.Switch1.ID,
+	}
+	js, err := json.Marshal(migrateRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/switch/migrate", body)
+	req.Header.Add("Content-Type", "application/json")
+	container = injectEditor(log, container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode, w.Body.String())
+	var errorResponse httperrors.HTTPErrorResponse
+	err = json.NewDecoder(resp.Body).Decode(&errorResponse)
+	require.NoError(t, err)
+	require.Equal(t, "target switch already has machine connections", errorResponse.Message)
+	require.Equal(t, http.StatusBadRequest, errorResponse.StatusCode)
+}
+
 func TestConnectMachineWithSwitches(t *testing.T) {
 	partitionID := "1"
 	s1swp1 := metal.Nic{
