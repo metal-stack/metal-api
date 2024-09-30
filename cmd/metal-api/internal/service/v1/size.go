@@ -11,51 +11,65 @@ type SizeConstraint struct {
 	Identifier string               `json:"identifier,omitempty" description:"glob pattern which matches to the given type, for example gpu pci id"`
 }
 
-type SizeReservation struct {
-	Amount       int               `json:"amount" description:"the amount of reserved machine allocations for this size"`
-	Description  string            `json:"description,omitempty" description:"a description for this reservation"`
-	ProjectID    string            `json:"projectid" description:"the project for which this size reservation is considered"`
-	PartitionIDs []string          `json:"partitionids" description:"the partitions in which this size reservation is considered, the amount is valid for every partition"`
-	Labels       map[string]string `json:"labels,omitempty" description:"free labels associated with this size reservation."`
-}
-
 type SizeCreateRequest struct {
 	Common
-	SizeConstraints  []SizeConstraint  `json:"constraints" description:"a list of constraints that defines this size"`
-	SizeReservations []SizeReservation `json:"reservations,omitempty" description:"reservations for this size, which are considered during machine allocation" optional:"true"`
-	Labels           map[string]string `json:"labels" description:"free labels that you associate with this size." optional:"true"`
+	SizeConstraints []SizeConstraint  `json:"constraints" description:"a list of constraints that defines this size"`
+	Labels          map[string]string `json:"labels" description:"free labels that you associate with this size." optional:"true"`
 }
 
 type SizeUpdateRequest struct {
 	Common
-	SizeConstraints  *[]SizeConstraint `json:"constraints" description:"a list of constraints that defines this size" optional:"true"`
-	SizeReservations []SizeReservation `json:"reservations,omitempty" description:"reservations for this size, which are considered during machine allocation" optional:"true"`
-	Labels           map[string]string `json:"labels" description:"free labels that you associate with this size." optional:"true"`
+	SizeConstraints *[]SizeConstraint `json:"constraints" description:"a list of constraints that defines this size" optional:"true"`
+	Labels          map[string]string `json:"labels" description:"free labels that you associate with this size." optional:"true"`
 }
 
 type SizeResponse struct {
 	Common
-	SizeConstraints  []SizeConstraint  `json:"constraints" description:"a list of constraints that defines this size"`
-	SizeReservations []SizeReservation `json:"reservations,omitempty" description:"reservations for this size, which are considered during machine allocation" optional:"true"`
-	Labels           map[string]string `json:"labels" description:"free labels that you associate with this size."`
+	SizeConstraints []SizeConstraint  `json:"constraints" description:"a list of constraints that defines this size"`
+	Labels          map[string]string `json:"labels" description:"free labels that you associate with this size."`
 	Timestamps
 }
 
+type SizeReservationCreateRequest struct {
+	Common
+	SizeID       string            `json:"sizeid" description:"the size id of this size reservation"`
+	PartitionIDs []string          `json:"partitionids" description:"the partition id of this size reservation"`
+	ProjectID    string            `json:"projectid" description:"the project id of this size reservation"`
+	Amount       int               `json:"amount" description:"the amount of reservations of this size reservation"`
+	Labels       map[string]string `json:"labels,omitempty" description:"free labels associated with this size reservation."`
+}
+
+type SizeReservationUpdateRequest struct {
+	Common
+	PartitionIDs []string          `json:"partitionids" description:"the partition id of this size reservation"`
+	Amount       *int              `json:"amount" description:"the amount of reservations of this size reservation"`
+	Labels       map[string]string `json:"labels,omitempty" description:"free labels associated with this size reservation."`
+}
+
 type SizeReservationResponse struct {
+	Common
+	Timestamps
+	SizeID       string            `json:"sizeid" description:"the size id of this size reservation"`
+	PartitionIDs []string          `json:"partitionids" description:"the partition id of this size reservation"`
+	ProjectID    string            `json:"projectid" description:"the project id of this size reservation"`
+	Amount       int               `json:"amount" description:"the amount of reservations of this size reservation"`
+	Labels       map[string]string `json:"labels,omitempty" description:"free labels associated with this size reservation."`
+}
+
+type SizeReservationUsageResponse struct {
+	Common
 	SizeID             string            `json:"sizeid" description:"the size id of this size reservation"`
 	PartitionID        string            `json:"partitionid" description:"the partition id of this size reservation"`
-	Tenant             string            `json:"tenant" description:"the tenant of this size reservation"`
 	ProjectID          string            `json:"projectid" description:"the project id of this size reservation"`
-	ProjectName        string            `json:"projectname" description:"the project name of this size reservation"`
-	Reservations       int               `json:"reservations" description:"the amount of reservations of this size reservation"`
-	UsedReservations   int               `json:"usedreservations" description:"the used amount of reservations of this size reservation"`
+	Amount             int               `json:"amount" description:"the amount of reservations of this size reservation"`
+	UsedAmount         int               `json:"usedamount" description:"the used amount of reservations of this size reservation"`
 	ProjectAllocations int               `json:"projectallocations" description:"the amount of allocations of this project referenced by this size reservation"`
 	Labels             map[string]string `json:"labels,omitempty" description:"free labels associated with this size reservation."`
 }
 
 type SizeReservationListRequest struct {
+	ID          *string `json:"id,omitempty" description:"the id of this size reservation"`
 	SizeID      *string `json:"sizeid,omitempty" description:"the size id of this size reservation"`
-	Tenant      *string `json:"tenant,omitempty" description:"the tenant of this size reservation"`
 	ProjectID   *string `json:"projectid,omitempty" description:"the project id of this size reservation"`
 	PartitionID *string `json:"partitionid,omitempty" description:"the partition id of this size reservation"`
 }
@@ -93,18 +107,6 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 		constraints = append(constraints, constraint)
 	}
 
-	reservations := []SizeReservation{}
-	for _, r := range s.Reservations {
-		reservation := SizeReservation{
-			Amount:       r.Amount,
-			Description:  r.Description,
-			ProjectID:    r.ProjectID,
-			PartitionIDs: r.PartitionIDs,
-			Labels:       r.Labels,
-		}
-		reservations = append(reservations, reservation)
-	}
-
 	labels := map[string]string{}
 	if s.Labels != nil {
 		labels = s.Labels
@@ -120,12 +122,23 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 				Description: &s.Description,
 			},
 		},
-		SizeReservations: reservations,
-		SizeConstraints:  constraints,
+		SizeConstraints: constraints,
 		Timestamps: Timestamps{
 			Created: s.Created,
 			Changed: s.Changed,
 		},
 		Labels: labels,
+	}
+}
+
+func NewSizeReservationResponse(rv *metal.SizeReservation) *SizeReservationResponse {
+	return &SizeReservationResponse{
+		Common:       Common{Identifiable: Identifiable{ID: rv.ID}, Describable: Describable{Name: &rv.Name, Description: &rv.Description}},
+		Timestamps:   Timestamps{Created: rv.Created, Changed: rv.Changed},
+		SizeID:       rv.SizeID,
+		PartitionIDs: rv.PartitionIDs,
+		ProjectID:    rv.ProjectID,
+		Amount:       rv.Amount,
+		Labels:       rv.Labels,
 	}
 }
