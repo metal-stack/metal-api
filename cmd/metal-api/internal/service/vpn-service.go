@@ -107,7 +107,7 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 }
 
 type headscaleMachineLister interface {
-	MachinesConnected(ctx context.Context) ([]*headscalev1.Machine, error)
+	NodesConnected(ctx context.Context) ([]*headscalev1.Node, error)
 }
 
 func EvaluateVPNConnected(log *slog.Logger, ds *datastore.RethinkStore, lister headscaleMachineLister) error {
@@ -119,7 +119,7 @@ func EvaluateVPNConnected(log *slog.Logger, ds *datastore.RethinkStore, lister h
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	headscaleMachines, err := lister.MachinesConnected(ctx)
+	headscaleNodes, err := lister.NodesConnected(ctx)
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func EvaluateVPNConnected(log *slog.Logger, ds *datastore.RethinkStore, lister h
 			continue
 		}
 
-		index := slices.IndexFunc(headscaleMachines, func(hm *headscalev1.Machine) bool {
+		index := slices.IndexFunc(headscaleNodes, func(hm *headscalev1.Node) bool {
 			if hm.Name != m.ID {
 				return false
 			}
@@ -147,7 +147,7 @@ func EvaluateVPNConnected(log *slog.Logger, ds *datastore.RethinkStore, lister h
 			continue
 		}
 
-		connected := headscaleMachines[index].Online
+		connected := headscaleNodes[index].Online
 
 		if m.Allocation.VPN.Connected == connected {
 			log.Info("not updating vpn because already up-to-date", "machine", m.ID, "connected", connected)
