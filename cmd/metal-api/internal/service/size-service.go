@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,7 +13,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -64,27 +65,6 @@ func (r *sizeResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.SizeResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/reservations").
-		To(r.listSizeReservations).
-		Operation("listSizeReservations").
-		Doc("get all size reservations").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
-		Reads(v1.SizeReservationListRequest{}).
-		Writes([]v1.SizeReservationResponse{}).
-		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/suggest").
-		To(r.suggestSize).
-		Operation("suggest").
-		Doc("from a given machine id returns the appropriate size").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
-		Reads(v1.SizeSuggestRequest{}).
-		Returns(http.StatusOK, "OK", []v1.SizeConstraint{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	ws.Route(ws.DELETE("/{id}").
 		To(admin(r.deleteSize)).
 		Operation("deleteSize").
@@ -113,6 +93,92 @@ func (r *sizeResource) webService() *restful.WebService {
 		Reads(v1.SizeUpdateRequest{}).
 		Returns(http.StatusOK, "OK", v1.SizeResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	// suggest
+
+	ws.Route(ws.POST("/suggest").
+		To(r.suggestSize).
+		Operation("suggest").
+		Doc("from a given machine id returns the appropriate size").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Reads(v1.SizeSuggestRequest{}).
+		Returns(http.StatusOK, "OK", []v1.SizeConstraint{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	// size reservations
+
+	ws.Route(ws.GET("/reservations").
+		To(r.listSizeReservations).
+		Operation("listSizeReservations").
+		Doc("get all size reservations").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Writes([]v1.SizeReservationResponse{}).
+		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/reservations/find").
+		To(r.findSizeReservations).
+		Operation("findSizeReservations").
+		Doc("get all size reservations").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Reads(v1.SizeReservationListRequest{}).
+		Writes([]v1.SizeReservationResponse{}).
+		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.GET("/reservations/{id}").
+		To(r.getSizeReservation).
+		Operation("getSizeReservation").
+		Doc("get size reservation by id").
+		Param(ws.PathParameter("id", "identifier of the size reservation").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.SizeReservationResponse{}).
+		Returns(http.StatusOK, "OK", v1.SizeReservationResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.DELETE("/reservations/{id}").
+		To(editor(r.deleteSizeReservation)).
+		Operation("deleteSizeReservation").
+		Doc("deletes a size reservation and returns the deleted entity").
+		Param(ws.PathParameter("id", "identifier of the size reservation").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.SizeReservationResponse{}).
+		Returns(http.StatusOK, "OK", v1.SizeReservationResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.PUT("/reservations").
+		To(editor(r.createSizeReservation)).
+		Operation("createSizeReservation").
+		Doc("create a size reservation. if the given ID already exists a conflict is returned").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.SizeReservationCreateRequest{}).
+		Returns(http.StatusCreated, "Created", v1.SizeReservationResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/reservations").
+		To(editor(r.updateSizeReservation)).
+		Operation("updateSizeReservation").
+		Doc("updates a size reservation. if the size reservation was changed since this one was read, a conflict is returned").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.SizeReservationUpdateRequest{}).
+		Returns(http.StatusOK, "OK", v1.SizeReservationResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/reservations/usage").
+		To(r.sizeReservationsUsage).
+		Operation("sizeReservationsUsage").
+		Doc("get all size reservations").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Reads(v1.SizeReservationListRequest{}).
+		Writes([]v1.SizeReservationUsageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.SizeReservationUsageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -269,16 +335,6 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 		}
 		constraints = append(constraints, constraint)
 	}
-	var reservations metal.Reservations
-	for _, r := range requestPayload.SizeReservations {
-		reservations = append(reservations, metal.Reservation{
-			Amount:       r.Amount,
-			Description:  r.Description,
-			ProjectID:    r.ProjectID,
-			PartitionIDs: r.PartitionIDs,
-			Labels:       r.Labels,
-		})
-	}
 
 	s := &metal.Size{
 		Base: metal.Base{
@@ -286,9 +342,8 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 			Name:        name,
 			Description: description,
 		},
-		Constraints:  constraints,
-		Reservations: reservations,
-		Labels:       labels,
+		Constraints: constraints,
+		Labels:      labels,
 	}
 
 	ss, err := r.ds.ListSizes()
@@ -335,6 +390,20 @@ func (r *sizeResource) deleteSize(request *restful.Request, response *restful.Re
 	s, err := r.ds.FindSize(id)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	var rvs metal.SizeReservations
+	err = r.ds.SearchSizeReservations(&datastore.SizeReservationSearchQuery{
+		SizeID: &s.ID,
+	}, &rvs)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	if len(rvs) > 0 {
+		r.sendError(request, response, httperrors.UnprocessableEntity(errors.New("cannot delete size before all size reservations were removed")))
 		return
 	}
 
@@ -386,19 +455,6 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 		}
 		newSize.Constraints = constraints
 	}
-	var reservations metal.Reservations
-	if requestPayload.SizeReservations != nil {
-		for _, r := range requestPayload.SizeReservations {
-			reservations = append(reservations, metal.Reservation{
-				Amount:       r.Amount,
-				Description:  r.Description,
-				ProjectID:    r.ProjectID,
-				PartitionIDs: r.PartitionIDs,
-				Labels:       r.Labels,
-			})
-		}
-		newSize.Reservations = reservations
-	}
 
 	ss, err := r.ds.ListSizes()
 	if err != nil {
@@ -439,6 +495,21 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 }
 
 func (r *sizeResource) listSizeReservations(request *restful.Request, response *restful.Response) {
+	rvs, err := r.ds.ListSizeReservations()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	result := []*v1.SizeReservationResponse{}
+	for i := range rvs {
+		result = append(result, v1.NewSizeReservationResponse(&rvs[i]))
+	}
+
+	r.send(request, response, http.StatusOK, result)
+}
+
+func (r *sizeResource) findSizeReservations(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeReservationListRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
@@ -446,29 +517,194 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 		return
 	}
 
-	ss := metal.Sizes{}
-	err = r.ds.SearchSizes(&datastore.SizeSearchQuery{
-		ID: requestPayload.SizeID,
-		Reservation: datastore.Reservation{
-			Partition: requestPayload.PartitionID,
-			Project:   requestPayload.ProjectID,
-		},
-	}, &ss)
+	var rvs metal.SizeReservations
+	err = r.ds.SearchSizeReservations(&datastore.SizeReservationSearchQuery{
+		SizeID:    requestPayload.SizeID,
+		Partition: requestPayload.PartitionID,
+		Project:   requestPayload.ProjectID,
+		ID:        requestPayload.ID,
+	}, &rvs)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	pfr := &mdmv1.ProjectFindRequest{}
-
-	if requestPayload.ProjectID != nil {
-		pfr.Id = wrapperspb.String(*requestPayload.ProjectID)
-	}
-	if requestPayload.Tenant != nil {
-		pfr.TenantId = wrapperspb.String(*requestPayload.Tenant)
+	result := []*v1.SizeReservationResponse{}
+	for i := range rvs {
+		result = append(result, v1.NewSizeReservationResponse(&rvs[i]))
 	}
 
-	projects, err := r.mdc.Project().Find(request.Request.Context(), pfr)
+	r.send(request, response, http.StatusOK, result)
+}
+
+func (r *sizeResource) getSizeReservation(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	rv, err := r.ds.FindSizeReservation(id)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	r.send(request, response, http.StatusOK, v1.NewSizeReservationResponse(rv))
+}
+
+func (r *sizeResource) createSizeReservation(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SizeReservationCreateRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	rv := &metal.SizeReservation{
+		Base: metal.Base{
+			ID:          requestPayload.ID,
+			Name:        pointer.SafeDeref(requestPayload.Name),
+			Description: pointer.SafeDeref(requestPayload.Description),
+		},
+		SizeID:       requestPayload.SizeID,
+		Amount:       requestPayload.Amount,
+		ProjectID:    requestPayload.ProjectID,
+		PartitionIDs: requestPayload.PartitionIDs,
+		Labels:       requestPayload.Labels,
+	}
+
+	size, err := r.ds.FindSize(requestPayload.SizeID)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	ps, err := r.ds.ListPartitions()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	project, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	err = rv.Validate(metal.SizeMap{requestPayload.SizeID: *size}, ps.ByID(), map[string]*mdmv1.Project{requestPayload.ProjectID: project.Project})
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	err = r.ds.CreateSizeReservation(rv)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	r.send(request, response, http.StatusCreated, v1.NewSizeReservationResponse(rv))
+}
+
+func (r *sizeResource) updateSizeReservation(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SizeReservationUpdateRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	oldRv, err := r.ds.FindSizeReservation(requestPayload.ID)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	rv := *oldRv
+
+	if requestPayload.Name != nil {
+		rv.Name = *requestPayload.Name
+	}
+	if requestPayload.Description != nil {
+		rv.Description = *requestPayload.Description
+	}
+	if requestPayload.Labels != nil {
+		if len(requestPayload.Labels) == 0 {
+			rv.Labels = nil
+		} else {
+			rv.Labels = requestPayload.Labels
+		}
+	}
+	if requestPayload.Amount != nil {
+		rv.Amount = *requestPayload.Amount
+	}
+	if len(requestPayload.PartitionIDs) > 0 {
+		rv.PartitionIDs = requestPayload.PartitionIDs
+	}
+
+	size, err := r.ds.FindSize(rv.SizeID)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	ps, err := r.ds.ListPartitions()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	project, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: rv.ProjectID})
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	err = rv.Validate(metal.SizeMap{rv.SizeID: *size}, ps.ByID(), map[string]*mdmv1.Project{rv.ProjectID: project.Project})
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	err = r.ds.UpdateSizeReservation(oldRv, &rv)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	r.send(request, response, http.StatusOK, v1.NewSizeReservationResponse(&rv))
+}
+
+func (r *sizeResource) deleteSizeReservation(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	rv, err := r.ds.FindSizeReservation(id)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	err = r.ds.DeleteSizeReservation(rv)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	r.send(request, response, http.StatusOK, v1.NewSizeReservationResponse(rv))
+}
+
+func (r *sizeResource) sizeReservationsUsage(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SizeReservationListRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	rvs := metal.SizeReservations{}
+	err = r.ds.SearchSizeReservations(&datastore.SizeReservationSearchQuery{
+		ID:        requestPayload.ID,
+		SizeID:    requestPayload.SizeID,
+		Partition: requestPayload.PartitionID,
+		Project:   requestPayload.ProjectID,
+	}, &rvs)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -484,37 +720,27 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 	}
 
 	var (
-		result              []*v1.SizeReservationResponse
-		projectsByID        = projectsByID(projects.Projects)
+		result              []*v1.SizeReservationUsageResponse
 		machinesByProjectID = ms.ByProjectID()
 	)
 
-	for _, size := range ss {
-		size := size
+	for _, reservation := range rvs {
+		for _, partitionID := range reservation.PartitionIDs {
+			allocations := len(machinesByProjectID[reservation.ProjectID].WithPartition(partitionID).WithSize(reservation.SizeID))
 
-		for _, reservation := range size.Reservations {
-			reservation := reservation
-
-			project, ok := projectsByID[reservation.ProjectID]
-			if !ok {
-				continue
-			}
-
-			for _, partitionID := range reservation.PartitionIDs {
-				allocations := len(machinesByProjectID[reservation.ProjectID].WithPartition(partitionID).WithSize(size.ID))
-
-				result = append(result, &v1.SizeReservationResponse{
-					SizeID:             size.ID,
-					PartitionID:        partitionID,
-					Tenant:             project.TenantId,
-					ProjectID:          reservation.ProjectID,
-					ProjectName:        project.Name,
-					Reservations:       reservation.Amount,
-					UsedReservations:   min(reservation.Amount, allocations),
-					ProjectAllocations: allocations,
-					Labels:             reservation.Labels,
-				})
-			}
+			result = append(result, &v1.SizeReservationUsageResponse{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{ID: reservation.ID},
+					Describable:  v1.Describable{Name: &reservation.Name, Description: &reservation.Description},
+				},
+				SizeID:             reservation.SizeID,
+				PartitionID:        partitionID,
+				ProjectID:          reservation.ProjectID,
+				Amount:             reservation.Amount,
+				UsedAmount:         min(reservation.Amount, allocations),
+				ProjectAllocations: allocations,
+				Labels:             reservation.Labels,
+			})
 		}
 	}
 

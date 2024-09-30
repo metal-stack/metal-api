@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"slices"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/samber/lo"
@@ -13,21 +12,9 @@ import (
 // A Size represents a supported machine size.
 type Size struct {
 	Base
-	Constraints  []Constraint      `rethinkdb:"constraints" json:"constraints"`
-	Reservations Reservations      `rethinkdb:"reservations" json:"reservations"`
-	Labels       map[string]string `rethinkdb:"labels" json:"labels"`
+	Constraints []Constraint      `rethinkdb:"constraints" json:"constraints"`
+	Labels      map[string]string `rethinkdb:"labels" json:"labels"`
 }
-
-// Reservation defines a reservation of a size for machine allocations
-type Reservation struct {
-	Amount       int               `rethinkdb:"amount" json:"amount"`
-	Description  string            `rethinkdb:"description" json:"description"`
-	ProjectID    string            `rethinkdb:"projectid" json:"projectid"`
-	PartitionIDs []string          `rethinkdb:"partitionids" json:"partitionids"`
-	Labels       map[string]string `rethinkdb:"labels" json:"labels"`
-}
-
-type Reservations []Reservation
 
 // ConstraintType ...
 type ConstraintType string
@@ -280,10 +267,6 @@ func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Proj
 		}
 	}
 
-	if err := s.Reservations.Validate(partitions, projects); err != nil {
-		errs = append(errs, fmt.Errorf("size reservations are invalid: %w", err))
-	}
-
 	if len(errs) > 0 {
 		return fmt.Errorf("size %q is invalid: %w", s.ID, errors.Join(errs...))
 	}
@@ -302,72 +285,5 @@ func (s *Size) Overlaps(ss *Sizes) *Size {
 			return &so
 		}
 	}
-	return nil
-}
-
-func (rs *Reservations) ForPartition(partitionID string) Reservations {
-	if rs == nil {
-		return nil
-	}
-
-	var result Reservations
-	for _, r := range *rs {
-		r := r
-		if slices.Contains(r.PartitionIDs, partitionID) {
-			result = append(result, r)
-		}
-	}
-
-	return result
-}
-
-func (rs *Reservations) ForProject(projectID string) Reservations {
-	if rs == nil {
-		return nil
-	}
-
-	var result Reservations
-	for _, r := range *rs {
-		r := r
-		if r.ProjectID == projectID {
-			result = append(result, r)
-		}
-	}
-
-	return result
-}
-
-func (rs *Reservations) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
-	if rs == nil {
-		return nil
-	}
-
-	for _, r := range *rs {
-		if r.Amount <= 0 {
-			return fmt.Errorf("amount must be a positive integer")
-		}
-
-		if len(r.PartitionIDs) == 0 {
-			return fmt.Errorf("at least one partition id must be specified")
-		}
-		ids := map[string]bool{}
-		for _, partition := range r.PartitionIDs {
-			ids[partition] = true
-			if _, ok := partitions[partition]; !ok {
-				return fmt.Errorf("partition must exist before creating a size reservation")
-			}
-		}
-		if len(ids) != len(r.PartitionIDs) {
-			return fmt.Errorf("partitions must not contain duplicates")
-		}
-
-		if r.ProjectID == "" {
-			return fmt.Errorf("project id must be specified")
-		}
-		if _, ok := projects[r.ProjectID]; !ok {
-			return fmt.Errorf("project must exist before creating a size reservation")
-		}
-	}
-
 	return nil
 }
