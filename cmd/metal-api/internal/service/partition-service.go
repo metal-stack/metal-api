@@ -366,6 +366,11 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		return nil, fmt.Errorf("unable to list sizes: %w", err)
 	}
 
+	sizeReservations, err := r.ds.ListSizeReservations()
+	if err != nil {
+		return nil, fmt.Errorf("unable to list size reservations: %w", err)
+	}
+
 	machinesWithIssues, err := issues.Find(&issues.Config{
 		Machines:        ms,
 		EventContainers: ecs,
@@ -380,6 +385,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		ecsByID           = ecs.ByID()
 		sizesByID         = sizes.ByID()
 		machinesByProject = ms.ByProjectID()
+		rvsBySize         = sizeReservations.BySize()
 	)
 
 	for _, m := range ms {
@@ -463,7 +469,12 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		for _, cap := range pc.ServerCapacities {
 			size := sizesByID[cap.Size]
 
-			for _, reservation := range size.Reservations.ForPartition(pc.ID) {
+			rvs, ok := rvsBySize[size.ID]
+			if !ok {
+				continue
+			}
+
+			for _, reservation := range rvs.ForPartition(pc.ID) {
 				usedReservations := min(len(machinesByProject[reservation.ProjectID].WithSize(size.ID).WithPartition(pc.ID)), reservation.Amount)
 
 				cap.Reservations += reservation.Amount

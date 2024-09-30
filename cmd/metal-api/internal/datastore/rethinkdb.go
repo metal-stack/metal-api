@@ -31,6 +31,7 @@ var tables = []string{
 	"sharedmutex",
 	"size",
 	"sizeimageconstraint",
+	"sizereservation",
 	"switch",
 	"switchstatus",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
@@ -216,6 +217,11 @@ func (rs *RethinkStore) filesystemLayoutTable() *r.Term {
 
 func (rs *RethinkStore) sizeImageConstraintTable() *r.Term {
 	res := r.DB(rs.dbname).Table("sizeimageconstraint")
+	return &res
+}
+
+func (rs *RethinkStore) sizeReservationTable() *r.Term {
+	res := r.DB(rs.dbname).Table("sizereservation")
 	return &res
 }
 
