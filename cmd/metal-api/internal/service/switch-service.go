@@ -601,6 +601,10 @@ func (r *switchResource) migrate(request *restful.Request, response *restful.Res
 		return
 	}
 
+	if old.RackID != new.RackID {
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("new switch must be in the same rack as the old one")))
+	}
+
 	if len(new.MachineConnections) > 0 {
 		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("target switch already has machine connections")))
 	}
