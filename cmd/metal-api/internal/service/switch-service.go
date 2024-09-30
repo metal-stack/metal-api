@@ -684,6 +684,9 @@ func (r *switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch,
 		if sw.Mode == metal.SwitchReplace || sw.ID == newSwitch.ID {
 			continue
 		}
+		if len(sw.MachineConnections) == 0 {
+			continue
+		}
 		if twin == nil {
 			twin = &sw
 		} else {

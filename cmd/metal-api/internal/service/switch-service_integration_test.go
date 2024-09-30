@@ -205,10 +205,10 @@ func TestSwitchMigrateIntegration(t *testing.T) {
 	ts.createMachine(m)
 
 	ts.registerSwitch(sonic1, true)
+	ts.registerSwitch(sonic2, true)
+
 	ts.migrateSwitch(cumulus1, sonic1, wantConnections1)
 	ts.checkMachineNics(m.ID, wantMachineNics1)
-
-	ts.registerSwitch(sonic2, true)
 	ts.migrateSwitch(cumulus2, sonic2, wantConnections2)
 	ts.checkMachineNics(m.ID, wantMachineNics2)
 }
@@ -384,11 +384,45 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 		},
 	}
 
+	idleSwitch1 := metal.Switch{
+		Base: metal.Base{
+			ID: "idle-switch01",
+		},
+		Nics: []metal.Nic{
+			{
+				MacAddress: "ee:ee:ee:ee:ee:ee",
+				Name:       "Ethernet0",
+			},
+		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
+	}
+
+	idleSwitch2 := metal.Switch{
+		Base: metal.Base{
+			ID: "idle-switch02",
+		},
+		Nics: []metal.Nic{
+			{
+				MacAddress: "ff:ff:ff:ff:ff:ff",
+				Name:       "Ethernet0",
+			},
+		},
+		PartitionID: testPartitionID,
+		RackID:      testRackID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
+	}
+
 	ts.createPartition(testPartitionID, testPartitionID, "Test Partition")
 
 	ts.registerSwitch(cumulus1, true)
 	ts.registerSwitch(cumulus2, true)
 	ts.createMachine(m)
+
+	// register idle switches to test if we still find the correct twin
+	ts.registerSwitch(idleSwitch1, true)
+	ts.registerSwitch(idleSwitch2, true)
 
 	ts.replaceSwitch(cumulus3, wantConnections1)
 	ts.checkMachineNics(m.ID, wantMachineNics1)
