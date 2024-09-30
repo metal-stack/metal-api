@@ -49,7 +49,7 @@ func (a *asyncActor) freeMachine(ctx context.Context, pub bus.Publisher, m *meta
 
 	if headscaleClient != nil && m.Allocation != nil {
 		// always call DeleteMachine, in case machine is not registered it will return nil
-		if err := headscaleClient.DeleteMachine(ctx, m.ID, m.Allocation.Project); err != nil {
+		if err := headscaleClient.DeleteNode(ctx, m.ID, m.Allocation.Project); err != nil {
 			logger.Error("unable to delete Node entry from headscale DB", "machineID", m.ID, "error", err)
 		}
 	}
