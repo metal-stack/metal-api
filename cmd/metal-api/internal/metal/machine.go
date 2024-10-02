@@ -561,16 +561,17 @@ type Fru struct {
 // IPMI connection data
 type IPMI struct {
 	// Address is host:port of the connection to the ipmi BMC, host can be either a ip address or a hostname
-	Address     string       `rethinkdb:"address" json:"address"`
-	MacAddress  string       `rethinkdb:"mac" json:"mac"`
-	User        string       `rethinkdb:"user" json:"user"`
-	Password    string       `rethinkdb:"password" json:"password"`
-	Interface   string       `rethinkdb:"interface" json:"interface"`
-	Fru         Fru          `rethinkdb:"fru" json:"fru"`
-	BMCVersion  string       `rethinkdb:"bmcversion" json:"bmcversion"`
-	PowerState  string       `rethinkdb:"powerstate" json:"powerstate"`
-	PowerMetric *PowerMetric `rethinkdb:"powermetric" json:"powermetric"`
-	LastUpdated time.Time    `rethinkdb:"last_updated" json:"last_updated"`
+	Address       string        `rethinkdb:"address" json:"address"`
+	MacAddress    string        `rethinkdb:"mac" json:"mac"`
+	User          string        `rethinkdb:"user" json:"user"`
+	Password      string        `rethinkdb:"password" json:"password"`
+	Interface     string        `rethinkdb:"interface" json:"interface"`
+	Fru           Fru           `rethinkdb:"fru" json:"fru"`
+	BMCVersion    string        `rethinkdb:"bmcversion" json:"bmcversion"`
+	PowerState    string        `rethinkdb:"powerstate" json:"powerstate"`
+	PowerMetric   *PowerMetric  `rethinkdb:"powermetric" json:"powermetric"`
+	PowerSupplies PowerSupplies `rethinkdb:"powersupplies" json:"powersupplies"`
+	LastUpdated   time.Time     `rethinkdb:"last_updated" json:"last_updated"`
 }
 
 type PowerMetric struct {
@@ -591,6 +592,17 @@ type PowerMetric struct {
 	// minimum power level in watts that occurred within the last
 	// IntervalInMin minutes.
 	MinConsumedWatts float32 `rethinkdb:"minconsumedwatts" json:"minconsumedwatts"`
+}
+
+type PowerSupplies []PowerSupply
+type PowerSupply struct {
+	// Status shall contain any status or health properties
+	// of the resource.
+	Status PowerSupplyStatus `rethinkdb:"status" json:"status"`
+}
+type PowerSupplyStatus struct {
+	Health string `rethinkdb:"health" json:"health"`
+	State  string `rethinkdb:"state" json:"state"`
 }
 
 // BIOS contains machine bios information

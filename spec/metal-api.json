@@ -2667,6 +2667,12 @@
         "powerstate": {
           "type": "string"
         },
+        "powersupplies": {
+          "items": {
+            "$ref": "#/definitions/v1.PowerSupply"
+          },
+          "type": "array"
+        },
         "user": {
           "type": "string"
         }
@@ -2681,6 +2687,7 @@
         "password",
         "powermetric",
         "powerstate",
+        "powersupplies",
         "user"
       ]
     },
@@ -2799,6 +2806,12 @@
         },
         "PowerState": {
           "type": "string"
+        },
+        "PowerSupplies": {
+          "items": {
+            "$ref": "#/definitions/v1.PowerSupply"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -2808,7 +2821,8 @@
         "FRU",
         "IndicatorLEDState",
         "PowerMetric",
-        "PowerState"
+        "PowerState",
+        "PowerSupplies"
       ]
     },
     "v1.MachineIpmiReportResponse": {
@@ -4301,6 +4315,30 @@
         "intervalinmin",
         "maxconsumedwatts",
         "minconsumedwatts"
+      ]
+    },
+    "v1.PowerSupply": {
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1.PowerSupplyStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "v1.PowerSupplyStatus": {
+      "properties": {
+        "health": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "health",
+        "state"
       ]
     },
     "v1.Project": {

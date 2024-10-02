@@ -160,16 +160,17 @@ type MachineBIOS struct {
 }
 
 type MachineIPMI struct {
-	Address     string       `json:"address" modelDescription:"The IPMI connection data"`
-	MacAddress  string       `json:"mac"`
-	User        string       `json:"user"`
-	Password    string       `json:"password"`
-	Interface   string       `json:"interface"`
-	Fru         MachineFru   `json:"fru"`
-	BMCVersion  string       `json:"bmcversion"`
-	PowerState  string       `json:"powerstate"`
-	PowerMetric *PowerMetric `json:"powermetric"`
-	LastUpdated time.Time    `json:"last_updated"`
+	Address       string        `json:"address" modelDescription:"The IPMI connection data"`
+	MacAddress    string        `json:"mac"`
+	User          string        `json:"user"`
+	Password      string        `json:"password"`
+	Interface     string        `json:"interface"`
+	Fru           MachineFru    `json:"fru"`
+	BMCVersion    string        `json:"bmcversion"`
+	PowerState    string        `json:"powerstate"`
+	PowerMetric   *PowerMetric  `json:"powermetric"`
+	PowerSupplies PowerSupplies `json:"powersupplies"`
+	LastUpdated   time.Time     `json:"last_updated"`
 }
 
 type PowerMetric struct {
@@ -190,6 +191,16 @@ type PowerMetric struct {
 	// minimum power level in watts that occurred within the last
 	// IntervalInMin minutes.
 	MinConsumedWatts float32 `json:"minconsumedwatts"`
+}
+type PowerSupplies []PowerSupply
+type PowerSupply struct {
+	// Status shall contain any status or health properties
+	// of the resource.
+	Status PowerSupplyStatus `json:"status"`
+}
+type PowerSupplyStatus struct {
+	Health string `json:"health"`
+	State  string `json:"state"`
 }
 
 type MachineFru struct {
@@ -270,6 +281,7 @@ type MachineIpmiReport struct {
 	PowerState        string
 	IndicatorLEDState string
 	PowerMetric       *PowerMetric
+	PowerSupplies     PowerSupplies
 }
 
 type MachineIpmiReports struct {
@@ -362,6 +374,15 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 			MinConsumedWatts:     r.PowerMetric.MinConsumedWatts,
 		}
 	}
+	var powerSupplies metal.PowerSupplies
+	for _, ps := range r.PowerSupplies {
+		powerSupplies = append(powerSupplies, metal.PowerSupply{
+			Status: metal.PowerSupplyStatus{
+				Health: ps.Status.Health,
+				State:  ps.Status.State,
+			},
+		})
+	}
 
 	return metal.IPMI{
 		Address:     r.Address,
@@ -381,8 +402,9 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 			ProductPartNumber:   productPartNumber,
 			ProductSerial:       productSerial,
 		},
-		PowerState:  r.PowerState,
-		PowerMetric: powerMetric,
+		PowerState:    r.PowerState,
+		PowerMetric:   powerMetric,
+		PowerSupplies: powerSupplies,
 	}
 }
 
@@ -398,20 +420,30 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 			MinConsumedWatts:     m.IPMI.PowerMetric.MinConsumedWatts,
 		}
 	}
+	var powerSupplies PowerSupplies
+	for _, ps := range m.IPMI.PowerSupplies {
+		powerSupplies = append(powerSupplies, PowerSupply{
+			Status: PowerSupplyStatus{
+				Health: ps.Status.Health,
+				State:  ps.Status.State,
+			},
+		})
+	}
 
 	return &MachineIPMIResponse{
 		Common:      machineResponse.Common,
 		MachineBase: machineResponse.MachineBase,
 		IPMI: MachineIPMI{
-			Address:     m.IPMI.Address,
-			MacAddress:  m.IPMI.MacAddress,
-			User:        m.IPMI.User,
-			Password:    m.IPMI.Password,
-			Interface:   m.IPMI.Interface,
-			BMCVersion:  m.IPMI.BMCVersion,
-			PowerState:  m.IPMI.PowerState,
-			PowerMetric: powerMetric,
-			LastUpdated: m.IPMI.LastUpdated,
+			Address:       m.IPMI.Address,
+			MacAddress:    m.IPMI.MacAddress,
+			User:          m.IPMI.User,
+			Password:      m.IPMI.Password,
+			Interface:     m.IPMI.Interface,
+			BMCVersion:    m.IPMI.BMCVersion,
+			PowerState:    m.IPMI.PowerState,
+			PowerMetric:   powerMetric,
+			PowerSupplies: powerSupplies,
+			LastUpdated:   m.IPMI.LastUpdated,
 			Fru: MachineFru{
 				ChassisPartNumber:   &m.IPMI.Fru.ChassisPartNumber,
 				ChassisPartSerial:   &m.IPMI.Fru.ChassisPartSerial,
