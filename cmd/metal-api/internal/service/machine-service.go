@@ -926,7 +926,6 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 				MinConsumedWatts:     report.PowerMetric.MinConsumedWatts,
 			}
 		}
-		logger.Info("ipmireport", "machine", uuid, "powersupplies", report.PowerSupplies)
 		var powerSupplies metal.PowerSupplies
 		for _, ps := range report.PowerSupplies {
 			powerSupplies = append(powerSupplies, metal.PowerSupply{
