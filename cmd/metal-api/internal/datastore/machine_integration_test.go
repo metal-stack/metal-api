@@ -120,6 +120,9 @@ func (_ *machineTestable) defaultBody(m *metal.Machine) *metal.Machine {
 			}
 		}
 	}
+	if m.IPMI.PowerSupplies == nil {
+		m.IPMI.PowerSupplies = metal.PowerSupplies{}
+	}
 	return m
 }
 
@@ -936,6 +939,7 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 			want: &metal.Machine{
 				Base:     metal.Base{ID: "1"},
 				Hardware: metal.MachineHardware{Nics: metal.Nics{}, Disks: []metal.BlockDevice{}, MetalCPUs: []metal.MetalCPU{}, MetalGPUs: []metal.MetalGPU{}},
+				IPMI:     metal.IPMI{PowerSupplies: metal.PowerSupplies{}},
 				Tags:     []string{"a=b"},
 			},
 		},
