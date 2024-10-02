@@ -11,7 +11,6 @@ import (
 
 func init() {
 	type tmpPartition struct {
-		// In theory this might be set in a partition, but in reality its not set anywhere
 		PrivateNetworkPrefixLength uint8 `rethinkdb:"privatenetworkprefixlength"`
 	}
 	datastore.MustRegisterMigration(datastore.Migration{
