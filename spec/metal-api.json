@@ -1009,6 +1009,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "filesystemlayoutid": {
           "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
@@ -1040,6 +1047,13 @@
           "description": "the networks that this machine will be placed in.",
           "items": {
             "$ref": "#/definitions/v1.MachineAllocationNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "type": "string"
           },
           "type": "array"
         },
@@ -1984,6 +1998,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "filesystemlayoutid": {
           "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
@@ -2011,6 +2032,13 @@
           "description": "the networks that this machine will be placed in.",
           "items": {
             "$ref": "#/definitions/v1.MachineAllocationNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "type": "string"
           },
           "type": "array"
         },
@@ -2087,6 +2115,13 @@
           "description": "a description for this machine",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "filesystemlayout": {
           "$ref": "#/definitions/v1.FilesystemLayoutResponse",
           "description": "filesystemlayout to create on this machine"
@@ -2112,6 +2147,13 @@
           "description": "the networks of this machine",
           "items": {
             "$ref": "#/definitions/v1.MachineNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "type": "string"
           },
           "type": "array"
         },
