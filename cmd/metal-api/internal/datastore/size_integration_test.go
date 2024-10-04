@@ -62,14 +62,6 @@ func (_ *sizeTestable) defaultBody(s *metal.Size) *metal.Size {
 	if s.Constraints == nil {
 		s.Constraints = []metal.Constraint{}
 	}
-	if s.Reservations == nil {
-		s.Reservations = metal.Reservations{}
-	}
-	for i := range s.Reservations {
-		if s.Reservations[i].PartitionIDs == nil {
-			s.Reservations[i].PartitionIDs = []string{}
-		}
-	}
 	return s
 }
 
@@ -149,41 +141,6 @@ func TestRethinkStore_SearchSizes(t *testing.T) {
 			},
 			want: []*metal.Size{
 				tt.defaultBody(&metal.Size{Base: metal.Base{ID: "2", Name: "b"}}),
-			},
-			wantErr: nil,
-		},
-		{
-			name: "search reservation project",
-			q: &SizeSearchQuery{
-				Reservation: Reservation{
-					Project: pointer.Pointer("2"),
-				},
-			},
-			mock: []*metal.Size{
-				{Base: metal.Base{ID: "1"}, Reservations: metal.Reservations{{ProjectID: "1"}}},
-				{Base: metal.Base{ID: "2"}, Reservations: metal.Reservations{{ProjectID: "2"}}},
-				{Base: metal.Base{ID: "3"}, Reservations: metal.Reservations{{ProjectID: "3"}}},
-			},
-			want: []*metal.Size{
-				tt.defaultBody(&metal.Size{Base: metal.Base{ID: "2"}, Reservations: metal.Reservations{{ProjectID: "2"}}}),
-			},
-			wantErr: nil,
-		},
-		{
-			name: "search reservation partition",
-			q: &SizeSearchQuery{
-				Reservation: Reservation{
-					Partition: pointer.Pointer("p1"),
-				},
-			},
-			mock: []*metal.Size{
-				{Base: metal.Base{ID: "1"}, Reservations: metal.Reservations{{PartitionIDs: []string{"p1"}}}},
-				{Base: metal.Base{ID: "2"}, Reservations: metal.Reservations{{PartitionIDs: []string{"p1", "p2"}}}},
-				{Base: metal.Base{ID: "3"}, Reservations: metal.Reservations{{PartitionIDs: []string{"p3"}}}},
-			},
-			want: []*metal.Size{
-				tt.defaultBody(&metal.Size{Base: metal.Base{ID: "1"}, Reservations: metal.Reservations{{PartitionIDs: []string{"p1"}}}}),
-				tt.defaultBody(&metal.Size{Base: metal.Base{ID: "2"}, Reservations: metal.Reservations{{PartitionIDs: []string{"p1", "p2"}}}}),
 			},
 			wantErr: nil,
 		},

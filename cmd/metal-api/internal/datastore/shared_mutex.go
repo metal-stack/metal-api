@@ -76,10 +76,6 @@ type lockOptAcquireTimeout struct {
 	timeout time.Duration
 }
 
-func newLockOptAcquireTimeout(t time.Duration) *lockOptAcquireTimeout {
-	return &lockOptAcquireTimeout{timeout: t}
-}
-
 func (m *sharedMutex) lock(ctx context.Context, key string, expiration time.Duration, opts ...lockOpt) error {
 	timeout := defaultSharedMutexAcquireTimeout
 	for _, opt := range opts {

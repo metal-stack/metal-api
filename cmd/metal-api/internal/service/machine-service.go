@@ -930,6 +930,16 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 				MinConsumedWatts:     report.PowerMetric.MinConsumedWatts,
 			}
 		}
+		var powerSupplies metal.PowerSupplies
+		for _, ps := range report.PowerSupplies {
+			powerSupplies = append(powerSupplies, metal.PowerSupply{
+				Status: metal.PowerSupplyStatus{
+					Health: ps.Status.Health,
+					State:  ps.Status.State,
+				},
+			})
+		}
+		newMachine.IPMI.PowerSupplies = powerSupplies
 
 		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
 		if err == nil {

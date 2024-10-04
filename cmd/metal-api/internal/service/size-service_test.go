@@ -10,6 +10,7 @@ import (
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -22,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -253,15 +253,6 @@ func TestCreateSize(t *testing.T) {
 				Max:  100,
 			},
 		},
-		SizeReservations: []v1.SizeReservation{
-			{
-				Amount:       3,
-				ProjectID:    "a",
-				PartitionIDs: []string{testdata.Partition1.ID},
-				Description:  "test",
-				Labels:       map[string]string{"a": "b"},
-			},
-		},
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
@@ -342,35 +333,31 @@ func TestUpdateSize(t *testing.T) {
 	require.Equal(t, maxCores, result.SizeConstraints[0].Max)
 }
 
-func TestListSizeReservations(t *testing.T) {
+func Test_ListSizeReservationsUsage(t *testing.T) {
 	tests := []struct {
 		name          string
 		req           *v1.SizeReservationListRequest
 		dbMockFn      func(mock *r.Mock)
 		projectMockFn func(mock *testifymock.Mock)
-		want          []*v1.SizeReservationResponse
+		want          []*v1.SizeReservationUsageResponse
 	}{
 		{
-			name: "list reservations",
+			name: "list reservations usage",
 			req: &v1.SizeReservationListRequest{
 				SizeID:      pointer.Pointer("1"),
-				Tenant:      pointer.Pointer("t1"),
 				ProjectID:   pointer.Pointer("p1"),
 				PartitionID: pointer.Pointer("a"),
 			},
 			dbMockFn: func(mock *r.Mock) {
-				mock.On(r.DB("mockdb").Table("size").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.Sizes{
+				mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.SizeReservations{
 					{
 						Base: metal.Base{
 							ID: "1",
 						},
-						Reservations: metal.Reservations{
-							{
-								Amount:       3,
-								PartitionIDs: []string{"a"},
-								ProjectID:    "p1",
-							},
-						},
+						SizeID:       "1",
+						Amount:       3,
+						PartitionIDs: []string{"a"},
+						ProjectID:    "p1",
 					},
 				}, nil)
 				mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return(metal.Machines{
@@ -386,22 +373,22 @@ func TestListSizeReservations(t *testing.T) {
 					},
 				}, nil)
 			},
-			projectMockFn: func(mock *testifymock.Mock) {
-				mock.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{
-					Id:       wrapperspb.String("p1"),
-					TenantId: wrapperspb.String("t1"),
-				}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
-					{Meta: &mdmv1.Meta{Id: "p1"}, TenantId: "t1"},
-				}}, nil)
-			},
-			want: []*v1.SizeReservationResponse{
+			want: []*v1.SizeReservationUsageResponse{
 				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{
+							ID: "1",
+						},
+						Describable: v1.Describable{
+							Name:        pointer.Pointer(""),
+							Description: pointer.Pointer(""),
+						},
+					},
 					SizeID:             "1",
 					PartitionID:        "a",
-					Tenant:             "t1",
 					ProjectID:          "p1",
-					Reservations:       3,
-					UsedReservations:   1,
+					Amount:             3,
+					UsedAmount:         1,
 					ProjectAllocations: 1,
 				},
 			},
@@ -423,7 +410,7 @@ func TestListSizeReservations(t *testing.T) {
 				tt.projectMockFn(&projectMock.Mock)
 			}
 
-			code, got := genericWebRequest[[]*v1.SizeReservationResponse](t, ws, testViewUser, tt.req, "POST", "/v1/size/reservations")
+			code, got := genericWebRequest[[]*v1.SizeReservationUsageResponse](t, ws, testViewUser, tt.req, "POST", "/v1/size/reservations/usage")
 			assert.Equal(t, http.StatusOK, code)
 
 			if diff := cmp.Diff(tt.want, got); diff != "" {
@@ -431,7 +418,428 @@ func TestListSizeReservations(t *testing.T) {
 			}
 		})
 	}
+}
 
+func Test_ListSizeReservations(t *testing.T) {
+	tests := []struct {
+		name          string
+		dbMockFn      func(mock *r.Mock)
+		projectMockFn func(mock *testifymock.Mock)
+		want          []*v1.SizeReservationResponse
+	}{
+		{
+			name: "list reservations",
+			dbMockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("sizereservation")).Return(metal.SizeReservations{
+					{
+						Base:         metal.Base{ID: "1"},
+						SizeID:       "1",
+						Amount:       3,
+						PartitionIDs: []string{"a"},
+						ProjectID:    "p1",
+					},
+				}, nil)
+			},
+			projectMockFn: func(mock *testifymock.Mock) {
+			},
+			want: []*v1.SizeReservationResponse{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "1"},
+						Describable:  v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					SizeID:       "1",
+					PartitionIDs: []string{"a"},
+					ProjectID:    "p1",
+					Amount:       3,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				projectMock = mdmv1mock.NewProjectServiceClient(t)
+				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				ds, dbMock  = datastore.InitMockDB(t)
+				ws          = NewSize(slog.Default(), ds, m)
+			)
+
+			if tt.dbMockFn != nil {
+				tt.dbMockFn(dbMock)
+			}
+			if tt.projectMockFn != nil {
+				tt.projectMockFn(&projectMock.Mock)
+			}
+
+			code, got := genericWebRequest[[]*v1.SizeReservationResponse](t, ws, testViewUser, nil, "GET", "/v1/size/reservations")
+			assert.Equal(t, http.StatusOK, code)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func Test_FindSizeReservationsUsage(t *testing.T) {
+	tests := []struct {
+		name          string
+		req           *v1.SizeReservationListRequest
+		dbMockFn      func(mock *r.Mock)
+		projectMockFn func(mock *testifymock.Mock)
+		want          []*v1.SizeReservationResponse
+	}{
+		{
+			name: "find reservations",
+			req: &v1.SizeReservationListRequest{
+				SizeID:      pointer.Pointer("1"),
+				ProjectID:   pointer.Pointer("p1"),
+				PartitionID: pointer.Pointer("a"),
+			},
+			dbMockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.SizeReservations{
+					{
+						Base: metal.Base{
+							ID: "1",
+						},
+						SizeID:       "1",
+						Amount:       3,
+						PartitionIDs: []string{"a"},
+						ProjectID:    "p1",
+					},
+				}, nil)
+			},
+			want: []*v1.SizeReservationResponse{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{
+							ID: "1",
+						},
+						Describable: v1.Describable{
+							Name:        pointer.Pointer(""),
+							Description: pointer.Pointer(""),
+						},
+					},
+					SizeID:       "1",
+					PartitionIDs: []string{"a"},
+					ProjectID:    "p1",
+					Amount:       3,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				projectMock = mdmv1mock.NewProjectServiceClient(t)
+				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				ds, dbMock  = datastore.InitMockDB(t)
+				ws          = NewSize(slog.Default(), ds, m)
+			)
+
+			if tt.dbMockFn != nil {
+				tt.dbMockFn(dbMock)
+			}
+			if tt.projectMockFn != nil {
+				tt.projectMockFn(&projectMock.Mock)
+			}
+
+			code, got := genericWebRequest[[]*v1.SizeReservationResponse](t, ws, testViewUser, tt.req, "POST", "/v1/size/reservations/find")
+			assert.Equal(t, http.StatusOK, code)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func Test_GetSizeReservationsUsage(t *testing.T) {
+	tests := []struct {
+		name          string
+		id            string
+		dbMockFn      func(mock *r.Mock)
+		projectMockFn func(mock *testifymock.Mock)
+		want          *v1.SizeReservationResponse
+	}{
+		{
+			name: "get reservation",
+			id:   "1",
+			dbMockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("sizereservation").Get("1")).Return(metal.SizeReservation{
+					Base: metal.Base{
+						ID: "1",
+					},
+					SizeID:       "1",
+					Amount:       3,
+					PartitionIDs: []string{"a"},
+					ProjectID:    "p1",
+				}, nil)
+			},
+			want: &v1.SizeReservationResponse{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{
+						ID: "1",
+					},
+					Describable: v1.Describable{
+						Name:        pointer.Pointer(""),
+						Description: pointer.Pointer(""),
+					},
+				},
+				SizeID:       "1",
+				PartitionIDs: []string{"a"},
+				ProjectID:    "p1",
+				Amount:       3,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				projectMock = mdmv1mock.NewProjectServiceClient(t)
+				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				ds, dbMock  = datastore.InitMockDB(t)
+				ws          = NewSize(slog.Default(), ds, m)
+			)
+
+			if tt.dbMockFn != nil {
+				tt.dbMockFn(dbMock)
+			}
+			if tt.projectMockFn != nil {
+				tt.projectMockFn(&projectMock.Mock)
+			}
+
+			code, got := genericWebRequest[*v1.SizeReservationResponse](t, ws, testViewUser, nil, "GET", "/v1/size/reservations/"+tt.id)
+			assert.Equal(t, http.StatusOK, code)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func Test_DeleteSizeReservationsUsage(t *testing.T) {
+	tests := []struct {
+		name          string
+		id            string
+		dbMockFn      func(mock *r.Mock)
+		projectMockFn func(mock *testifymock.Mock)
+		want          *v1.SizeReservationResponse
+	}{
+		{
+			name: "delete reservation",
+			id:   "1",
+			dbMockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("sizereservation").Get("1")).Return(metal.SizeReservation{
+					Base: metal.Base{
+						ID: "1",
+					},
+					SizeID:       "1",
+					Amount:       3,
+					PartitionIDs: []string{"a"},
+					ProjectID:    "p1",
+				}, nil)
+
+				mock.On(r.DB("mockdb").Table("sizereservation").Get("1").Delete()).Return(testdata.EmptyResult, nil)
+			},
+			want: &v1.SizeReservationResponse{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{
+						ID: "1",
+					},
+					Describable: v1.Describable{
+						Name:        pointer.Pointer(""),
+						Description: pointer.Pointer(""),
+					},
+				},
+				SizeID:       "1",
+				PartitionIDs: []string{"a"},
+				ProjectID:    "p1",
+				Amount:       3,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				projectMock = mdmv1mock.NewProjectServiceClient(t)
+				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				ds, dbMock  = datastore.InitMockDB(t)
+				ws          = NewSize(slog.Default(), ds, m)
+			)
+
+			if tt.dbMockFn != nil {
+				tt.dbMockFn(dbMock)
+			}
+			if tt.projectMockFn != nil {
+				tt.projectMockFn(&projectMock.Mock)
+			}
+
+			code, got := genericWebRequest[*v1.SizeReservationResponse](t, ws, testAdminUser, nil, "DELETE", "/v1/size/reservations/"+tt.id)
+			assert.Equal(t, http.StatusOK, code)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func Test_CreateSizeReservationsUsage(t *testing.T) {
+	tests := []struct {
+		name          string
+		req           *v1.SizeReservationCreateRequest
+		dbMockFn      func(mock *r.Mock)
+		projectMockFn func(mock *testifymock.Mock)
+		want          *v1.SizeReservationResponse
+	}{
+		{
+			name: "create reservation",
+			req: &v1.SizeReservationCreateRequest{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{
+						ID: "1",
+					},
+					Describable: v1.Describable{
+						Description: pointer.Pointer("a description"),
+					},
+				},
+				SizeID:       "1",
+				PartitionIDs: []string{"a"},
+				ProjectID:    "p1",
+				Amount:       3,
+				Labels: map[string]string{
+					"a": "b",
+				},
+			},
+			dbMockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Size{Base: metal.Base{ID: "1"}}, nil)
+				mock.On(r.DB("mockdb").Table("partition")).Return(metal.Partitions{{Base: metal.Base{ID: "a"}}}, nil)
+				mock.On(r.DB("mockdb").Table("sizereservation").Insert(r.MockAnything())).Return(testdata.EmptyResult, nil)
+			},
+			projectMockFn: func(mock *testifymock.Mock) {
+				mock.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "p1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{Meta: &mdmv1.Meta{Id: "p1"}}}, nil)
+			},
+			want: &v1.SizeReservationResponse{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{
+						ID: "1",
+					},
+					Describable: v1.Describable{
+						Name:        pointer.Pointer(""),
+						Description: pointer.Pointer("a description"),
+					},
+				},
+				SizeID:       "1",
+				PartitionIDs: []string{"a"},
+				ProjectID:    "p1",
+				Amount:       3,
+				Labels: map[string]string{
+					"a": "b",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				projectMock = mdmv1mock.NewProjectServiceClient(t)
+				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				ds, dbMock  = datastore.InitMockDB(t)
+				ws          = NewSize(slog.Default(), ds, m)
+			)
+
+			if tt.dbMockFn != nil {
+				tt.dbMockFn(dbMock)
+			}
+			if tt.projectMockFn != nil {
+				tt.projectMockFn(&projectMock.Mock)
+			}
+
+			code, got := genericWebRequest[*v1.SizeReservationResponse](t, ws, testAdminUser, tt.req, "PUT", "/v1/size/reservations")
+			assert.Equal(t, http.StatusCreated, code)
+
+			if diff := cmp.Diff(tt.want, got, cmpopts.IgnoreFields(v1.SizeReservationResponse{}, "Timestamps")); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func Test_UpdateSizeReservationsUsage(t *testing.T) {
+	tests := []struct {
+		name          string
+		req           *v1.SizeReservationUpdateRequest
+		dbMockFn      func(mock *r.Mock)
+		projectMockFn func(mock *testifymock.Mock)
+		want          *v1.SizeReservationResponse
+	}{
+		{
+			name: "update reservation",
+			req: &v1.SizeReservationUpdateRequest{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{ID: "1"},
+					Describable:  v1.Describable{Description: pointer.Pointer("b description")},
+				},
+				PartitionIDs: []string{"b"},
+				Amount:       pointer.Pointer(4),
+				Labels:       map[string]string{"c": "d"},
+			},
+			dbMockFn: func(mock *r.Mock) {
+				mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Size{Base: metal.Base{ID: "1"}}, nil)
+				mock.On(r.DB("mockdb").Table("sizereservation").Get("1")).Return(metal.SizeReservation{Base: metal.Base{ID: "1"}, SizeID: "1", ProjectID: "p1"}, nil)
+				mock.On(r.DB("mockdb").Table("partition")).Return(metal.Partitions{{Base: metal.Base{ID: "b"}}}, nil)
+				mock.On(r.DB("mockdb").Table("sizereservation").Get("1").Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+			},
+			projectMockFn: func(mock *testifymock.Mock) {
+				mock.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "p1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{Meta: &mdmv1.Meta{Id: "p1"}}}, nil)
+			},
+			want: &v1.SizeReservationResponse{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{
+						ID: "1",
+					},
+					Describable: v1.Describable{
+						Name:        pointer.Pointer(""),
+						Description: pointer.Pointer("b description"),
+					},
+				},
+				SizeID:       "1",
+				PartitionIDs: []string{"b"},
+				ProjectID:    "p1",
+				Amount:       4,
+				Labels: map[string]string{
+					"c": "d",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				projectMock = mdmv1mock.NewProjectServiceClient(t)
+				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				ds, dbMock  = datastore.InitMockDB(t)
+				ws          = NewSize(slog.Default(), ds, m)
+			)
+
+			if tt.dbMockFn != nil {
+				tt.dbMockFn(dbMock)
+			}
+			if tt.projectMockFn != nil {
+				tt.projectMockFn(&projectMock.Mock)
+			}
+
+			code, got := genericWebRequest[*v1.SizeReservationResponse](t, ws, testAdminUser, tt.req, "POST", "/v1/size/reservations")
+			assert.Equal(t, http.StatusOK, code)
+
+			if diff := cmp.Diff(tt.want, got, cmpopts.IgnoreFields(v1.SizeReservationResponse{}, "Timestamps")); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
 
 func Test_longestCommonPrefix(t *testing.T) {
