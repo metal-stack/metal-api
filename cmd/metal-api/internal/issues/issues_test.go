@@ -86,6 +86,39 @@ func TestFindIssues(t *testing.T) {
 			},
 		},
 		{
+			name: "powersupply failure",
+			only: []Type{TypePowerSupplyFailure},
+			machines: func() metal.Machines {
+				noPartitionMachine := machineTemplate("power-supply-failure")
+				noPartitionMachine.IPMI = metal.IPMI{
+					PowerSupplies: metal.PowerSupplies{
+						{Status: metal.PowerSupplyStatus{Health: "NO-OK", State: "Absent"}},
+					},
+				}
+
+				return metal.Machines{
+					noPartitionMachine,
+					machineTemplate("good"),
+				}
+			},
+			eventContainers: func() metal.ProvisioningEventContainers {
+				return metal.ProvisioningEventContainers{
+					eventContainerTemplate("power-supply-failure"),
+					eventContainerTemplate("good"),
+				}
+			},
+			want: func(machines metal.Machines) MachineIssues {
+				return MachineIssues{
+					{
+						Machine: &machines[0],
+						Issues: Issues{
+							toIssue(&issuePowerSupplyFailure{details: "Health:NO-OK State:Absent"}),
+						},
+					},
+				}
+			},
+		},
+		{
 			name: "liveliness dead",
 			only: []Type{TypeLivelinessDead},
 			machines: func() metal.Machines {
