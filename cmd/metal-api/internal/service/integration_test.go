@@ -221,6 +221,7 @@ func createTestEnvironment(t *testing.T, log *slog.Logger, ds *datastore.Rethink
 		},
 		SwitchBase: v1.SwitchBase{
 			RackID: "test-rack",
+			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		},
 		Nics: v1.SwitchNics{
 			{
@@ -249,6 +250,7 @@ func createTestEnvironment(t *testing.T, log *slog.Logger, ds *datastore.Rethink
 		},
 		SwitchBase: v1.SwitchBase{
 			RackID: "test-rack",
+			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		},
 		Nics: v1.SwitchNics{
 			{
