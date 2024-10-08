@@ -172,17 +172,17 @@ type Prefix struct {
 type Prefixes []Prefix
 
 // NewPrefixFromCIDR returns a new prefix from a given cidr.
-func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
+func NewPrefixFromCIDR(cidr string) (*Prefix, *netip.Prefix, error) {
 	prefix, err := netip.ParsePrefix(cidr)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ip := prefix.Addr().String()
 	length := strconv.Itoa(prefix.Bits())
 	return &Prefix{
 		IP:     ip,
 		Length: length,
-	}, nil
+	}, &prefix, nil
 }
 
 // String implements the Stringer interface
@@ -209,6 +209,7 @@ type Network struct {
 	Base
 	Prefixes                   Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
 	DestinationPrefixes        Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+	DefaultChildPrefixLength   ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
 	PartitionID                string            `rethinkdb:"partitionid" json:"partitionid"`
 	ProjectID                  string            `rethinkdb:"projectid" json:"projectid"`
 	ParentNetworkID            string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
@@ -218,7 +219,32 @@ type Network struct {
 	Underlay                   bool              `rethinkdb:"underlay" json:"underlay"`
 	Shared                     bool              `rethinkdb:"shared" json:"shared"`
 	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
-	AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks"`
+	AddressFamilies            AddressFamilies   `rethinkdb:"addressfamily" json:"addressfamily"`
+	AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
+}
+
+type ChildPrefixLength map[AddressFamily]uint8
+
+// AddressFamily identifies IPv4/IPv6
+type AddressFamily string
+type AddressFamilies map[AddressFamily]bool
+
+const (
+	// IPv4AddressFamily identifies IPv4
+	IPv4AddressFamily = AddressFamily("IPv4")
+	// IPv6AddressFamily identifies IPv6
+	IPv6AddressFamily = AddressFamily("IPv6")
+)
+
+// ToAddressFamily will convert a string af to a AddressFamily
+func ToAddressFamily(af string) AddressFamily {
+	switch af {
+	case "IPv4", "ipv4":
+		return IPv4AddressFamily
+	case "IPv6", "ipv6":
+		return IPv6AddressFamily
+	}
+	return IPv4AddressFamily
 }
 
 // Networks is a list of networks.
@@ -229,10 +255,10 @@ type NetworkMap map[string]Network
 
 // NetworkUsage contains usage information of a network
 type NetworkUsage struct {
-	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
-	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
-	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
+	AvailableIPs      map[AddressFamily]uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs           map[AddressFamily]uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailablePrefixes map[AddressFamily]uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
+	UsedPrefixes      map[AddressFamily]uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
 // ByID creates an indexed map of networks where the id is the index.
