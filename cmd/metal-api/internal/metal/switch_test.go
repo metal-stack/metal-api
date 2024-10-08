@@ -1,8 +1,12 @@
 package metal
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 var (
@@ -276,4 +280,488 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSwitch_TranslateNicNames(t *testing.T) {
+	tests := []struct {
+		name     string
+		sw       *Switch
+		targetOS SwitchOSVendor
+		want     NicMap
+		wantErr  bool
+	}{
+		{
+			name: "both twins have the same os",
+			sw: &Switch{
+				Nics: []Nic{
+					{Name: "swp0s0"},
+					{Name: "swp0s1"},
+					{Name: "swp0s2"},
+					{Name: "swp0s3"},
+				},
+				OS: &SwitchOS{Vendor: SwitchOSVendorCumulus},
+			},
+			targetOS: SwitchOSVendorCumulus,
+			want: map[string]*Nic{
+				"swp0s0": {Name: "swp0s0"},
+				"swp0s1": {Name: "swp0s1"},
+				"swp0s2": {Name: "swp0s2"},
+				"swp0s3": {Name: "swp0s3"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "cumulus to sonic",
+			sw: &Switch{
+				Nics: []Nic{
+					{Name: "Ethernet1"},
+					{Name: "Ethernet2"},
+					{Name: "Ethernet3"},
+					{Name: "Ethernet4"},
+				},
+				OS: &SwitchOS{Vendor: SwitchOSVendorSonic},
+			},
+			targetOS: SwitchOSVendorCumulus,
+			want: map[string]*Nic{
+				"swp0s1": {Name: "Ethernet1"},
+				"swp0s2": {Name: "Ethernet2"},
+				"swp0s3": {Name: "Ethernet3"},
+				"swp1":   {Name: "Ethernet4"},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sw.TranslateNicMap(tt.targetOS)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("translateNicNames() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if cmp.Diff(got, tt.want) != "" {
+				t.Errorf("translateNicNames() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSwitch_MapPortNames(t *testing.T) {
+	tests := []struct {
+		name     string
+		sw       *Switch
+		targetOS SwitchOSVendor
+		want     map[string]string
+		wantErr  bool
+	}{
+		{
+			name: "same os",
+			sw: &Switch{
+				Nics: []Nic{
+					{Name: "swp0s0"},
+					{Name: "swp0s1"},
+					{Name: "swp0s2"},
+					{Name: "swp0s3"},
+				},
+				OS: &SwitchOS{Vendor: SwitchOSVendorCumulus},
+			},
+			targetOS: SwitchOSVendorCumulus,
+			want: map[string]string{
+				"swp0s0": "swp0s0",
+				"swp0s1": "swp0s1",
+				"swp0s2": "swp0s2",
+				"swp0s3": "swp0s3",
+			},
+			wantErr: false,
+		},
+		{
+			name: "cumulus to sonic",
+			sw: &Switch{
+				Nics: []Nic{
+					{Name: "swp0s0"},
+					{Name: "swp1s0"},
+					{Name: "swp1s1"},
+					{Name: "swp1s2"},
+				},
+				OS: &SwitchOS{Vendor: SwitchOSVendorCumulus},
+			},
+			targetOS: SwitchOSVendorSonic,
+			want: map[string]string{
+				"swp0s0": "Ethernet0",
+				"swp1s0": "Ethernet4",
+				"swp1s1": "Ethernet5",
+				"swp1s2": "Ethernet6",
+			},
+			wantErr: false,
+		},
+		{
+			name: "sonic to cumulus",
+			sw: &Switch{
+				Nics: []Nic{
+					{Name: "Ethernet0"},
+					{Name: "Ethernet4"},
+					{Name: "Ethernet8"},
+					{Name: "Ethernet9"},
+				},
+				OS: &SwitchOS{Vendor: SwitchOSVendorSonic},
+			},
+			targetOS: SwitchOSVendorCumulus,
+			want: map[string]string{
+				"Ethernet0": "swp0",
+				"Ethernet4": "swp1",
+				"Ethernet8": "swp2s0",
+				"Ethernet9": "swp2s1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "sonic names in cumulus switch",
+			sw: &Switch{
+				Nics: []Nic{
+					{Name: "Ethernet0"},
+					{Name: "Ethernet4"},
+					{Name: "Ethernet8"},
+					{Name: "Ethernet9"},
+				},
+				OS: &SwitchOS{Vendor: SwitchOSVendorCumulus},
+			},
+			targetOS: SwitchOSVendorSonic,
+			want:     nil,
+			wantErr:  true,
+		},
+		{
+			name: "cumulus names in sonic switch",
+			sw: &Switch{
+				Nics: []Nic{
+					{Name: "swp0s0"},
+					{Name: "swp0s1"},
+					{Name: "swp0s2"},
+					{Name: "swp0s3"},
+				},
+				OS: &SwitchOS{Vendor: SwitchOSVendorSonic},
+			},
+			targetOS: SwitchOSVendorCumulus,
+			want:     nil,
+			wantErr:  true,
+		},
+		{
+			name: "invalid name",
+			sw: &Switch{
+				Nics: []Nic{
+					{Name: "swp0s"},
+				},
+				OS: &SwitchOS{Vendor: SwitchOSVendorSonic},
+			},
+			targetOS: SwitchOSVendorCumulus,
+			want:     nil,
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sw.MapPortNames(tt.targetOS)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Switch.MapPortNames() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("%v", diff)
+			}
+		})
+	}
+}
+
+func Test_mapPortName(t *testing.T) {
+	tests := []struct {
+		name     string
+		port     string
+		sourceOS SwitchOSVendor
+		targetOS SwitchOSVendor
+		allLines []int
+		want     string
+		wantErr  error
+	}{
+		{
+			name:     "invalid target os",
+			port:     "Ethernet0",
+			sourceOS: SwitchOSVendorSonic,
+			targetOS: "cumulus",
+			allLines: []int{0, 1},
+			want:     "",
+			wantErr:  fmt.Errorf("unknown target switch os cumulus"),
+		},
+		{
+			name:     "sonic to cumulus",
+			port:     "Ethernet11",
+			sourceOS: SwitchOSVendorSonic,
+			targetOS: SwitchOSVendorCumulus,
+			allLines: []int{11},
+			want:     "swp2s3",
+			wantErr:  nil,
+		},
+		{
+			name:     "cumulus to sonic",
+			port:     "swp4s0",
+			sourceOS: SwitchOSVendorCumulus,
+			targetOS: SwitchOSVendorSonic,
+			allLines: []int{0, 4, 16, 17},
+			want:     "Ethernet16",
+			wantErr:  nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := mapPortName(tt.port, tt.sourceOS, tt.targetOS, tt.allLines)
+			if !errorsAreEqual(err, tt.wantErr) {
+				t.Errorf("MapPortName() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("MapPortName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getLinesFromPortNames(t *testing.T) {
+	tests := []struct {
+		name    string
+		ports   []string
+		os      SwitchOSVendor
+		want    []int
+		wantErr bool
+	}{
+		{
+			name:    "invalid switch os",
+			ports:   []string{"swp0", "swp1s2"},
+			os:      "cumulus",
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "mismatch between port names and os cumulus",
+			ports:   []string{"Ethernet0", "Ethernet1"},
+			os:      SwitchOSVendorCumulus,
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "mismatch between port names and os sonic",
+			ports:   []string{"swp0s0", "swp0s1"},
+			os:      SwitchOSVendorSonic,
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "sonic conversion successful",
+			ports:   []string{"Ethernet0", "Ethernet2"},
+			os:      SwitchOSVendorSonic,
+			want:    []int{0, 2},
+			wantErr: false,
+		},
+		{
+			name:    "cumulus conversion successful",
+			ports:   []string{"swp0", "swp1s3"},
+			os:      SwitchOSVendorCumulus,
+			want:    []int{0, 7},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getLinesFromPortNames(tt.ports, tt.os)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetLinesFromPortNames() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetLinesFromPortNames() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_sonicPortNameToLine(t *testing.T) {
+	_, parseIntError := strconv.Atoi("_1")
+
+	tests := []struct {
+		name    string
+		port    string
+		want    int
+		wantErr error
+	}{
+		{
+			name:    "invalid token",
+			port:    "Ethernet-0",
+			want:    0,
+			wantErr: fmt.Errorf("invalid token '-' in port name Ethernet-0"),
+		},
+		{
+			name:    "missing prefix 'Ethernet'",
+			port:    "swp0s0",
+			want:    0,
+			wantErr: fmt.Errorf("invalid port name swp0s0, expected to find prefix 'Ethernet'"),
+		},
+		{
+			name:    "invalid prefix before 'Ethernet'",
+			port:    "port_Ethernet0",
+			want:    0,
+			wantErr: fmt.Errorf("invalid port name port_Ethernet0, port name is expected to start with 'Ethernet'"),
+		},
+		{
+			name:    "cannot convert line number",
+			port:    "Ethernet_1",
+			want:    0,
+			wantErr: fmt.Errorf("unable to convert port name to line number: %w", parseIntError),
+		},
+		{
+			name:    "conversion successful",
+			port:    "Ethernet25",
+			want:    25,
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := sonicPortNameToLine(tt.port)
+			if !errorsAreEqual(err, tt.wantErr) {
+				t.Errorf("sonicPortNameToLine() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("sonicPortNameToLine() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_cumulusPortNameToLine(t *testing.T) {
+	_, parseIntError1 := strconv.Atoi("0t0")
+	_, parseIntError2 := strconv.Atoi("_0")
+
+	tests := []struct {
+		name    string
+		port    string
+		want    int
+		wantErr error
+	}{
+		{
+			name:    "invalid token",
+			port:    "swp-0s1",
+			want:    0,
+			wantErr: fmt.Errorf("invalid token '-' in port name swp-0s1"),
+		},
+		{
+			name:    "missing prefix 'swp'",
+			port:    "Ethernet0",
+			want:    0,
+			wantErr: fmt.Errorf("invalid port name Ethernet0, expected to find prefix 'swp'"),
+		},
+		{
+			name:    "invalid prefix before 'swp'",
+			port:    "port_swp0s0",
+			want:    0,
+			wantErr: fmt.Errorf("invalid port name port_swp0s0, port name is expected to start with 'swp'"),
+		},
+		{
+			name:    "wrong delimiter",
+			port:    "swp0t0",
+			want:    0,
+			wantErr: fmt.Errorf("unable to convert port name to line number: %w", parseIntError1),
+		},
+		{
+			name:    "cannot convert first number",
+			port:    "swp_0s0",
+			want:    0,
+			wantErr: fmt.Errorf("unable to convert port name to line number: %w", parseIntError2),
+		},
+		{
+			name:    "cannot convert second number",
+			port:    "swp0s_0",
+			want:    0,
+			wantErr: fmt.Errorf("unable to convert port name to line number: %w", parseIntError2),
+		},
+		{
+			name:    "convert line without breakout",
+			port:    "swp4",
+			want:    16,
+			wantErr: nil,
+		},
+		{
+			name:    "convert line with breakout",
+			port:    "swp3s3",
+			want:    15,
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := cumulusPortNameToLine(tt.port)
+			if !errorsAreEqual(err, tt.wantErr) {
+				t.Errorf("cumulusPortNameToLine() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("cumulusPortNameToLine() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_cumulusPortByLineNumber(t *testing.T) {
+	tests := []struct {
+		name     string
+		line     int
+		allLines []int
+		want     string
+	}{
+		{
+			name:     "only one line",
+			line:     4,
+			allLines: []int{4},
+			want:     "swp1",
+		},
+		{
+			name:     "line number 0 without breakout",
+			line:     0,
+			allLines: []int{0, 4},
+			want:     "swp0",
+		},
+		{
+			name:     "higher line number without breakout",
+			line:     4,
+			allLines: []int{0, 1, 2, 3, 4, 8},
+			want:     "swp1",
+		},
+		{
+			name:     "line number divisible by 4 with breakout",
+			line:     4,
+			allLines: []int{4, 5, 6, 7},
+			want:     "swp1s0",
+		},
+		{
+			name:     "line number not divisible by 4",
+			line:     13,
+			allLines: []int{13},
+			want:     "swp3s1",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := cumulusPortByLineNumber(tt.line, tt.allLines); got != tt.want {
+				t.Errorf("cumulusPortByLineNumber() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func errorsAreEqual(err1, err2 error) bool {
+	if err1 == nil && err2 == nil {
+		return true
+	}
+
+	if err1 != nil && err2 == nil || err1 == nil && err2 != nil {
+		return false
+	}
+
+	return err1.Error() == err2.Error()
 }
