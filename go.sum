@@ -255,8 +255,8 @@ github.com/metal-stack/masterdata-api v0.11.4 h1:bgRk7PbD5BjYbmAReaV7gTKKKrW5x/Z
 github.com/metal-stack/masterdata-api v0.11.4/go.mod h1:fD0AtsoNNaOLqRMBeZzDFljiQW9RlrOnxeZ20Pqhxas=
 github.com/metal-stack/metal-lib v0.18.3 h1:bovFiJPB9SMvuGLqcXVWz6jFB8HrdzwnCX7TFlen4r0=
 github.com/metal-stack/metal-lib v0.18.3/go.mod h1:Ctyi6zaXFr2NVrQZLFsDLnFCzupKnYErTtgRFKAsnbw=
-github.com/metal-stack/security v0.8.1 h1:4zmVUxZvDWShVvVIxM3XhIv7pTmPe9DvACRIHW6YTsk=
-github.com/metal-stack/security v0.8.1/go.mod h1:OO8ZilZO6fUV5QEmwc7HP/RAjqYrGQxXoYIddJ9TvqE=
+github.com/metal-stack/security v0.8.3 h1:1Ugps5Ju9chCi3rkIPBXWLOLJKsIWnoLLzijsN6s8Bg=
+github.com/metal-stack/security v0.8.3/go.mod h1:4+UAI/rqNbASyskDE/Ll/YoCW3kv/Q3pCW+CDwmB9YY=
 github.com/metal-stack/v v1.0.3 h1:Sh2oBlnxrCUD+mVpzfC8HiqL045YWkxs0gpTvkjppqs=
 github.com/metal-stack/v v1.0.3/go.mod h1:YTahEu7/ishwpYKnp/VaW/7nf8+PInogkfGwLcGPdXg=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
