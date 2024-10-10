@@ -11,9 +11,15 @@ type Partition struct {
 
 // BootConfiguration defines the metal-hammer initrd, kernel and commandline
 type BootConfiguration struct {
-	ImageURL    string `rethinkdb:"imageurl" json:"imageurl"`
-	KernelURL   string `rethinkdb:"kernelurl" json:"kernelurl"`
-	CommandLine string `rethinkdb:"commandline" json:"commandline"`
+	ImageURL                   string                      `rethinkdb:"imageurl" json:"imageurl"`
+	KernelURL                  string                      `rethinkdb:"kernelurl" json:"kernelurl"`
+	CommandLine                string                      `rethinkdb:"commandline" json:"commandline"`
+	MachineNetworkRequirements *MachineNetworkRequirements `rethinkdb:"machine_network_requirements" json:"machine_network_requirements"`
+}
+
+type MachineNetworkRequirements struct {
+	MinimumInterfaces *int32 `rethinkdb:"minimum_interfaces" json:"minimum_interfaces"`
+	MinimumNeighbors  *int32 `rethinkdb:"minimum_neighbors" json:"minimum_neighbors"`
 }
 
 // Partitions is a list of partitions.

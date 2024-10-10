@@ -67,10 +67,19 @@ func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) 
 		return nil, fmt.Errorf("no partition with id:%q found %w", req.PartitionId, err)
 	}
 
+	var machineNetworkRequirements *v1.MachineNetworkRequirements
+	if p.BootConfiguration.MachineNetworkRequirements != nil {
+		machineNetworkRequirements = &v1.MachineNetworkRequirements{
+			MinimumInterfaces: p.BootConfiguration.MachineNetworkRequirements.MinimumInterfaces,
+			MinimumNeighbors:  p.BootConfiguration.MachineNetworkRequirements.MinimumNeighbors,
+		}
+	}
+
 	resp := &v1.BootServiceBootResponse{
-		Kernel:       p.BootConfiguration.KernelURL,
-		InitRamDisks: []string{p.BootConfiguration.ImageURL},
-		Cmdline:      &p.BootConfiguration.CommandLine,
+		Kernel:              p.BootConfiguration.KernelURL,
+		InitRamDisks:        []string{p.BootConfiguration.ImageURL},
+		Cmdline:             &p.BootConfiguration.CommandLine,
+		NetworkRequirements: machineNetworkRequirements,
 	}
 	b.log.Info("boot", "resp", resp)
 	return resp, nil
