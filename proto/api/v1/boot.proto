@@ -36,6 +36,7 @@ message BootServiceBootResponse {
   string kernel = 1;
   repeated string init_ram_disks = 2;
   optional string cmdline = 3;
+  MachineNetworkRequirements network_requirements = 9;
 }
 
 message BootServiceRegisterRequest {
@@ -137,6 +138,14 @@ message BootInfo {
   string cmdline = 5;
   string kernel = 6;
   string bootloader_id = 8;
+}
+
+// MachineNetworkRequirements defines the conditions required to take a machine into waiting state.
+message MachineNetworkRequirements {
+  // MinimumInterfaces defines how many network cards must be detected with link on a machine to go into waiting state.
+  optional int32 minimum_interfaces = 1;
+  // MinimumNeighbors defines how many distinct switch neighbors must be detected on a machine to go into waiting state.
+  optional int32 minimum_neighbors = 2;
 }
 
 message BootServiceAbortReinstallRequest {

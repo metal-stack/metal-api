@@ -205,6 +205,14 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
+	var machineNetworkRequirements *metal.MachineNetworkRequirements
+	if requestPayload.PartitionBootConfiguration.MachineNetworkRequirements != nil {
+		machineNetworkRequirements = &metal.MachineNetworkRequirements{
+			MinimumInterfaces: requestPayload.PartitionBootConfiguration.MachineNetworkRequirements.MinimumInterfaces,
+			MinimumNeighbors:  requestPayload.PartitionBootConfiguration.MachineNetworkRequirements.MinimumNeighbors,
+		}
+	}
+
 	p := &metal.Partition{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -215,9 +223,10 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		MgmtServiceAddress:         mgmtServiceAddress,
 		PrivateNetworkPrefixLength: prefixLength,
 		BootConfiguration: metal.BootConfiguration{
-			ImageURL:    imageURL,
-			KernelURL:   kernelURL,
-			CommandLine: commandLine,
+			ImageURL:                   imageURL,
+			KernelURL:                  kernelURL,
+			CommandLine:                commandLine,
+			MachineNetworkRequirements: machineNetworkRequirements,
 		},
 	}
 
