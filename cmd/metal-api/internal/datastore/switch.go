@@ -161,7 +161,10 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 	s2 := newSwitches[1]
 	cons1 := s1.MachineConnections[m.ID]
 	cons2 := s2.MachineConnections[m.ID]
+
+	// FIXME this error will occur even if Partition.MachineNetworkRequirements.MinimumNeighbors is set to < 2
 	connectionMapError := fmt.Errorf("twin-switches do not have a connection map that is mirrored crosswise for machine %v, switch %v (connections: %v), switch %v (connections: %v)", m.ID, s1.Name, cons1, s2.Name, cons2)
+
 	if len(cons1) != len(cons2) {
 		return connectionMapError
 	}
