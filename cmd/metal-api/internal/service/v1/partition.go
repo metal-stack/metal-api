@@ -11,9 +11,16 @@ type PartitionBase struct {
 }
 
 type PartitionBootConfiguration struct {
-	ImageURL    *string `json:"imageurl" modelDescription:"a partition has a distinct location in a data center, individual entities belong to a partition" description:"the url to download the initrd for the boot image" optional:"true"`
-	KernelURL   *string `json:"kernelurl" description:"the url to download the kernel for the boot image" optional:"true"`
-	CommandLine *string `json:"commandline" description:"the cmdline to the kernel for the boot image" optional:"true"`
+	ImageURL                   *string                     `json:"imageurl" modelDescription:"a partition has a distinct location in a data center, individual entities belong to a partition" description:"the url to download the initrd for the boot image" optional:"true"`
+	KernelURL                  *string                     `json:"kernelurl" description:"the url to download the kernel for the boot image" optional:"true"`
+	CommandLine                *string                     `json:"commandline" description:"the cmdline to the kernel for the boot image" optional:"true"`
+	MachineNetworkRequirements *MachineNetworkRequirements `json:"machine_network_requirements" description:"MachineNetworkRequirements defines the conditions required to take a machine into waiting state"`
+}
+
+// MachineNetworkRequirements defines the conditions required to take a machine into waiting state.
+type MachineNetworkRequirements struct {
+	MinimumInterfaces *int32 `json:"minimum_interfaces" description:"MinimumInterfaces definesdefines how many network cards must be detected with link on a machine to go into waiting state"`
+	MinimumNeighbors  *int32 `json:"minimum_neighbors" description:"MinimumNeighbors defines how many distinct switch neighbors must be detected on a machine to go into waiting state"`
 }
 
 type PartitionCreateRequest struct {
@@ -104,6 +111,14 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 		labels = p.Labels
 	}
 
+	var machineNetworkRequirements *MachineNetworkRequirements
+	if p.BootConfiguration.MachineNetworkRequirements != nil {
+		machineNetworkRequirements = &MachineNetworkRequirements{
+			MinimumInterfaces: p.BootConfiguration.MachineNetworkRequirements.MinimumInterfaces,
+			MinimumNeighbors:  p.BootConfiguration.MachineNetworkRequirements.MinimumNeighbors,
+		}
+	}
+
 	return &PartitionResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -119,9 +134,10 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			PrivateNetworkPrefixLength: &prefixLength,
 		},
 		PartitionBootConfiguration: PartitionBootConfiguration{
-			ImageURL:    &p.BootConfiguration.ImageURL,
-			KernelURL:   &p.BootConfiguration.KernelURL,
-			CommandLine: &p.BootConfiguration.CommandLine,
+			ImageURL:                   &p.BootConfiguration.ImageURL,
+			KernelURL:                  &p.BootConfiguration.KernelURL,
+			CommandLine:                &p.BootConfiguration.CommandLine,
+			MachineNetworkRequirements: machineNetworkRequirements,
 		},
 		Timestamps: Timestamps{
 			Created: p.Created,

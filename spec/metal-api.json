@@ -3178,6 +3178,24 @@
         "vrf"
       ]
     },
+    "v1.MachineNetworkRequirements": {
+      "properties": {
+        "minimum_interfaces": {
+          "description": "MinimumInterfaces definesdefines how many network cards must be detected with link on a machine to go into waiting state",
+          "format": "int32",
+          "type": "integer"
+        },
+        "minimum_neighbors": {
+          "description": "MinimumNeighbors defines how many distinct switch neighbors must be detected on a machine to go into waiting state",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minimum_interfaces",
+        "minimum_neighbors"
+      ]
+    },
     "v1.MachineNic": {
       "properties": {
         "identifier": {
@@ -4057,8 +4075,15 @@
         "kernelurl": {
           "description": "the url to download the kernel for the boot image",
           "type": "string"
+        },
+        "machine_network_requirements": {
+          "$ref": "#/definitions/v1.MachineNetworkRequirements",
+          "description": "MachineNetworkRequirements defines the conditions required to take a machine into waiting state"
         }
-      }
+      },
+      "required": [
+        "machine_network_requirements"
+      ]
     },
     "v1.PartitionCapacity": {
       "properties": {
