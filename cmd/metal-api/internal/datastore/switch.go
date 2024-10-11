@@ -138,7 +138,11 @@ func (rs *RethinkStore) SetVrfAtSwitches(m *metal.Machine, vrf string) (metal.Sw
 }
 
 func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
-	switches, err := rs.ListSwitches()
+	if m.PartitionID == "" {
+		return fmt.Errorf("partitionID is empty in machine:%s", m.ID)
+	}
+	var switches metal.Switches
+	err := rs.SearchSwitches(&SwitchSearchQuery{PartitionID: &m.PartitionID}, &switches)
 	if err != nil {
 		return err
 	}
