@@ -766,6 +766,76 @@ func Test_cumulusPortByLineNumber(t *testing.T) {
 	}
 }
 
+func TestConnectionMap_ByNicName(t *testing.T) {
+	tests := []struct {
+		name           string
+		c              ConnectionMap
+		want           map[string]Connection
+		wantErr        bool
+		wantErrmessage string
+	}{
+		{
+			name: "one machine connected to one switch",
+			c: ConnectionMap{
+				"m1": Connections{
+					Connection{MachineID: "m1", Nic: Nic{MacAddress: "11:11", Name: "swp1"}},
+				},
+			},
+			want: map[string]Connection{
+				"swp1": {MachineID: "m1", Nic: Nic{MacAddress: "11:11", Name: "swp1"}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "two machines connected to one switch",
+			c: ConnectionMap{
+				"m1": Connections{
+					Connection{MachineID: "m1", Nic: Nic{MacAddress: "11:11", Name: "swp1"}},
+				},
+				"m2": Connections{
+					Connection{MachineID: "m2", Nic: Nic{MacAddress: "21:11", Name: "swp2"}},
+				},
+			},
+			want: map[string]Connection{
+				"swp1": {MachineID: "m1", Nic: Nic{MacAddress: "11:11", Name: "swp1"}},
+				"swp2": {MachineID: "m2", Nic: Nic{MacAddress: "21:11", Name: "swp2"}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "two machines connected to one switch at the same port",
+			c: ConnectionMap{
+				"m1": Connections{
+					Connection{MachineID: "m1", Nic: Nic{MacAddress: "11:11", Name: "swp1"}},
+				},
+				"m2": Connections{
+					Connection{MachineID: "m2", Nic: Nic{MacAddress: "21:11", Name: "swp1"}},
+				},
+			},
+			want:           nil,
+			wantErr:        true,
+			wantErrmessage: "switch port swp1 is connected to more than one machine",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.c.ByNicName()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ConnectionMap.ByNicName() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && tt.wantErrmessage != err.Error() {
+				t.Errorf("ConnectionMap.ByNicName() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("ConnectionMap.ByNicName() diff: %s", diff)
+			}
+		})
+	}
+}
+
 func errorsAreEqual(err1, err2 error) bool {
 	if err1 == nil && err2 == nil {
 		return true

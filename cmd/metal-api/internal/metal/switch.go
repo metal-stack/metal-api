@@ -97,8 +97,8 @@ func (c ConnectionMap) ByNicName() (map[string]Connection, error) {
 	res := make(map[string]Connection)
 	for _, cons := range c {
 		for _, con := range cons {
-			if con2, has := res[con.Nic.Name]; has {
-				return nil, fmt.Errorf("connection map has duplicate connections for nic %s; con1: %v, con2: %v", con.Nic.Name, con, con2)
+			if _, has := res[con.Nic.Name]; has {
+				return nil, fmt.Errorf("switch port %s is connected to more than one machine", con.Nic.Name)
 			}
 			res[con.Nic.Name] = con
 		}
