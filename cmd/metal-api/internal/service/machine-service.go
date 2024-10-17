@@ -80,8 +80,8 @@ type machineAllocationSpec struct {
 	PlacementTags      []string
 	EgressRules        []metal.EgressRule
 	IngressRules       []metal.IngressRule
-	DNSServers         []string
-	NTPServers         []string
+	DNSServers         metal.DNSServers
+	NTPServers         metal.NTPServers
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -1151,7 +1151,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		return nil, errors.New("please specify a maximum of three dns servers")
 	}
 	for _, dnsip := range machineRequest.DNSServers {
-		_, err := netip.ParseAddr(dnsip)
+		_, err := netip.ParseAddr(dnsip.IP)
 		if err != nil {
 			return nil, fmt.Errorf("IP: %s for DNS server not correct err: %w", dnsip, err)
 		}
@@ -1161,13 +1161,13 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		return nil, errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
 	}
 	for _, ntpserver := range machineRequest.NTPServers {
-		if net.ParseIP(ntpserver) != nil {
-			_, err := netip.ParseAddr(ntpserver)
+		if net.ParseIP(ntpserver.Address) != nil {
+			_, err := netip.ParseAddr(ntpserver.Address)
 			if err != nil {
 				return nil, fmt.Errorf("IP: %s for NTP server not correct err: %w", ntpserver, err)
 			}
 		} else {
-			if !govalidator.IsDNSName(ntpserver) {
+			if !govalidator.IsDNSName(ntpserver.Address) {
 				return nil, fmt.Errorf("DNS name: %s for NTP server not correct err: %w", ntpserver, err)
 			}
 		}
