@@ -480,16 +480,16 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		return
 	}
 
-	if err := metal.ValidateSwitchOSVendor(s.OS.Vendor); err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
 	returnCode := http.StatusOK
 	if s == nil {
 		s = v1.NewSwitch(requestPayload)
 		if len(requestPayload.Nics) != len(s.Nics.ByIdentifier()) {
 			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate identifier found in nics")))
+			return
+		}
+
+		if err := metal.ValidateSwitchOSVendor(s.OS.Vendor); err != nil {
+			r.sendError(request, response, defaultError(err))
 			return
 		}
 
@@ -502,6 +502,12 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		returnCode = http.StatusCreated
 	} else if s.Mode == metal.SwitchReplace {
 		spec := v1.NewSwitch(requestPayload)
+
+		if err := metal.ValidateSwitchOSVendor(spec.OS.Vendor); err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+
 		err = r.replaceSwitch(s, spec)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
@@ -512,6 +518,11 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 	} else {
 		old := *s
 		spec := v1.NewSwitch(requestPayload)
+
+		if err := metal.ValidateSwitchOSVendor(spec.OS.Vendor); err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
 
 		uniqueNewNics := spec.Nics.ByIdentifier()
 		if len(requestPayload.Nics) != len(uniqueNewNics) {
