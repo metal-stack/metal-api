@@ -480,6 +480,11 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		return
 	}
 
+	if err := metal.ValidateSwitchOSVendor(s.OS.Vendor); err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
 	returnCode := http.StatusOK
 	if s == nil {
 		s = v1.NewSwitch(requestPayload)
@@ -597,6 +602,11 @@ func (r *switchResource) migrate(request *restful.Request, response *restful.Res
 
 	new, err := r.ds.FindSwitch(requestPayload.NewSwitchID)
 	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	if err := metal.ValidateSwitchOSVendor(new.OS.Vendor); err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
