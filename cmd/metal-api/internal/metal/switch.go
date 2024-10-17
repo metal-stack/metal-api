@@ -263,7 +263,7 @@ func portNameToLine(port string, os SwitchOSVendor) (int, error) {
 	if os == SwitchOSVendorCumulus {
 		return cumulusPortNameToLine(port)
 	}
-	return 0, fmt.Errorf("unknow switch os %s", os)
+	return 0, fmt.Errorf("unknown switch os %s", os)
 }
 
 func sonicPortNameToLine(port string) (int, error) {
