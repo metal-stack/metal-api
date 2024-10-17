@@ -5189,6 +5189,10 @@
         },
         "vendor": {
           "description": "the operating system vendor the switch currently has",
+          "enum": [
+            "Cumulus",
+            "SONiC"
+          ],
           "type": "string"
         },
         "version": {
