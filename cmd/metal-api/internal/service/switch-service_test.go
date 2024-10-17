@@ -47,6 +47,7 @@ func TestRegisterSwitch(t *testing.T) {
 		PartitionID: "1",
 		SwitchBase: v1.SwitchBase{
 			RackID: "1",
+			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		},
 	}
 	js, err := json.Marshal(createRequest)
@@ -89,6 +90,7 @@ func TestRegisterExistingSwitch(t *testing.T) {
 		PartitionID: testdata.Switch2.PartitionID,
 		SwitchBase: v1.SwitchBase{
 			RackID: testdata.Switch2.RackID,
+			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		},
 	}
 	js, err := json.Marshal(createRequest)
@@ -134,6 +136,7 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 		PartitionID: testdata.Switch1.PartitionID,
 		SwitchBase: v1.SwitchBase{
 			RackID: testdata.Switch1.RackID,
+			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		},
 	}
 	js, err := json.Marshal(createRequest)
@@ -163,6 +166,7 @@ func TestReplaceSwitch(t *testing.T) {
 		PartitionID: testdata.Switch2.PartitionID,
 		SwitchBase: v1.SwitchBase{
 			RackID: testdata.Switch2.RackID,
+			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		},
 	}
 	js, err := json.Marshal(createRequest)
