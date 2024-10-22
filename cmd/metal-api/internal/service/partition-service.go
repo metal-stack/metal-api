@@ -205,6 +205,16 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
+	var dnsServers metal.DNSServers
+	if len(requestPayload.DNSServers) > 0 {
+		dnsServers = requestPayload.DNSServers
+	}
+
+	var ntpServers metal.NTPServers
+	if len(requestPayload.NTPServers) > 0 {
+		ntpServers = requestPayload.NTPServers
+	}
+
 	p := &metal.Partition{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -219,6 +229,8 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
+		DNSServer:  dnsServers,
+		NTPServers: ntpServers,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())

@@ -20,6 +20,8 @@ type PartitionCreateRequest struct {
 	Common
 	PartitionBase
 	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
+	DNSServers                 metal.DNSServers           `json:"dns_servers" description:"the dns servers for this partition" optional:"true"`
+	NTPServers                 metal.NTPServers           `json:"ntp_servers" description:"the ntp servers for this partition" optional:"true"`
 }
 
 type PartitionUpdateRequest struct {
