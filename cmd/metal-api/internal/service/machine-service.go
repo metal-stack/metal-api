@@ -1147,20 +1147,39 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		return nil, fmt.Errorf("size:%s not found err:%w", sizeID, err)
 	}
 
-	if len(machineRequest.DNSServers) > 3 {
-		return nil, errors.New("please specify a maximum of three dns servers")
+	partition, err := ds.FindPartition(partitionID)
+	if err != nil {
+		return nil, fmt.Errorf("partition:%s not found err:%w", partitionID, err)
 	}
-	for _, dnsip := range machineRequest.DNSServers {
+	var (
+		dnsServers metal.DNSServers
+		ntpServers metal.NTPServers
+	)
+	if len(machineRequest.DNSServers) != 0 {
+		if len(machineRequest.DNSServers) > 3 {
+			return nil, errors.New("please specify a maximum of three dns servers")
+		}
+		dnsServers = machineRequest.DNSServers
+	} else {
+		dnsServers = partition.DNSServers
+	}
+	for _, dnsip := range dnsServers {
 		_, err := netip.ParseAddr(dnsip.IP)
 		if err != nil {
 			return nil, fmt.Errorf("IP: %s for DNS server not correct err: %w", dnsip, err)
 		}
 	}
 
-	if len(machineRequest.NTPServers) > 0 && (len(machineRequest.NTPServers) <= 3 || len(machineRequest.NTPServers) > 5) {
-		return nil, errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
+	if len(machineRequest.NTPServers) != 0 {
+		if len(machineRequest.NTPServers) <= 3 || len(machineRequest.NTPServers) > 5 {
+			return nil, errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
+		}
+		ntpServers = machineRequest.NTPServers
+	} else {
+		ntpServers = partition.NTPServers
 	}
-	for _, ntpserver := range machineRequest.NTPServers {
+
+	for _, ntpserver := range ntpServers {
 		if net.ParseIP(ntpserver.Address) != nil {
 			_, err := netip.ParseAddr(ntpserver.Address)
 			if err != nil {
@@ -1194,8 +1213,8 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		PlacementTags:      machineRequest.PlacementTags,
 		EgressRules:        egress,
 		IngressRules:       ingress,
-		DNSServers:         machineRequest.DNSServers,
-		NTPServers:         machineRequest.NTPServers,
+		DNSServers:         dnsServers,
+		NTPServers:         ntpServers,
 	}, nil
 }
 
