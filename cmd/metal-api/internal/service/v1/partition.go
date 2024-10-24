@@ -119,6 +119,8 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 		PartitionBase: PartitionBase{
 			MgmtServiceAddress:         &p.MgmtServiceAddress,
 			PrivateNetworkPrefixLength: &prefixLength,
+			DNSServers:                 p.DNSServers,
+			NTPServers:                 p.NTPServers,
 		},
 		PartitionBootConfiguration: PartitionBootConfiguration{
 			ImageURL:    &p.BootConfiguration.ImageURL,
