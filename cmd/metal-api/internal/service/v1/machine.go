@@ -45,6 +45,8 @@ type MachineAllocation struct {
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 	AllocationUUID   string                    `json:"allocationuuid" description:"a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time."`
 	FirewallRules    *FirewallRules            `json:"firewall_rules,omitempty" description:"a set of firewall rules to apply" optional:"true"`
+	DNSServers       metal.DNSServers          `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
+	NTPServers       metal.NTPServers          `json:"ntp_servers,omitempty" description:"the ntp servers used for the machine" optional:"true"`
 }
 
 type FirewallRules struct {
@@ -229,6 +231,8 @@ type MachineAllocateRequest struct {
 	Networks           MachineAllocationNetworks `json:"networks" description:"the networks that this machine will be placed in." optional:"true"`
 	IPs                []string                  `json:"ips" description:"the ips to attach to this machine additionally" optional:"true"`
 	PlacementTags      []string                  `json:"placement_tags,omitempty" description:"by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags"`
+	DNSServers         metal.DNSServers          `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
+	NTPServers         metal.NTPServers          `json:"ntp_servers,omitempty" description:"the ntp servers used for the machine" optional:"true"`
 }
 
 type MachineAllocationNetworks []MachineAllocationNetwork
@@ -597,6 +601,8 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			VPN:              NewMachineVPN(m.Allocation.VPN),
 			AllocationUUID:   m.Allocation.UUID,
 			FirewallRules:    firewallRules,
+			DNSServers:       m.Allocation.DNSServers,
+			NTPServers:       m.Allocation.NTPServers,
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall

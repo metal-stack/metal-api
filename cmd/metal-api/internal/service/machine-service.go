@@ -7,10 +7,12 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
@@ -78,6 +80,8 @@ type machineAllocationSpec struct {
 	PlacementTags      []string
 	EgressRules        []metal.EgressRule
 	IngressRules       []metal.IngressRule
+	DNSServers         metal.DNSServers
+	NTPServers         metal.NTPServers
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -1143,6 +1147,51 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		return nil, fmt.Errorf("size:%s not found err:%w", sizeID, err)
 	}
 
+	partition, err := ds.FindPartition(partitionID)
+	if err != nil {
+		return nil, fmt.Errorf("partition:%s not found err:%w", partitionID, err)
+	}
+	var (
+		dnsServers metal.DNSServers
+		ntpServers metal.NTPServers
+	)
+	if len(machineRequest.DNSServers) != 0 {
+		if len(machineRequest.DNSServers) > 3 {
+			return nil, errors.New("please specify a maximum of three dns servers")
+		}
+		dnsServers = machineRequest.DNSServers
+	} else {
+		dnsServers = partition.DNSServers
+	}
+	for _, dnsip := range dnsServers {
+		_, err := netip.ParseAddr(dnsip.IP)
+		if err != nil {
+			return nil, fmt.Errorf("IP: %s for DNS server not correct err: %w", dnsip, err)
+		}
+	}
+
+	if len(machineRequest.NTPServers) != 0 {
+		if len(machineRequest.NTPServers) <= 3 || len(machineRequest.NTPServers) > 5 {
+			return nil, errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
+		}
+		ntpServers = machineRequest.NTPServers
+	} else {
+		ntpServers = partition.NTPServers
+	}
+
+	for _, ntpserver := range ntpServers {
+		if net.ParseIP(ntpserver.Address) != nil {
+			_, err := netip.ParseAddr(ntpserver.Address)
+			if err != nil {
+				return nil, fmt.Errorf("IP: %s for NTP server not correct err: %w", ntpserver, err)
+			}
+		} else {
+			if !govalidator.IsDNSName(ntpserver.Address) {
+				return nil, fmt.Errorf("DNS name: %s for NTP server not correct err: %w", ntpserver, err)
+			}
+		}
+	}
+
 	return &machineAllocationSpec{
 		Creator:            user.EMail,
 		UUID:               uuid,
@@ -1164,6 +1213,8 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		PlacementTags:      machineRequest.PlacementTags,
 		EgressRules:        egress,
 		IngressRules:       ingress,
+		DNSServers:         dnsServers,
+		NTPServers:         ntpServers,
 	}, nil
 }
 
@@ -1247,6 +1298,8 @@ func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.Ret
 		VPN:             allocationSpec.VPN,
 		FirewallRules:   firewallRules,
 		UUID:            uuid.New().String(),
+		DNSServers:      allocationSpec.DNSServers,
+		NTPServers:      allocationSpec.NTPServers,
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {

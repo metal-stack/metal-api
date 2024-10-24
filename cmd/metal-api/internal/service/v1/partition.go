@@ -8,6 +8,8 @@ type PartitionBase struct {
 	MgmtServiceAddress         *string           `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
 	PrivateNetworkPrefixLength *int              `json:"privatenetworkprefixlength" description:"the length of private networks for the machine's child networks in this partition, default 22" optional:"true" minimum:"16" maximum:"30"`
 	Labels                     map[string]string `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
+	DNSServers                 metal.DNSServers  `json:"dns_servers" description:"the dns servers for this partition" optional:"true"`
+	NTPServers                 metal.NTPServers  `json:"ntp_servers" description:"the ntp servers for this partition" optional:"true"`
 }
 
 type PartitionBootConfiguration struct {
@@ -117,6 +119,8 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 		PartitionBase: PartitionBase{
 			MgmtServiceAddress:         &p.MgmtServiceAddress,
 			PrivateNetworkPrefixLength: &prefixLength,
+			DNSServers:                 p.DNSServers,
+			NTPServers:                 p.NTPServers,
 		},
 		PartitionBootConfiguration: PartitionBootConfiguration{
 			ImageURL:    &p.BootConfiguration.ImageURL,
