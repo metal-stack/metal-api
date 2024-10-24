@@ -229,7 +229,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
-		DNSServer:  dnsServers,
+		DNSServers: dnsServers,
 		NTPServers: ntpServers,
 	}
 

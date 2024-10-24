@@ -7,7 +7,7 @@ type Partition struct {
 	MgmtServiceAddress         string            `rethinkdb:"mgmtserviceaddr" json:"mgmtserviceaddr"`
 	PrivateNetworkPrefixLength uint8             `rethinkdb:"privatenetworkprefixlength" json:"privatenetworkprefixlength"`
 	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
-	DNSServer                  DNSServers        `rethinkdb:"dns_servers" json:"dns_servers"`
+	DNSServers                 DNSServers        `rethinkdb:"dns_servers" json:"dns_servers"`
 	NTPServers                 NTPServers        `rethinkdb:"ntp_servers" json:"ntp_servers"`
 }
 
