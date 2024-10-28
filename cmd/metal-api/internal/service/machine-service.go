@@ -1171,7 +1171,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 	}
 
 	if len(machineRequest.NTPServers) != 0 {
-		if len(machineRequest.NTPServers) <= 3 || len(machineRequest.NTPServers) > 5 {
+		if len(machineRequest.NTPServers) < 3 || len(machineRequest.NTPServers) > 5 {
 			return nil, errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
 		}
 		ntpServers = machineRequest.NTPServers
