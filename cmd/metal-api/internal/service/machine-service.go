@@ -1163,10 +1163,10 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 	} else {
 		dnsServers = partition.DNSServers
 	}
-	for _, dnsip := range dnsServers {
-		_, err := netip.ParseAddr(dnsip.IP)
+	for _, dnsServer := range dnsServers {
+		_, err := netip.ParseAddr(dnsServer.IP)
 		if err != nil {
-			return nil, fmt.Errorf("IP: %s for DNS server not correct err: %w", dnsip, err)
+			return nil, fmt.Errorf("ip: %s for dns server not correct err: %w", dnsServer, err)
 		}
 	}
 
@@ -1183,11 +1183,11 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		if net.ParseIP(ntpserver.Address) != nil {
 			_, err := netip.ParseAddr(ntpserver.Address)
 			if err != nil {
-				return nil, fmt.Errorf("IP: %s for NTP server not correct err: %w", ntpserver, err)
+				return nil, fmt.Errorf("ip: %s for ntp server not correct err: %w", ntpserver, err)
 			}
 		} else {
 			if !govalidator.IsDNSName(ntpserver.Address) {
-				return nil, fmt.Errorf("DNS name: %s for NTP server not correct err: %w", ntpserver, err)
+				return nil, fmt.Errorf("dns name: %s for ntp server not correct err: %w", ntpserver, err)
 			}
 		}
 	}

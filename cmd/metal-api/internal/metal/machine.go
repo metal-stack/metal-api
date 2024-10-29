@@ -180,13 +180,13 @@ type IngressRule struct {
 type DNSServers []DNSServer
 
 type DNSServer struct {
-	IP string `rethinkdb:"ip" json:"ip"`
+	IP string `rethinkdb:"ip" json:"ip" description:"ip address of this dns server"`
 }
 
 type NTPServers []NTPServer
 
 type NTPServer struct {
-	Address string `address:"address" json:"address"`
+	Address string `address:"address" json:"address" description:"ip address or dns hostname of this ntp server"`
 }
 
 type Protocol string
