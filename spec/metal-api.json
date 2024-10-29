@@ -351,6 +351,7 @@
     "metal.DNSServer": {
       "properties": {
         "ip": {
+          "description": "ip address of this dns server",
           "type": "string"
         }
       },
@@ -361,6 +362,7 @@
     "metal.NTPServer": {
       "properties": {
         "address": {
+          "description": "ip address or dns hostname of this ntp server",
           "type": "string"
         }
       },
