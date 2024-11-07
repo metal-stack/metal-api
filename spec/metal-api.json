@@ -5075,6 +5075,22 @@
         }
       }
     },
+    "v1.SwitchMigrateRequest": {
+      "properties": {
+        "new_switch_id": {
+          "description": "the id of the new switch to migrate to",
+          "type": "string"
+        },
+        "old_switch_id": {
+          "description": "the id of the switch that should be migrated away from",
+          "type": "string"
+        }
+      },
+      "required": [
+        "new_switch_id",
+        "old_switch_id"
+      ]
+    },
     "v1.SwitchNic": {
       "properties": {
         "actual": {
@@ -5173,6 +5189,10 @@
         },
         "vendor": {
           "description": "the operating system vendor the switch currently has",
+          "enum": [
+            "Cumulus",
+            "SONiC"
+          ],
           "type": "string"
         },
         "version": {
@@ -9723,6 +9743,45 @@
           }
         },
         "summary": "get all switches that match given properties",
+        "tags": [
+          "switch"
+        ]
+      }
+    },
+    "/v1/switch/migrate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "migrateSwitch",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchMigrateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "migrates machine connections from one switch to another",
         "tags": [
           "switch"
         ]
