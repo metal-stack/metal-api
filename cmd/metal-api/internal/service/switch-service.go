@@ -133,7 +133,7 @@ func (r *switchResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/migrate").
-		To(editor(r.migrate)).
+		To(admin(r.migrate)).
 		Doc("migrates machine connections from one switch to another").
 		Operation("migrateSwitch").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
