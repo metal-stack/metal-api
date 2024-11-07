@@ -209,7 +209,7 @@ func TestSwitchMigrateConnectionsExistError(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/migrate", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(log, container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -240,7 +240,7 @@ func TestSwitchMigrateDifferentRacksError(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/migrate", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(log, container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
