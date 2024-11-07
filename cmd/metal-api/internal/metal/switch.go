@@ -241,14 +241,14 @@ func mapPortName(port string, sourceOS, targetOS SwitchOSVendor, allLines []int)
 		return "", fmt.Errorf("unable to get line number from port name, %w", err)
 	}
 
-	if targetOS == SwitchOSVendorCumulus {
-		return cumulusPortByLineNumber(line, allLines), nil
-	}
-	if targetOS == SwitchOSVendorSonic {
+	switch targetOS {
+	case SwitchOSVendorSonic:
 		return sonicPortByLineNumber(line), nil
+	case SwitchOSVendorCumulus:
+		return cumulusPortByLineNumber(line, allLines), nil
+	default:
+		return "", fmt.Errorf("unknown target switch os %s", targetOS)
 	}
-
-	return "", fmt.Errorf("unknown target switch os %s", targetOS)
 }
 
 func getLinesFromPortNames(ports []string, os SwitchOSVendor) ([]int, error) {
@@ -266,13 +266,15 @@ func getLinesFromPortNames(ports []string, os SwitchOSVendor) ([]int, error) {
 }
 
 func portNameToLine(port string, os SwitchOSVendor) (int, error) {
-	if os == SwitchOSVendorSonic {
+	switch os {
+	case SwitchOSVendorSonic:
 		return sonicPortNameToLine(port)
-	}
-	if os == SwitchOSVendorCumulus {
+	case SwitchOSVendorCumulus:
 		return cumulusPortNameToLine(port)
+	default:
+		return 0, fmt.Errorf("unknown switch os %s", os)
 	}
-	return 0, fmt.Errorf("unknown switch os %s", os)
+
 }
 
 func sonicPortNameToLine(port string) (int, error) {
