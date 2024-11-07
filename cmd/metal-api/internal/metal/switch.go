@@ -93,10 +93,12 @@ func SwitchModeFrom(name string) SwitchMode {
 }
 
 func ValidateSwitchOSVendor(os SwitchOSVendor) error {
-	if os != SwitchOSVendorCumulus && os != SwitchOSVendorSonic {
+	switch os {
+	case SwitchOSVendorCumulus, SwitchOSVendorSonic:
+		return nil
+	default:
 		return fmt.Errorf("unknown switch os vendor %s", os)
 	}
-	return nil
 }
 
 // ByNicName builds a map of nic names to machine connection
