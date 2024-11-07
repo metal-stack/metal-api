@@ -513,7 +513,7 @@ func (ts *testService) machineGet(t *testing.T, mid string, response interface{}
 }
 
 func (ts *testService) switchMigrate(t *testing.T, smr v1.SwitchMigrateRequest, response interface{}) int {
-	return webRequestPost(t, ts.switchService, &testUserDirectory.edit, smr, "/v1/switch/migrate", response)
+	return webRequestPost(t, ts.switchService, &testUserDirectory.admin, smr, "/v1/switch/migrate", response)
 }
 
 func (ts *testService) switchDelete(t *testing.T, sid string, response interface{}) int {
