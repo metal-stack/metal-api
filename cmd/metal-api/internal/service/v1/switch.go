@@ -32,9 +32,9 @@ type SwitchBase struct {
 }
 
 type SwitchOS struct {
-	Vendor           string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
-	Version          string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
-	MetalCoreVersion string `json:"metal_core_version" description:"the version of metal-core running" optional:"true"`
+	Vendor           metal.SwitchOSVendor `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true" enum:"SONiC|Cumulus"`
+	Version          string               `json:"version" description:"the operating system version the switch currently has" optional:"true"`
+	MetalCoreVersion string               `json:"metal_core_version" description:"the version of metal-core running" optional:"true"`
 }
 
 type SwitchNics []SwitchNic
@@ -88,6 +88,12 @@ type SwitchUpdateRequest struct {
 type SwitchPortToggleRequest struct {
 	NicName string           `json:"nic" description:"the nic of the switch you want to change"`
 	Status  SwitchPortStatus `json:"status" description:"sets the port status" enum:"UP|DOWN"`
+}
+
+// SwitchMigrateResponse is used to migrate from one switch to another, e.g. for changing os vendor.
+type SwitchMigrateRequest struct {
+	OldSwitchID string `json:"old_switch_id" description:"the id of the switch that should be migrated away from"`
+	NewSwitchID string `json:"new_switch_id" description:"the id of the new switch to migrate to"`
 }
 
 // SwitchNotifyRequest represents the notification sent from the switch

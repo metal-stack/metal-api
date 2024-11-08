@@ -618,6 +618,17 @@
         "id"
       ]
     },
+    "v1.DNSServer": {
+      "properties": {
+        "ip": {
+          "description": "ip address of this dns server",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ip"
+      ]
+    },
     "v1.Describable": {
       "properties": {
         "description": {
@@ -1009,6 +1020,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "filesystemlayoutid": {
           "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
@@ -1040,6 +1058,13 @@
           "description": "the networks that this machine will be placed in.",
           "items": {
             "$ref": "#/definitions/v1.MachineAllocationNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -1993,6 +2018,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "filesystemlayoutid": {
           "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
@@ -2020,6 +2052,13 @@
           "description": "the networks that this machine will be placed in.",
           "items": {
             "$ref": "#/definitions/v1.MachineAllocationNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -2096,6 +2135,13 @@
           "description": "a description for this machine",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "filesystemlayout": {
           "$ref": "#/definitions/v1.FilesystemLayoutResponse",
           "description": "filesystemlayout to create on this machine"
@@ -2121,6 +2167,13 @@
           "description": "the networks of this machine",
           "items": {
             "$ref": "#/definitions/v1.MachineNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -3569,6 +3622,17 @@
         "vendor"
       ]
     },
+    "v1.NTPServer": {
+      "properties": {
+        "address": {
+          "description": "ip address or dns hostname of this ntp server",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address"
+      ]
+    },
     "v1.NetworkAllocateRequest": {
       "properties": {
         "addressfamily": {
@@ -4106,6 +4170,13 @@
     },
     "v1.PartitionBase": {
       "properties": {
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "labels": {
           "additionalProperties": {
             "type": "string"
@@ -4116,6 +4187,13 @@
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         }
       }
     },
@@ -4185,6 +4263,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string"
@@ -4203,6 +4288,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -4232,6 +4324,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string"
@@ -4250,6 +4349,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -4267,6 +4373,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string"
@@ -4285,10 +4398,19 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         }
       },
       "required": [
-        "id"
+        "dns_servers",
+        "id",
+        "ntp_servers"
       ]
     },
     "v1.PowerMetric": {
@@ -5137,6 +5259,22 @@
         }
       }
     },
+    "v1.SwitchMigrateRequest": {
+      "properties": {
+        "new_switch_id": {
+          "description": "the id of the new switch to migrate to",
+          "type": "string"
+        },
+        "old_switch_id": {
+          "description": "the id of the switch that should be migrated away from",
+          "type": "string"
+        }
+      },
+      "required": [
+        "new_switch_id",
+        "old_switch_id"
+      ]
+    },
     "v1.SwitchNic": {
       "properties": {
         "actual": {
@@ -5235,6 +5373,10 @@
         },
         "vendor": {
           "description": "the operating system vendor the switch currently has",
+          "enum": [
+            "Cumulus",
+            "SONiC"
+          ],
           "type": "string"
         },
         "version": {
@@ -9785,6 +9927,45 @@
           }
         },
         "summary": "get all switches that match given properties",
+        "tags": [
+          "switch"
+        ]
+      }
+    },
+    "/v1/switch/migrate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "migrateSwitch",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchMigrateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "migrates machine connections from one switch to another",
         "tags": [
           "switch"
         ]
