@@ -4311,6 +4311,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string"
@@ -4329,10 +4336,19 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         }
       },
       "required": [
-        "id"
+        "dns_servers",
+        "id",
+        "ntp_servers"
       ]
     },
     "v1.PowerMetric": {

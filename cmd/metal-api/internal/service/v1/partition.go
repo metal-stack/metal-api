@@ -8,8 +8,8 @@ type PartitionBase struct {
 	MgmtServiceAddress         *string           `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
 	PrivateNetworkPrefixLength *int              `json:"privatenetworkprefixlength" description:"the length of private networks for the machine's child networks in this partition, default 22" optional:"true" minimum:"16" maximum:"30"`
 	Labels                     map[string]string `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
-	DNSServers                 []DNSServer       `json:"dns_servers" description:"the dns servers for this partition" optional:"true"`
-	NTPServers                 []NTPServer       `json:"ntp_servers" description:"the ntp servers for this partition" optional:"true"`
+	DNSServers                 []DNSServer       `json:"dns_servers,omitempty" description:"the dns servers for this partition" optional:"true"`
+	NTPServers                 []NTPServer       `json:"ntp_servers,omitempty" description:"the ntp servers for this partition" optional:"true"`
 }
 
 type PartitionBootConfiguration struct {
@@ -29,6 +29,8 @@ type PartitionUpdateRequest struct {
 	MgmtServiceAddress         *string                     `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
 	PartitionBootConfiguration *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
 	Labels                     map[string]string           `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
+	DNSServers                 []DNSServer                 `json:"dns_servers" description:"the dns servers for this partition"`
+	NTPServers                 []NTPServer                 `json:"ntp_servers" description:"the ntp servers for this partition"`
 }
 
 type PartitionResponse struct {

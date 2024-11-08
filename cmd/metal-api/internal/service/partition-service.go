@@ -333,6 +333,34 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
+	if requestPayload.DNSServers != nil {
+		newPartition.DNSServers = metal.DNSServers{}
+		for _, s := range requestPayload.DNSServers {
+			newPartition.DNSServers = append(newPartition.DNSServers, metal.DNSServer{
+				IP: s.IP,
+			})
+		}
+	}
+
+	if requestPayload.NTPServers != nil {
+		newPartition.NTPServers = metal.NTPServers{}
+		for _, s := range requestPayload.NTPServers {
+			newPartition.NTPServers = append(newPartition.NTPServers, metal.NTPServer{
+				Address: s.Address,
+			})
+		}
+	}
+
+	if err := newPartition.DNSServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	if err := newPartition.NTPServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
