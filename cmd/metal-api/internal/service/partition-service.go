@@ -334,6 +334,7 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 
 	if requestPayload.DNSServers != nil {
+		newPartition.DNSServers = metal.DNSServers{}
 		for _, s := range requestPayload.DNSServers {
 			newPartition.DNSServers = append(newPartition.DNSServers, metal.DNSServer{
 				IP: s.IP,
@@ -342,6 +343,7 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 
 	if requestPayload.NTPServers != nil {
+		newPartition.NTPServers = metal.NTPServers{}
 		for _, s := range requestPayload.NTPServers {
 			newPartition.NTPServers = append(newPartition.NTPServers, metal.NTPServer{
 				Address: s.Address,
