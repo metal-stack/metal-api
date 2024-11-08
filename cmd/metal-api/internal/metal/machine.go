@@ -1,8 +1,10 @@
 package metal
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -10,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/dustin/go-humanize"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
 	"github.com/samber/lo"
@@ -730,4 +733,46 @@ func (i *MachineIPMISuperUser) User() string {
 
 func DisabledIPMISuperUser() MachineIPMISuperUser {
 	return MachineIPMISuperUser{}
+}
+
+func (d DNSServers) Validate() error {
+	if d == nil {
+		return nil
+	}
+
+	if len(d) > 3 {
+		return errors.New("please specify a maximum of three dns servers")
+	}
+
+	for _, dnsServer := range d {
+		_, err := netip.ParseAddr(dnsServer.IP)
+		if err != nil {
+			return fmt.Errorf("ip: %s for dns server not correct err: %w", dnsServer, err)
+		}
+	}
+	return nil
+}
+
+func (n NTPServers) Validate() error {
+	if n == nil {
+		return nil
+	}
+
+	if len(n) < 3 || len(n) > 5 {
+		return errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
+	}
+
+	for _, ntpserver := range n {
+		if net.ParseIP(ntpserver.Address) != nil {
+			_, err := netip.ParseAddr(ntpserver.Address)
+			if err != nil {
+				return fmt.Errorf("ip: %s for ntp server not correct err: %w", ntpserver, err)
+			}
+		} else {
+			if !govalidator.IsDNSName(ntpserver.Address) {
+				return fmt.Errorf("dns name: %s for ntp server not correct", ntpserver)
+			}
+		}
+	}
+	return nil
 }

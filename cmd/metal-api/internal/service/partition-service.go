@@ -206,20 +206,31 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 	}
 
 	var dnsServers metal.DNSServers
-	reqDNSServers := requestPayload.DNSServers
-	if err := ValidateDNSServers(reqDNSServers); err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
-		return
+	if len(requestPayload.DNSServers) != 0 {
+		for _, s := range requestPayload.DNSServers {
+			dnsServers = append(dnsServers, metal.DNSServer{
+				IP: s.IP,
+			})
+		}
 	}
-	dnsServers = reqDNSServers
-
 	var ntpServers metal.NTPServers
-	reqNtpServers := requestPayload.NTPServers
-	if err := ValidateNTPServers(reqNtpServers); err != nil {
+	if len(requestPayload.NTPServers) != 0 {
+		for _, s := range requestPayload.NTPServers {
+			ntpServers = append(ntpServers, metal.NTPServer{
+				Address: s.Address,
+			})
+		}
+	}
+
+	if err := dnsServers.Validate(); err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
-	ntpServers = reqNtpServers
+
+	if err := ntpServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
 
 	p := &metal.Partition{
 		Base: metal.Base{

@@ -7,12 +7,10 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"net/netip"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
@@ -1151,29 +1149,33 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 	if err != nil {
 		return nil, fmt.Errorf("partition:%s not found err:%w", partitionID, err)
 	}
+
 	var (
 		dnsServers = partition.DNSServers
 		ntpServers = partition.NTPServers
 	)
 	if len(machineRequest.DNSServers) != 0 {
-		if len(machineRequest.DNSServers) > 3 {
-			return nil, errors.New("please specify a maximum of three dns servers")
+		dnsServers = metal.DNSServers{}
+		for _, s := range machineRequest.DNSServers {
+			dnsServers = append(dnsServers, metal.DNSServer{
+				IP: s.IP,
+			})
 		}
-		dnsServers = machineRequest.DNSServers
+	}
+	if len(machineRequest.NTPServers) != 0 {
+		ntpServers = []metal.NTPServer{}
+		for _, s := range machineRequest.NTPServers {
+			ntpServers = append(ntpServers, metal.NTPServer{
+				Address: s.Address,
+			})
+		}
 	}
 
-	if err := ValidateDNSServers(dnsServers); err != nil {
+	if err := dnsServers.Validate(); err != nil {
 		return nil, err
 	}
 
-	if len(machineRequest.NTPServers) != 0 {
-		if len(machineRequest.NTPServers) < 3 || len(machineRequest.NTPServers) > 5 {
-			return nil, errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
-		}
-		ntpServers = machineRequest.NTPServers
-	}
-
-	if err := ValidateNTPServers(ntpServers); err != nil {
+	if err := ntpServers.Validate(); err != nil {
 		return nil, err
 	}
 
@@ -2511,30 +2513,4 @@ func (s machineAllocationSpec) noautoNetworkN() int {
 
 func (s machineAllocationSpec) autoNetworkN() int {
 	return len(s.Networks) - s.noautoNetworkN()
-}
-
-func ValidateDNSServers(d metal.DNSServers) error {
-	for _, dnsServer := range d {
-		_, err := netip.ParseAddr(dnsServer.IP)
-		if err != nil {
-			return fmt.Errorf("ip: %s for dns server not correct err: %w", dnsServer, err)
-		}
-	}
-	return nil
-}
-
-func ValidateNTPServers(dnsServers metal.NTPServers) error {
-	for _, ntpserver := range dnsServers {
-		if net.ParseIP(ntpserver.Address) != nil {
-			_, err := netip.ParseAddr(ntpserver.Address)
-			if err != nil {
-				return fmt.Errorf("ip: %s for ntp server not correct err: %w", ntpserver, err)
-			}
-		} else {
-			if !govalidator.IsDNSName(ntpserver.Address) {
-				return fmt.Errorf("dns name: %s for ntp server not correct", ntpserver)
-			}
-		}
-	}
-	return nil
 }

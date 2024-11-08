@@ -348,28 +348,6 @@
         "type": "HTTPErrorResponse"
       }
     },
-    "metal.DNSServer": {
-      "properties": {
-        "ip": {
-          "description": "ip address of this dns server",
-          "type": "string"
-        }
-      },
-      "required": [
-        "ip"
-      ]
-    },
-    "metal.NTPServer": {
-      "properties": {
-        "address": {
-          "description": "ip address or dns hostname of this ntp server",
-          "type": "string"
-        }
-      },
-      "required": [
-        "address"
-      ]
-    },
     "rest.HealthResponse": {
       "properties": {
         "message": {
@@ -638,6 +616,17 @@
       },
       "required": [
         "id"
+      ]
+    },
+    "v1.DNSServer": {
+      "properties": {
+        "ip": {
+          "description": "ip address of this dns server",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ip"
       ]
     },
     "v1.Describable": {
@@ -1034,7 +1023,7 @@
         "dns_servers": {
           "description": "the dns servers used for the machine",
           "items": {
-            "$ref": "#/definitions/metal.DNSServer"
+            "$ref": "#/definitions/v1.DNSServer"
           },
           "type": "array"
         },
@@ -1075,7 +1064,7 @@
         "ntp_servers": {
           "description": "the ntp servers used for the machine",
           "items": {
-            "$ref": "#/definitions/metal.NTPServer"
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -2023,7 +2012,7 @@
         "dns_servers": {
           "description": "the dns servers used for the machine",
           "items": {
-            "$ref": "#/definitions/metal.DNSServer"
+            "$ref": "#/definitions/v1.DNSServer"
           },
           "type": "array"
         },
@@ -2060,7 +2049,7 @@
         "ntp_servers": {
           "description": "the ntp servers used for the machine",
           "items": {
-            "$ref": "#/definitions/metal.NTPServer"
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -2140,7 +2129,7 @@
         "dns_servers": {
           "description": "the dns servers used for the machine",
           "items": {
-            "$ref": "#/definitions/metal.DNSServer"
+            "$ref": "#/definitions/v1.DNSServer"
           },
           "type": "array"
         },
@@ -2175,7 +2164,7 @@
         "ntp_servers": {
           "description": "the ntp servers used for the machine",
           "items": {
-            "$ref": "#/definitions/metal.NTPServer"
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -3624,6 +3613,17 @@
         "vendor"
       ]
     },
+    "v1.NTPServer": {
+      "properties": {
+        "address": {
+          "description": "ip address or dns hostname of this ntp server",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address"
+      ]
+    },
     "v1.NetworkAllocateRequest": {
       "properties": {
         "description": {
@@ -4090,7 +4090,7 @@
         "dns_servers": {
           "description": "the dns servers for this partition",
           "items": {
-            "$ref": "#/definitions/metal.DNSServer"
+            "$ref": "#/definitions/v1.DNSServer"
           },
           "type": "array"
         },
@@ -4108,7 +4108,7 @@
         "ntp_servers": {
           "description": "the ntp servers for this partition",
           "items": {
-            "$ref": "#/definitions/metal.NTPServer"
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -4190,7 +4190,7 @@
         "dns_servers": {
           "description": "the dns servers for this partition",
           "items": {
-            "$ref": "#/definitions/metal.DNSServer"
+            "$ref": "#/definitions/v1.DNSServer"
           },
           "type": "array"
         },
@@ -4216,7 +4216,7 @@
         "ntp_servers": {
           "description": "the ntp servers for this partition",
           "items": {
-            "$ref": "#/definitions/metal.NTPServer"
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -4258,7 +4258,7 @@
         "dns_servers": {
           "description": "the dns servers for this partition",
           "items": {
-            "$ref": "#/definitions/metal.DNSServer"
+            "$ref": "#/definitions/v1.DNSServer"
           },
           "type": "array"
         },
@@ -4284,7 +4284,7 @@
         "ntp_servers": {
           "description": "the ntp servers for this partition",
           "items": {
-            "$ref": "#/definitions/metal.NTPServer"
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
