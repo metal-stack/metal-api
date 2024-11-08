@@ -618,6 +618,17 @@
         "id"
       ]
     },
+    "v1.DNSServer": {
+      "properties": {
+        "ip": {
+          "description": "ip address of this dns server",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ip"
+      ]
+    },
     "v1.Describable": {
       "properties": {
         "description": {
@@ -1009,6 +1020,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "filesystemlayoutid": {
           "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
@@ -1040,6 +1058,13 @@
           "description": "the networks that this machine will be placed in.",
           "items": {
             "$ref": "#/definitions/v1.MachineAllocationNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -1984,6 +2009,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "filesystemlayoutid": {
           "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
@@ -2011,6 +2043,13 @@
           "description": "the networks that this machine will be placed in.",
           "items": {
             "$ref": "#/definitions/v1.MachineAllocationNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -2087,6 +2126,13 @@
           "description": "a description for this machine",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "filesystemlayout": {
           "$ref": "#/definitions/v1.FilesystemLayoutResponse",
           "description": "filesystemlayout to create on this machine"
@@ -2112,6 +2158,13 @@
           "description": "the networks of this machine",
           "items": {
             "$ref": "#/definitions/v1.MachineNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -3560,6 +3613,17 @@
         "vendor"
       ]
     },
+    "v1.NTPServer": {
+      "properties": {
+        "address": {
+          "description": "ip address or dns hostname of this ntp server",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address"
+      ]
+    },
     "v1.NetworkAllocateRequest": {
       "properties": {
         "description": {
@@ -4023,6 +4087,13 @@
     },
     "v1.PartitionBase": {
       "properties": {
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "labels": {
           "additionalProperties": {
             "type": "string"
@@ -4033,6 +4104,13 @@
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         },
         "privatenetworkprefixlength": {
           "description": "the length of private networks for the machine's child networks in this partition, default 22",
@@ -4109,6 +4187,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string"
@@ -4127,6 +4212,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         },
         "privatenetworkprefixlength": {
           "description": "the length of private networks for the machine's child networks in this partition, default 22",
@@ -4163,6 +4255,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string"
@@ -4181,6 +4280,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         },
         "privatenetworkprefixlength": {
           "description": "the length of private networks for the machine's child networks in this partition, default 22",

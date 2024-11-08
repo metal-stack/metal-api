@@ -45,6 +45,8 @@ type MachineAllocation struct {
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 	AllocationUUID   string                    `json:"allocationuuid" description:"a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time."`
 	FirewallRules    *FirewallRules            `json:"firewall_rules,omitempty" description:"a set of firewall rules to apply" optional:"true"`
+	DNSServers       []DNSServer               `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
+	NTPServers       []NTPServer               `json:"ntp_servers,omitempty" description:"the ntp servers used for the machine" optional:"true"`
 }
 
 type FirewallRules struct {
@@ -229,6 +231,8 @@ type MachineAllocateRequest struct {
 	Networks           MachineAllocationNetworks `json:"networks" description:"the networks that this machine will be placed in." optional:"true"`
 	IPs                []string                  `json:"ips" description:"the ips to attach to this machine additionally" optional:"true"`
 	PlacementTags      []string                  `json:"placement_tags,omitempty" description:"by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags"`
+	DNSServers         []DNSServer               `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
+	NTPServers         []NTPServer               `json:"ntp_servers,omitempty" description:"the ntp servers used for the machine" optional:"true"`
 }
 
 type MachineAllocationNetworks []MachineAllocationNetwork
@@ -330,6 +334,14 @@ type MachineIssue struct {
 	Description string `json:"description" description:"a description of the issue"`
 	RefURL      string `json:"ref_url" description:"an issue reference to the issue in metal-stack docs"`
 	Details     string `json:"details" description:"details of the issue"`
+}
+
+type DNSServer struct {
+	IP string `json:"ip" description:"ip address of this dns server"`
+}
+
+type NTPServer struct {
+	Address string `json:"address" description:"ip address or dns hostname of this ntp server"`
 }
 
 func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
@@ -580,6 +592,22 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			}
 		}
 
+		var (
+			dnsServers []DNSServer
+			ntpServers []NTPServer
+		)
+
+		for _, s := range m.Allocation.DNSServers {
+			dnsServers = append(dnsServers, DNSServer{
+				IP: s.IP,
+			})
+		}
+		for _, s := range m.Allocation.NTPServers {
+			ntpServers = append(ntpServers, NTPServer{
+				Address: s.Address,
+			})
+		}
+
 		allocation = &MachineAllocation{
 			Creator:          m.Allocation.Creator,
 			Created:          m.Allocation.Created,
@@ -597,6 +625,8 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			VPN:              NewMachineVPN(m.Allocation.VPN),
 			AllocationUUID:   m.Allocation.UUID,
 			FirewallRules:    firewallRules,
+			DNSServers:       dnsServers,
+			NTPServers:       ntpServers,
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall
