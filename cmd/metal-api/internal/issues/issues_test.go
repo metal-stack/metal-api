@@ -90,14 +90,14 @@ func TestFindIssues(t *testing.T) {
 			only: []Type{TypePowerSupplyFailure},
 			machines: func() metal.Machines {
 				defectPowerSupplyMachine := machineTemplate("power-supply-failure")
-				noPartitionMachine.IPMI = metal.IPMI{
+				defectPowerSupplyMachine.IPMI = metal.IPMI{
 					PowerSupplies: metal.PowerSupplies{
 						{Status: metal.PowerSupplyStatus{Health: "NO-OK", State: "Absent"}},
 					},
 				}
 
 				return metal.Machines{
-					noPartitionMachine,
+					defectPowerSupplyMachine,
 					machineTemplate("good"),
 				}
 			},
