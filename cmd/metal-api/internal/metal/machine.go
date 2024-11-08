@@ -736,7 +736,7 @@ func DisabledIPMISuperUser() MachineIPMISuperUser {
 }
 
 func (d DNSServers) Validate() error {
-	if d == nil {
+	if len(d) == 0 {
 		return nil
 	}
 
@@ -754,7 +754,7 @@ func (d DNSServers) Validate() error {
 }
 
 func (n NTPServers) Validate() error {
-	if n == nil {
+	if len(n) == 0 {
 		return nil
 	}
 
