@@ -163,16 +163,16 @@ func (i *ipam) PrefixUsage(ctx context.Context, cidr string) (*metal.NetworkUsag
 	if pfx.Addr().Is6() {
 		af = metal.IPv6AddressFamily
 	}
-	availableIPs := map[metal.AddressFamily]uint64{
+	availableIPs := metal.AddressFamilyUsage{
 		af: usage.Msg.AvailableIps,
 	}
-	usedIPs := map[metal.AddressFamily]uint64{
+	usedIPs := metal.AddressFamilyUsage{
 		af: usage.Msg.AcquiredIps,
 	}
-	availablePrefixes := map[metal.AddressFamily]uint64{
+	availablePrefixes := metal.AddressFamilyUsage{
 		af: usage.Msg.AvailableSmallestPrefixes,
 	}
-	usedPrefixes := map[metal.AddressFamily]uint64{
+	usedPrefixes := metal.AddressFamilyUsage{
 		af: usage.Msg.AcquiredPrefixes,
 	}
 	return &metal.NetworkUsage{

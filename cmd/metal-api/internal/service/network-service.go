@@ -960,10 +960,10 @@ func (r *networkResource) deleteNetwork(request *restful.Request, response *rest
 
 func (r *networkResource) getNetworkUsage(ctx context.Context, nw *metal.Network) (*metal.NetworkUsage, error) {
 	usage := &metal.NetworkUsage{
-		AvailableIPs:      make(map[metal.AddressFamily]uint64),
-		UsedIPs:           make(map[metal.AddressFamily]uint64),
-		AvailablePrefixes: make(map[metal.AddressFamily]uint64),
-		UsedPrefixes:      make(map[metal.AddressFamily]uint64),
+		AvailableIPs:      metal.AddressFamilyUsage{},
+		UsedIPs:           metal.AddressFamilyUsage{},
+		AvailablePrefixes: metal.AddressFamilyUsage{},
+		UsedPrefixes:      metal.AddressFamilyUsage{},
 	}
 	if nw == nil {
 		return usage, nil

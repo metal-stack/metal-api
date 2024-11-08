@@ -228,6 +228,7 @@ type ChildPrefixLength map[AddressFamily]uint8
 // AddressFamily identifies IPv4/IPv6
 type AddressFamily string
 type AddressFamilies map[AddressFamily]bool
+type AddressFamilyUsage map[AddressFamily]uint64
 
 const (
 	// IPv4AddressFamily identifies IPv4
@@ -255,10 +256,10 @@ type NetworkMap map[string]Network
 
 // NetworkUsage contains usage information of a network
 type NetworkUsage struct {
-	AvailableIPs      map[AddressFamily]uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
-	UsedIPs           map[AddressFamily]uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes map[AddressFamily]uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
-	UsedPrefixes      map[AddressFamily]uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
+	AvailableIPs      AddressFamilyUsage `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs           AddressFamilyUsage `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailablePrefixes AddressFamilyUsage `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
+	UsedPrefixes      AddressFamilyUsage `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
 // ByID creates an indexed map of networks where the id is the index.
