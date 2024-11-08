@@ -224,6 +224,17 @@ func TestUpdatePartition(t *testing.T) {
 		PartitionBootConfiguration: &v1.PartitionBootConfiguration{
 			ImageURL: &downloadableFile,
 		},
+		NTPServers: []v1.NTPServer{
+			{
+				Address: "ntp.address1",
+			},
+			{
+				Address: "ntp.address2",
+			},
+			{
+				Address: "ntp.address3",
+			},
+		},
 	}
 	js, err := json.Marshal(updateRequest)
 	require.NoError(t, err)
@@ -246,6 +257,17 @@ func TestUpdatePartition(t *testing.T) {
 	require.Equal(t, testdata.Partition2.Description, *result.Description)
 	require.Equal(t, mgmtService, *result.MgmtServiceAddress)
 	require.Equal(t, downloadableFile, *result.PartitionBootConfiguration.ImageURL)
+	require.Equal(t, []v1.NTPServer{
+		{
+			Address: "ntp.address1",
+		},
+		{
+			Address: "ntp.address2",
+		},
+		{
+			Address: "ntp.address3",
+		},
+	}, result.NTPServers)
 }
 
 func TestPartitionCapacity(t *testing.T) {
