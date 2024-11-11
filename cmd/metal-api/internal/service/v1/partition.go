@@ -42,8 +42,9 @@ type PartitionResponse struct {
 }
 
 type PartitionCapacityRequest struct {
-	ID   *string `json:"id" description:"the id of the partition" optional:"true"`
-	Size *string `json:"sizeid" description:"the size to filter for" optional:"true"`
+	ID      *string `json:"id" description:"the id of the partition" optional:"true"`
+	Size    *string `json:"sizeid" description:"the size to filter for" optional:"true"`
+	Project *string `json:"projectid" description:"if provided the machine reservations of this project will be respected in the free counts"`
 }
 
 type ServerCapacities []*ServerCapacity

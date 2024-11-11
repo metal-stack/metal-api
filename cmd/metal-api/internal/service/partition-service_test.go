@@ -337,6 +337,7 @@ func TestPartitionCapacity(t *testing.T) {
 
 	tests := []struct {
 		name   string
+		pcr    *v1.PartitionCapacityRequest
 		mockFn func(mock *r.Mock)
 		want   []*v1.PartitionCapacity
 	}{
@@ -742,14 +743,63 @@ func TestPartitionCapacity(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "evaluate capacity for specific project",
+			pcr: &v1.PartitionCapacityRequest{
+				Project: pointer.Pointer("project-123"),
+			},
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
+				m2 := machineTpl("2", "partition-a", "size-a", "")
+				m3 := machineTpl("3", "partition-a", "size-a", "")
+				m2.Waiting = true
+				m3.Waiting = true
+
+				reservations := []metal.SizeReservation{
+					{
+						SizeID:       "size-a",
+						Amount:       3,
+						ProjectID:    "project-123",
+						PartitionIDs: []string{"partition-a"},
+					},
+				}
+
+				mockMachines(mock, metal.MachineLivelinessAlive, reservations, m1, m2, m3)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:                  "size-a",
+							Total:                 3,
+							Allocated:             1,
+							Waiting:               2,
+							Free:                  2,
+							Allocatable:           2,
+							Reservations:          3,
+							UsedReservations:      1,
+							PhonedHome:            1,
+							RemainingReservations: 2,
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
 				ds, mock = datastore.InitMockDB(t)
-				body     = &v1.PartitionCapacityRequest{}
+				body     = tt.pcr
 				ws       = NewPartition(slog.Default(), ds, nil)
 			)
+
+			if body == nil {
+				body = &v1.PartitionCapacityRequest{}
+			}
 
 			if tt.mockFn != nil {
 				tt.mockFn(mock)
