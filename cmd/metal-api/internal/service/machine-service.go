@@ -754,7 +754,7 @@ func (r *machineResource) setMachineState(request *restful.Request, response *re
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r machineResource) findIPMIMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) findIPMIMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	m, err := r.ds.FindMachineByID(id)
@@ -1782,7 +1782,7 @@ func uniqueTags(tags []string) []string {
 	return uniqueTags
 }
 
-func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) freeMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {

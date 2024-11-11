@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -183,7 +182,7 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err)
-	require.True(t, strings.Contains(result.Message, "is not accessible under"))
+	require.Contains(t, result.Message, "is not accessible under")
 
 	createRequest.URL = "http://images.metal-stack.io/this-file-does-not-exist"
 
