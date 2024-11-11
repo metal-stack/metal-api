@@ -232,6 +232,18 @@ func (r *switchResource) deleteSwitch(request *restful.Request, response *restfu
 		return
 	}
 
+	status, err := r.ds.GetSwitchStatus(id)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	err = r.ds.DeleteSwitchStatus(status)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
 	resp, err := r.makeSwitchResponse(s)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
