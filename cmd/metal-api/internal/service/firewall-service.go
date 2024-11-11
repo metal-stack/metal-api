@@ -231,7 +231,7 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r firewallResource) setVPNConfigInSpec(ctx context.Context, allocationSpec *machineAllocationSpec) error {
+func (r *firewallResource) setVPNConfigInSpec(ctx context.Context, allocationSpec *machineAllocationSpec) error {
 	if r.headscaleClient == nil {
 		return nil
 	}

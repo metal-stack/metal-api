@@ -19,9 +19,9 @@ type SizeReservation struct {
 
 type SizeReservations []SizeReservation
 
-func (rs SizeReservations) BySize() map[string]SizeReservations {
+func (rs *SizeReservations) BySize() map[string]SizeReservations {
 	res := map[string]SizeReservations{}
-	for _, rv := range rs {
+	for _, rv := range *rs {
 		res[rv.SizeID] = append(res[rv.SizeID], rv)
 	}
 	return res

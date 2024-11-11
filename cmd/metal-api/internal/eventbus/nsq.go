@@ -59,7 +59,7 @@ func (n *NSQClient) CreateEndpoints(lookupds ...string) error {
 }
 
 // WaitForTopicsCreated blocks until the topices are created within the given partitions.
-func (n NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []metal.NSQTopic) {
+func (n *NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []metal.NSQTopic) {
 	for {
 		if err := n.createTopics(partitions, topics); err != nil {
 			n.logger.Error("cannot create topics", "error", err)
@@ -71,7 +71,7 @@ func (n NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []me
 }
 
 // CreateTopic creates a topic with given name.
-func (n NSQClient) CreateTopic(name string) error {
+func (n *NSQClient) CreateTopic(name string) error {
 	if err := n.Publisher.CreateTopic(name); err != nil {
 		n.logger.Error("cannot create topic", "topic", name)
 		return err
@@ -80,7 +80,7 @@ func (n NSQClient) CreateTopic(name string) error {
 	return nil
 }
 
-func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQTopic) error {
+func (n *NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQTopic) error {
 	for _, topic := range topics {
 		if topic.PartitionAgnostic {
 			continue
@@ -106,6 +106,6 @@ func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQT
 	return nil
 }
 
-func (n NSQClient) delay() {
+func (n *NSQClient) delay() {
 	time.Sleep(nsqdRetryDelay)
 }

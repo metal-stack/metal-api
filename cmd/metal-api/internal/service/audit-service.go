@@ -28,7 +28,7 @@ func NewAudit(log *slog.Logger, a auditing.Auditing) *restful.WebService {
 	return ir.webService()
 }
 
-func (r auditResource) webService() *restful.WebService {
+func (r *auditResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/audit").

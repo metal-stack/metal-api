@@ -35,7 +35,7 @@ func NewImage(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService 
 	return ir.webService()
 }
 
-func (ir imageResource) webService() *restful.WebService {
+func (ir *imageResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/image").
