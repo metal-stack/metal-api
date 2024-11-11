@@ -233,13 +233,13 @@ func (r *switchResource) deleteSwitch(request *restful.Request, response *restfu
 	}
 
 	status, err := r.ds.GetSwitchStatus(id)
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
-	err = r.ds.DeleteSwitchStatus(status)
-	if err != nil {
+	if err == nil {
+		err = r.ds.DeleteSwitchStatus(status)
+		if err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+	} else if !metal.IsNotFound(err) {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
