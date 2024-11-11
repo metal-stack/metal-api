@@ -4247,11 +4247,18 @@
           "description": "the id of the partition",
           "type": "string"
         },
+        "projectid": {
+          "description": "if provided the machine reservations of this project will be respected in the free counts",
+          "type": "string"
+        },
         "sizeid": {
           "description": "the size to filter for",
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "projectid"
+      ]
     },
     "v1.PartitionCreateRequest": {
       "properties": {

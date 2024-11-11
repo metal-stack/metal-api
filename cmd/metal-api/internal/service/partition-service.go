@@ -536,6 +536,11 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 				cap.Reservations += reservation.Amount
 				cap.UsedReservations += usedReservations
+
+				if pcr.Project != nil && *pcr.Project == reservation.ProjectID {
+					continue
+				}
+
 				cap.Free -= reservation.Amount - usedReservations
 				cap.Free = max(cap.Free, 0)
 			}
