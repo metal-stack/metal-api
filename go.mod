@@ -19,22 +19,22 @@ require (
 	github.com/klauspost/connect-compress/v2 v2.0.0
 	github.com/looplab/fsm v1.0.2
 	github.com/metal-stack/go-ipam v1.14.7
-	github.com/metal-stack/masterdata-api v0.11.4
+	github.com/metal-stack/masterdata-api v0.11.5
 	github.com/metal-stack/metal-lib v0.19.0
 	github.com/metal-stack/security v0.9.0
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
-	github.com/prometheus/client_golang v1.20.4
+	github.com/prometheus/client_golang v1.20.5
 	github.com/samber/lo v1.47.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.20.0-alpha.6
 	github.com/stretchr/testify v1.9.0
-	github.com/testcontainers/testcontainers-go v0.33.0
+	github.com/testcontainers/testcontainers-go v0.34.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
-	golang.org/x/crypto v0.28.0
-	golang.org/x/sync v0.8.0
-	google.golang.org/grpc v1.67.0
-	google.golang.org/protobuf v1.34.2
+	golang.org/x/crypto v0.29.0
+	golang.org/x/sync v0.9.0
+	google.golang.org/grpc v1.68.0
+	google.golang.org/protobuf v1.35.1
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
 
@@ -182,8 +182,8 @@ require (
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240924160255-9d4c2d233b61 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240924160255-9d4c2d233b61 // indirect
 	gopkg.in/cenkalti/backoff.v2 v2.2.1 // indirect
