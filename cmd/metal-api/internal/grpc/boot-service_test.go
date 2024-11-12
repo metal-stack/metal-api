@@ -119,7 +119,8 @@ func TestBootService_Register(t *testing.T) {
 			testdata.InitMockDBData(mock)
 
 			req := &v1.BootServiceRegisterRequest{
-				Uuid: tt.uuid,
+				Uuid:        tt.uuid,
+				PartitionId: "1",
 				Hardware: &v1.MachineHardware{
 					Memory: tt.memory,
 					Disks: []*v1.MachineBlockDevice{

@@ -47,7 +47,8 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 
 	// Register a machine
 	mrr := &grpcv1.BootServiceRegisterRequest{
-		Uuid: "test-uuid",
+		Uuid:        "test-uuid",
+		PartitionId: "test-partition",
 		Bios: &grpcv1.MachineBIOS{
 			Version: "a",
 			Vendor:  "metal",
