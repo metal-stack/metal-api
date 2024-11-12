@@ -107,6 +107,12 @@ func (_ *machineTestable) defaultBody(m *metal.Machine) *metal.Machine {
 		if m.Allocation.SSHPubKeys == nil {
 			m.Allocation.SSHPubKeys = []string{}
 		}
+		if m.Allocation.DNSServers == nil {
+			m.Allocation.DNSServers = metal.DNSServers{}
+		}
+		if m.Allocation.NTPServers == nil {
+			m.Allocation.NTPServers = metal.NTPServers{}
+		}
 		for i := range m.Allocation.MachineNetworks {
 			n := m.Allocation.MachineNetworks[i]
 			if n.Prefixes == nil {

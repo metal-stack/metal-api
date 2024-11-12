@@ -205,6 +205,33 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
+	var dnsServers metal.DNSServers
+	if len(requestPayload.DNSServers) != 0 {
+		for _, s := range requestPayload.DNSServers {
+			dnsServers = append(dnsServers, metal.DNSServer{
+				IP: s.IP,
+			})
+		}
+	}
+	var ntpServers metal.NTPServers
+	if len(requestPayload.NTPServers) != 0 {
+		for _, s := range requestPayload.NTPServers {
+			ntpServers = append(ntpServers, metal.NTPServer{
+				Address: s.Address,
+			})
+		}
+	}
+
+	if err := dnsServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	if err := ntpServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	p := &metal.Partition{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -219,6 +246,8 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
+		DNSServers: dnsServers,
+		NTPServers: ntpServers,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
@@ -302,6 +331,34 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
+	}
+
+	if requestPayload.DNSServers != nil {
+		newPartition.DNSServers = metal.DNSServers{}
+		for _, s := range requestPayload.DNSServers {
+			newPartition.DNSServers = append(newPartition.DNSServers, metal.DNSServer{
+				IP: s.IP,
+			})
+		}
+	}
+
+	if requestPayload.NTPServers != nil {
+		newPartition.NTPServers = metal.NTPServers{}
+		for _, s := range requestPayload.NTPServers {
+			newPartition.NTPServers = append(newPartition.NTPServers, metal.NTPServer{
+				Address: s.Address,
+			})
+		}
+	}
+
+	if err := newPartition.DNSServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	if err := newPartition.NTPServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
 	}
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
@@ -488,6 +545,11 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 				cap.Reservations += reservation.Amount
 				cap.UsedReservations += usedReservations
+
+				if pcr.Project != nil && *pcr.Project == reservation.ProjectID {
+					continue
+				}
+
 				cap.Free -= reservation.Amount - usedReservations
 				cap.Free = max(cap.Free, 0)
 			}

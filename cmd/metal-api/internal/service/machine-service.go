@@ -78,6 +78,8 @@ type machineAllocationSpec struct {
 	PlacementTags      []string
 	EgressRules        []metal.EgressRule
 	IngressRules       []metal.IngressRule
+	DNSServers         metal.DNSServers
+	NTPServers         metal.NTPServers
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -752,7 +754,7 @@ func (r *machineResource) setMachineState(request *restful.Request, response *re
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r machineResource) findIPMIMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) findIPMIMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	m, err := r.ds.FindMachineByID(id)
@@ -1143,6 +1145,40 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		return nil, fmt.Errorf("size:%s not found err:%w", sizeID, err)
 	}
 
+	partition, err := ds.FindPartition(partitionID)
+	if err != nil {
+		return nil, fmt.Errorf("partition:%s not found err:%w", partitionID, err)
+	}
+
+	var (
+		dnsServers = partition.DNSServers
+		ntpServers = partition.NTPServers
+	)
+	if len(machineRequest.DNSServers) != 0 {
+		dnsServers = metal.DNSServers{}
+		for _, s := range machineRequest.DNSServers {
+			dnsServers = append(dnsServers, metal.DNSServer{
+				IP: s.IP,
+			})
+		}
+	}
+	if len(machineRequest.NTPServers) != 0 {
+		ntpServers = []metal.NTPServer{}
+		for _, s := range machineRequest.NTPServers {
+			ntpServers = append(ntpServers, metal.NTPServer{
+				Address: s.Address,
+			})
+		}
+	}
+
+	if err := dnsServers.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := ntpServers.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &machineAllocationSpec{
 		Creator:            user.EMail,
 		UUID:               uuid,
@@ -1164,6 +1200,8 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		PlacementTags:      machineRequest.PlacementTags,
 		EgressRules:        egress,
 		IngressRules:       ingress,
+		DNSServers:         dnsServers,
+		NTPServers:         ntpServers,
 	}, nil
 }
 
@@ -1247,6 +1285,8 @@ func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.Ret
 		VPN:             allocationSpec.VPN,
 		FirewallRules:   firewallRules,
 		UUID:            uuid.New().String(),
+		DNSServers:      allocationSpec.DNSServers,
+		NTPServers:      allocationSpec.NTPServers,
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {
@@ -1742,7 +1782,7 @@ func uniqueTags(tags []string) []string {
 	return uniqueTags
 }
 
-func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) freeMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
