@@ -45,6 +45,7 @@ message BootServiceRegisterRequest {
   MachineIPMI ipmi = 4;
   repeated string tags = 5;
   string metal_hammer_version = 6;
+  string partition_id = 7;
 }
 
 message BootServiceRegisterResponse {

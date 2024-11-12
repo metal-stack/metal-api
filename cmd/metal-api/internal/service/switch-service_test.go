@@ -339,7 +339,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		ds, mock := datastore.InitMockDB(t)
-		mock.On(r.DB("mockdb").Table("switch")).Return(testSwitches, nil)
+		mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return(testSwitches, nil)
 		mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 
 		t.Run(tt.name, func(t *testing.T) {
