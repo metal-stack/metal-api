@@ -645,8 +645,19 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Role:       metal.RoleMachine,
 			},
 			isError:  true,
-			expected: `invalid public SSH key: 42`,
+			expected: `invalid public SSH key: 42 error:ssh: no key found`,
 			name:     "invalid ssh",
+		},
+		{
+			spec: machineAllocationSpec{
+				UUID:       "43",
+				Creator:    testEmail,
+				ProjectID:  "123",
+				SSHPubKeys: []string{"ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBH9uyBvRBTUJFFAOKB/ZH/5Mm/MrqEDhkB4wTPWbJaJ5zHirBrLS1qk2Ut0yEL4vZvfnafnrzsed3n75/1BSmSg= test@metal-stack.io"},
+				Role:       metal.RoleMachine,
+			},
+			isError: false,
+			name:    "valid ssh",
 		},
 		{
 			spec: machineAllocationSpec{
