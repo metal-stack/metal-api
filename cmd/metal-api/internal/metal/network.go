@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/netip"
 	"strconv"
+	"strings"
 
 	"github.com/samber/lo"
 )
@@ -239,10 +240,10 @@ const (
 
 // ToAddressFamily will convert a string af to a AddressFamily
 func ToAddressFamily(af string) AddressFamily {
-	switch af {
-	case "IPv4", "ipv4":
+	switch strings.ToLower(af) {
+	case "ipv4":
 		return IPv4AddressFamily
-	case "IPv6", "ipv6":
+	case "ipv6":
 		return IPv6AddressFamily
 	}
 	return IPv4AddressFamily
