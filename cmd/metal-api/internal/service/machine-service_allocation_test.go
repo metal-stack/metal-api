@@ -271,6 +271,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 			Vendor:  "metal",
 			Date:    "1970",
 		},
+		PartitionId: "p1",
 		Hardware: &grpcv1.MachineHardware{
 			Memory: 4,
 			Cpus: []*grpcv1.MachineCPU{
