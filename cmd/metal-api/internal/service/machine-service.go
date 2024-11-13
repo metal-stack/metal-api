@@ -1380,7 +1380,7 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	for _, pubKey := range allocationSpec.SSHPubKeys {
 		_, err := ssh.ParsePublicKey([]byte(pubKey))
 		if err != nil {
-			return fmt.Errorf("invalid public SSH key: %s", pubKey)
+			return fmt.Errorf("invalid public SSH key: %s error:%w", pubKey, err)
 		}
 	}
 
