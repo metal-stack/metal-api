@@ -244,6 +244,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		m.BIOS.Date = req.Bios.Date
 		m.IPMI = ipmi
 		m.State.MetalHammerVersion = req.MetalHammerVersion
+		m.PartitionID = req.PartitionId
 
 		err = b.ds.UpdateMachine(&old, m)
 		if err != nil {
