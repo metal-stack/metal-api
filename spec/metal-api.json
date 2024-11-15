@@ -348,6 +348,43 @@
         "type": "HTTPErrorResponse"
       }
     },
+    "metal.SwitchBGPPortState": {
+      "properties": {
+        "AcceptedPrefixCounter": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "BgpState": {
+          "type": "string"
+        },
+        "BgpTimerUpEstablished": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "Neighbor": {
+          "type": "string"
+        },
+        "PeerGroup": {
+          "type": "string"
+        },
+        "SentPrefixCounter": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "VrfName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "AcceptedPrefixCounter",
+        "BgpState",
+        "BgpTimerUpEstablished",
+        "Neighbor",
+        "PeerGroup",
+        "SentPrefixCounter",
+        "VrfName"
+      ]
+    },
     "rest.HealthResponse": {
       "properties": {
         "message": {
@@ -5135,6 +5172,43 @@
         "id"
       ]
     },
+    "v1.SwitchBGPPortState": {
+      "properties": {
+        "AcceptedPrefixCounter": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "BgpState": {
+          "type": "string"
+        },
+        "BgpTimerUpEstablished": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "Neighbor": {
+          "type": "string"
+        },
+        "PeerGroup": {
+          "type": "string"
+        },
+        "SentPrefixCounter": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "VrfName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "AcceptedPrefixCounter",
+        "BgpState",
+        "BgpTimerUpEstablished",
+        "Neighbor",
+        "PeerGroup",
+        "SentPrefixCounter",
+        "VrfName"
+      ]
+    },
     "v1.SwitchBase": {
       "description": "A switch that can register at the api.",
       "properties": {
@@ -5231,6 +5305,10 @@
           ],
           "type": "string"
         },
+        "bgp_port_state": {
+          "$ref": "#/definitions/metal.SwitchBGPPortState",
+          "description": "the current bgp port state"
+        },
         "filter": {
           "$ref": "#/definitions/v1.BGPFilter",
           "description": "configures the bgp filter applied at the switch port"
@@ -5261,6 +5339,13 @@
     },
     "v1.SwitchNotifyRequest": {
       "properties": {
+        "bgp_port_states": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.SwitchBGPPortState"
+          },
+          "description": "the current bgp port states",
+          "type": "object"
+        },
         "error": {
           "type": "string"
         },

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/netip"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -322,6 +323,35 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 				// We log this and ignore it, but something is REALLY wrong in this case
 				r.log.Error("unknown switch port", "id", id, "nic", nic.Name)
 			}
+		}
+	}
+
+	if requestPayload.BGPPortStates != nil {
+		r.log.Debug("bgp port states", "id", id, "states", requestPayload.BGPPortStates)
+		for i, nic := range newSwitch.Nics {
+			bpsnew, ok := requestPayload.BGPPortStates[nic.Name]
+			if !ok && nic.BGPPortState == nil {
+				continue
+			}
+			if nic.BGPPortState == nil {
+				newSwitch.Nics[i].BGPPortState = nil
+				switchUpdated = true
+			}
+			if reflect.DeepEqual(nic.BGPPortState, &bpsnew) {
+				continue
+			}
+
+			r.log.Debug("bgp port state", "id", id, "nic", nic.Name, "state", bpsnew)
+			newSwitch.Nics[i].BGPPortState = &metal.SwitchBGPPortState{
+				Neighbor:              bpsnew.Neighbor,
+				PeerGroup:             bpsnew.PeerGroup,
+				VrfName:               bpsnew.VrfName,
+				BgpState:              bpsnew.BgpState,
+				BgpTimerUpEstablished: bpsnew.BgpTimerUpEstablished,
+				SentPrefixCounter:     bpsnew.SentPrefixCounter,
+				AcceptedPrefixCounter: bpsnew.AcceptedPrefixCounter,
+			}
+			switchUpdated = true
 		}
 	}
 
@@ -1151,12 +1181,13 @@ func (r *switchResource) makeSwitchNics(s *metal.Switch, nws metal.NetworkMap, i
 			filter = &f
 		}
 		nic := v1.SwitchNic{
-			MacAddress: string(n.MacAddress),
-			Name:       n.Name,
-			Identifier: n.Identifier,
-			Vrf:        n.Vrf,
-			BGPFilter:  filter,
-			Actual:     v1.SwitchPortStatusUnknown,
+			MacAddress:   string(n.MacAddress),
+			Name:         n.Name,
+			Identifier:   n.Identifier,
+			Vrf:          n.Vrf,
+			BGPFilter:    filter,
+			Actual:       v1.SwitchPortStatusUnknown,
+			BGPPortState: n.BGPPortState,
 		}
 		if n.State != nil {
 			if n.State.Desired != nil {
@@ -1191,15 +1222,21 @@ func (r *switchResource) makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 			// connection map.
 			n := nicMap[mc.Nic.Name]
 			state := metal.SwitchPortStatusUnknown
+			var bps *metal.SwitchBGPPortState
 			if n != nil && n.State != nil {
 				state = n.State.Actual
 			}
+			if n != nil && n.BGPPortState != nil {
+				bps = n.BGPPortState
+			}
+
 			nic := v1.SwitchNic{
-				MacAddress: string(mc.Nic.MacAddress),
-				Name:       mc.Nic.Name,
-				Identifier: mc.Nic.Identifier,
-				Vrf:        mc.Nic.Vrf,
-				Actual:     v1.SwitchPortStatus(state),
+				MacAddress:   string(mc.Nic.MacAddress),
+				Name:         mc.Nic.Name,
+				Identifier:   mc.Nic.Identifier,
+				Vrf:          mc.Nic.Vrf,
+				Actual:       v1.SwitchPortStatus(state),
+				BGPPortState: bps,
 			}
 			con := v1.SwitchConnection{
 				Nic:       nic,
