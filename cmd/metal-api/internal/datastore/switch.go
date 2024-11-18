@@ -227,3 +227,8 @@ func (rs *RethinkStore) GetSwitchStatus(id string) (*metal.SwitchStatus, error) 
 func (rs *RethinkStore) SetSwitchStatus(state *metal.SwitchStatus) error {
 	return rs.upsertEntity(rs.switchStatusTable(), state)
 }
+
+// DeleteSwitchStatus delete SwitchStatus
+func (rs *RethinkStore) DeleteSwitchStatus(status *metal.SwitchStatus) error {
+	return rs.deleteEntity(rs.switchStatusTable(), status)
+}
