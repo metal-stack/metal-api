@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/netip"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -327,21 +326,29 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 	}
 
 	if requestPayload.BGPPortStates != nil {
-		r.log.Debug("bgp port states", "id", id, "states", requestPayload.BGPPortStates)
+		r.log.Debug("bgp port states received", "id", id, "states", requestPayload.BGPPortStates)
 		for i, nic := range newSwitch.Nics {
-			bpsnew, ok := requestPayload.BGPPortStates[nic.Name]
-			if !ok && nic.BGPPortState == nil {
+			bpsnew, has := requestPayload.BGPPortStates[nic.Name]
+			if !has && nic.BGPPortState == nil {
 				continue
 			}
-			if nic.BGPPortState == nil {
+			if !has {
 				newSwitch.Nics[i].BGPPortState = nil
 				switchUpdated = true
+				continue
 			}
-			if reflect.DeepEqual(nic.BGPPortState, &bpsnew) {
+			if nic.BGPPortState != nil &&
+				nic.BGPPortState.Neighbor == bpsnew.Neighbor &&
+				nic.BGPPortState.PeerGroup == bpsnew.PeerGroup &&
+				nic.BGPPortState.VrfName == bpsnew.VrfName &&
+				nic.BGPPortState.BgpState == bpsnew.BgpState &&
+				nic.BGPPortState.BgpTimerUpEstablished == bpsnew.BgpTimerUpEstablished &&
+				nic.BGPPortState.SentPrefixCounter == bpsnew.SentPrefixCounter &&
+				nic.BGPPortState.AcceptedPrefixCounter == bpsnew.AcceptedPrefixCounter {
 				continue
 			}
 
-			r.log.Debug("bgp port state", "id", id, "nic", nic.Name, "state", bpsnew)
+			r.log.Debug("bgp port state updated", "id", id, "nic", nic.Name, "state", bpsnew)
 			newSwitch.Nics[i].BGPPortState = &metal.SwitchBGPPortState{
 				Neighbor:              bpsnew.Neighbor,
 				PeerGroup:             bpsnew.PeerGroup,
