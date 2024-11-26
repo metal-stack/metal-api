@@ -325,6 +325,43 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		}
 	}
 
+	if requestPayload.BGPPortStates != nil {
+		r.log.Debug("bgp port states received", "id", id, "states", requestPayload.BGPPortStates)
+		for i, nic := range newSwitch.Nics {
+			bpsnew, has := requestPayload.BGPPortStates[nic.Name]
+			if !has && nic.BGPPortState == nil {
+				continue
+			}
+			if !has {
+				newSwitch.Nics[i].BGPPortState = nil
+				switchUpdated = true
+				continue
+			}
+			if nic.BGPPortState != nil &&
+				nic.BGPPortState.Neighbor == bpsnew.Neighbor &&
+				nic.BGPPortState.PeerGroup == bpsnew.PeerGroup &&
+				nic.BGPPortState.VrfName == bpsnew.VrfName &&
+				nic.BGPPortState.BgpState == bpsnew.BgpState &&
+				nic.BGPPortState.BgpTimerUpEstablished == bpsnew.BgpTimerUpEstablished &&
+				nic.BGPPortState.SentPrefixCounter == bpsnew.SentPrefixCounter &&
+				nic.BGPPortState.AcceptedPrefixCounter == bpsnew.AcceptedPrefixCounter {
+				continue
+			}
+
+			r.log.Debug("bgp port state updated", "id", id, "nic", nic.Name, "state", bpsnew)
+			newSwitch.Nics[i].BGPPortState = &metal.SwitchBGPPortState{
+				Neighbor:              bpsnew.Neighbor,
+				PeerGroup:             bpsnew.PeerGroup,
+				VrfName:               bpsnew.VrfName,
+				BgpState:              bpsnew.BgpState,
+				BgpTimerUpEstablished: bpsnew.BgpTimerUpEstablished,
+				SentPrefixCounter:     bpsnew.SentPrefixCounter,
+				AcceptedPrefixCounter: bpsnew.AcceptedPrefixCounter,
+			}
+			switchUpdated = true
+		}
+	}
+
 	if switchUpdated {
 		if err := r.ds.UpdateSwitch(oldSwitch, &newSwitch); err != nil {
 			r.sendError(request, response, defaultError(err))
@@ -1151,12 +1188,13 @@ func (r *switchResource) makeSwitchNics(s *metal.Switch, nws metal.NetworkMap, i
 			filter = &f
 		}
 		nic := v1.SwitchNic{
-			MacAddress: string(n.MacAddress),
-			Name:       n.Name,
-			Identifier: n.Identifier,
-			Vrf:        n.Vrf,
-			BGPFilter:  filter,
-			Actual:     v1.SwitchPortStatusUnknown,
+			MacAddress:   string(n.MacAddress),
+			Name:         n.Name,
+			Identifier:   n.Identifier,
+			Vrf:          n.Vrf,
+			BGPFilter:    filter,
+			Actual:       v1.SwitchPortStatusUnknown,
+			BGPPortState: n.BGPPortState,
 		}
 		if n.State != nil {
 			if n.State.Desired != nil {
@@ -1191,15 +1229,21 @@ func (r *switchResource) makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 			// connection map.
 			n := nicMap[mc.Nic.Name]
 			state := metal.SwitchPortStatusUnknown
+			var bps *metal.SwitchBGPPortState
 			if n != nil && n.State != nil {
 				state = n.State.Actual
 			}
+			if n != nil && n.BGPPortState != nil {
+				bps = n.BGPPortState
+			}
+
 			nic := v1.SwitchNic{
-				MacAddress: string(mc.Nic.MacAddress),
-				Name:       mc.Nic.Name,
-				Identifier: mc.Nic.Identifier,
-				Vrf:        mc.Nic.Vrf,
-				Actual:     v1.SwitchPortStatus(state),
+				MacAddress:   string(mc.Nic.MacAddress),
+				Name:         mc.Nic.Name,
+				Identifier:   mc.Nic.Identifier,
+				Vrf:          mc.Nic.Vrf,
+				Actual:       v1.SwitchPortStatus(state),
+				BGPPortState: bps,
 			}
 			con := v1.SwitchConnection{
 				Nic:       nic,

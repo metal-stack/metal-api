@@ -41,13 +41,14 @@ type MacAddress string
 
 // Nic information.
 type Nic struct {
-	MacAddress MacAddress `rethinkdb:"macAddress" json:"macAddress"`
-	Name       string     `rethinkdb:"name" json:"name"`
-	Identifier string     `rethinkdb:"identifier" json:"identifier"`
-	Vrf        string     `rethinkdb:"vrf" json:"vrf"`
-	Neighbors  Nics       `rethinkdb:"neighbors" json:"neighbors"`
-	Hostname   string     `rethinkdb:"hostname" json:"hostname"`
-	State      *NicState  `rethinkdb:"state" json:"state"`
+	MacAddress   MacAddress          `rethinkdb:"macAddress" json:"macAddress"`
+	Name         string              `rethinkdb:"name" json:"name"`
+	Identifier   string              `rethinkdb:"identifier" json:"identifier"`
+	Vrf          string              `rethinkdb:"vrf" json:"vrf"`
+	Neighbors    Nics                `rethinkdb:"neighbors" json:"neighbors"`
+	Hostname     string              `rethinkdb:"hostname" json:"hostname"`
+	State        *NicState           `rethinkdb:"state" json:"state"`
+	BGPPortState *SwitchBGPPortState `rethinkdb:"bgpPortState" json:"bgpPortState"`
 }
 
 // NicState represents the desired and actual state of a network interface
@@ -57,6 +58,16 @@ type Nic struct {
 type NicState struct {
 	Desired *SwitchPortStatus `rethinkdb:"desired" json:"desired"`
 	Actual  SwitchPortStatus  `rethinkdb:"actual" json:"actual"`
+}
+
+type SwitchBGPPortState struct {
+	Neighbor              string
+	PeerGroup             string
+	VrfName               string
+	BgpState              string
+	BgpTimerUpEstablished int64
+	SentPrefixCounter     int64
+	AcceptedPrefixCounter int64
 }
 
 // SetState updates the NicState with the given SwitchPortStatus. It returns
