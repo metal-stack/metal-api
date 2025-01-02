@@ -4084,6 +4084,13 @@
           },
           "type": "array"
         },
+        "defaultchildprefixlength": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"

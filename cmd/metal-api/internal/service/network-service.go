@@ -798,6 +798,11 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		return
 	}
 
+	if len(requestPayload.DefaultChildPrefixLength) > 0 && !oldNetwork.PrivateSuper {
+		r.sendError(request, response, defaultError(errors.New("defaultchildprefixlength can only be set on privatesuper")))
+		return
+	}
+
 	var (
 		prefixesToBeRemoved metal.Prefixes
 		prefixesToBeAdded   metal.Prefixes
@@ -844,6 +849,17 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		return
 	}
 	newNetwork.AddressFamilies = addressFamilies
+
+	if len(requestPayload.DefaultChildPrefixLength) > 0 {
+		for af, defaultChildPrefixLength := range requestPayload.DefaultChildPrefixLength {
+			afExists := newNetwork.AddressFamilies[af]
+			if !afExists {
+				r.sendError(request, response, defaultError(fmt.Errorf("no addressfamily %q present for defaultchildprefixlength: %d", af, defaultChildPrefixLength)))
+				return
+			}
+		}
+		newNetwork.DefaultChildPrefixLength = requestPayload.DefaultChildPrefixLength
+	}
 
 	ctx := request.Request.Context()
 

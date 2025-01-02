@@ -201,7 +201,7 @@ func (s *Switch) TranslateNicMap(targetOS SwitchOSVendor) (NicMap, error) {
 
 		nic, ok := nicMap[p]
 		if !ok {
-			return nil, fmt.Errorf("an unknown error occured during port name translation")
+			return nil, fmt.Errorf("an unknown error occurred during port name translation")
 		}
 		translatedNicMap[targetPort] = nic
 	}

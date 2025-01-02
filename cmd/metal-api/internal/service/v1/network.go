@@ -68,6 +68,7 @@ type NetworkUpdateRequest struct {
 	Labels                     map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
 	Shared                     *bool             `json:"shared" description:"marks a network as shareable." optional:"true"`
 	AdditionalAnnouncableCIDRs []string          `json:"additionalAnnouncableCIDRs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks" optional:"true"`
+	DefaultChildPrefixLength   metal.ChildPrefixLength `json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil" optional:"true"`
 }
 
 // NetworkResponse holds all properties returned in a FindNetwork or GetNetwork request.
