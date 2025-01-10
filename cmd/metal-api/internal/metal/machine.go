@@ -215,18 +215,18 @@ func (r EgressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid protocol: %s", r.Protocol)
+		return fmt.Errorf("egress rule has invalid protocol: %s", r.Protocol)
 	}
 
 	if err := validateComment(r.Comment); err != nil {
-		return err
+		return fmt.Errorf("egress rule with error:%w", err)
 	}
 	if err := validatePorts(r.Ports); err != nil {
-		return err
+		return fmt.Errorf("egress rule with error:%w", err)
 	}
 
 	if err := validateCIDRs(r.To); err != nil {
-		return err
+		return fmt.Errorf("egress rule with error:%w", err)
 	}
 
 	return nil
@@ -237,23 +237,23 @@ func (r IngressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid protocol: %s", r.Protocol)
+		return fmt.Errorf("ingress rule has invalid protocol: %s", r.Protocol)
 	}
 	if err := validateComment(r.Comment); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 
 	if err := validatePorts(r.Ports); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 	if err := validateCIDRs(r.To); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 	if err := validateCIDRs(r.From); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 	if err := validateCIDRs(slices.Concat(r.From, r.To)); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 
 	return nil
