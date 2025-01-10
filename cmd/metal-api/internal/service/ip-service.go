@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	"github.com/samber/lo"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -454,6 +455,8 @@ func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IP
 	var addressfamily = metal.IPv4AddressFamily
 	if af != nil {
 		addressfamily = *af
+	} else if len(parent.AddressFamilies) == 1 {
+		addressfamily = lo.Keys(parent.AddressFamilies)[0]
 	}
 
 	for _, prefix := range parent.Prefixes {

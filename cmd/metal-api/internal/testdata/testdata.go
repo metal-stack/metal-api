@@ -865,6 +865,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("network").Get(Partition2InternetNetwork.ID)).Return(Partition2InternetNetwork, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Partition2PrivateSuperNetwork.ID)).Return(Partition2PrivateSuperNetwork, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Partition2UnderlayNetwork.ID)).Return(Partition2UnderlayNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition2PrivateSuperNetworkV6.ID)).Return(Partition2PrivateSuperNetworkV6, nil)
 
 	mock.On(r.DB("mockdb").Table("network").Get("404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("network").Get("999")).Return(nil, nil)

@@ -315,6 +315,20 @@ func TestAllocateIP(t *testing.T) {
 			wantedStatus: http.StatusBadRequest,
 			wantErr:      errors.New("there is no prefix for the given addressfamily:IPv6 present in network:4"),
 		},
+		{
+			name: "allocate a IPv4 (no addressfamily specified) address from a IPv6 Only network",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.Partition2PrivateSuperNetworkV6.ID,
+					Type:      metal.Ephemeral,
+				},
+			},
+			wantedIP:     "2001::1",
+			wantedType:   metal.Ephemeral,
+			wantedStatus: http.StatusCreated,
+		},
 	}
 	for i := range tests {
 		tt := tests[i]
