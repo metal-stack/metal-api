@@ -210,7 +210,7 @@ type Network struct {
 	Base
 	Prefixes                   Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
 	DestinationPrefixes        Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-	DefaultChildPrefixLength   ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
+	DefaultChildPrefixLength   ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
 	PartitionID                string            `rethinkdb:"partitionid" json:"partitionid"`
 	ProjectID                  string            `rethinkdb:"projectid" json:"projectid"`
 	ParentNetworkID            string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
