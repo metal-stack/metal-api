@@ -252,6 +252,9 @@ func (r IngressRule) Validate() error {
 	if err := validateCIDRs(r.From); err != nil {
 		return err
 	}
+	if err := validateCIDRs(slices.Concat(r.From, r.To)); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -329,6 +329,16 @@ func TestIngressRule_Validate(t *testing.T) {
 			wantErr:    true,
 			wantErrmsg: "mixed address family in one rule is not supported:[100.2.3.0/24 2001:db8::/32]",
 		},
+		{
+			name:       "invalid ingress rule, mixed address families in to and from",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			From:       []string{"2.3.4.5/32"},
+			To:         []string{"2001:db8::/32"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "mixed address family in one rule is not supported:[2.3.4.5/32 2001:db8::/32]",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
