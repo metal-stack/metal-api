@@ -1450,9 +1450,7 @@ func makeNetworks(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.I
 			continue
 		}
 		if len(n.network.AddressFamilies) == 0 {
-			n.network.AddressFamilies = metal.AddressFamilies{
-				metal.IPv4AddressFamily: true,
-			}
+			n.network.AddressFamilies = metal.AddressFamilies{metal.IPv4AddressFamily}
 		}
 		machineNetwork, err := makeMachineNetwork(ctx, ds, ipamer, allocationSpec, n)
 		if err != nil {
@@ -1673,7 +1671,7 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
 
-		for af := range n.network.AddressFamilies {
+		for _, af := range n.network.AddressFamilies {
 			addressFamily := metal.ToAddressFamily(string(af))
 			ipAddress, ipParentCidr, err := allocateRandomIP(ctx, n.network, ipamer, &addressFamily)
 			if err != nil {

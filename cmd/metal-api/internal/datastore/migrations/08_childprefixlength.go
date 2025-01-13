@@ -62,9 +62,9 @@ func init() {
 				}
 
 				if new.AddressFamilies == nil {
-					new.AddressFamilies = make(map[metal.AddressFamily]bool)
+					new.AddressFamilies = metal.AddressFamilies{}
 				}
-				new.AddressFamilies[af] = true
+				new.AddressFamilies = metal.AddressFamilies{af}
 
 				if new.PrivateSuper {
 					if new.DefaultChildPrefixLength == nil {

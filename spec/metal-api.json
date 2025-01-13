@@ -3732,11 +3732,11 @@
           "type": "array"
         },
         "addressfamilies": {
-          "additionalProperties": {
-            "type": "boolean"
-          },
           "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
-          "type": "object"
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "defaultchildprefixlength": {
           "additionalProperties": {
@@ -3887,11 +3887,11 @@
           "type": "array"
         },
         "addressfamilies": {
-          "additionalProperties": {
-            "type": "boolean"
-          },
           "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
-          "type": "object"
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "defaultchildprefixlength": {
           "additionalProperties": {
@@ -3959,11 +3959,11 @@
           "type": "array"
         },
         "addressfamilies": {
-          "additionalProperties": {
-            "type": "boolean"
-          },
           "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
-          "type": "object"
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "changed": {
           "description": "the last changed timestamp of this entity",

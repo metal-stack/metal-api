@@ -7,11 +7,11 @@ import (
 	"log/slog"
 	"net/http"
 	"net/netip"
+	"slices"
 
 	"connectrpc.com/connect"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"github.com/samber/lo"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -285,8 +285,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	}
 
 	if requestPayload.AddressFamily != nil {
-		ok := nw.AddressFamilies[metal.ToAddressFamily(string(*requestPayload.AddressFamily))]
-		if !ok {
+		if !slices.Contains(nw.AddressFamilies, metal.ToAddressFamily(string(*requestPayload.AddressFamily))) {
 			r.sendError(request, response, httperrors.BadRequest(
 				fmt.Errorf("there is no prefix for the given addressfamily:%s present in network:%s", string(*requestPayload.AddressFamily), requestPayload.NetworkID)),
 			)
@@ -456,7 +455,7 @@ func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IP
 	if af != nil {
 		addressfamily = *af
 	} else if len(parent.AddressFamilies) == 1 {
-		addressfamily = lo.Keys(parent.AddressFamilies)[0]
+		addressfamily = parent.AddressFamilies[0]
 	}
 
 	for _, prefix := range parent.Prefixes {

@@ -576,19 +576,19 @@ func Test_validatePrefixes(t *testing.T) {
 			name:         "simple all ipv4",
 			prefixes:     []string{"10.0.0.0/8", "11.0.0.0/24"},
 			wantPrefixes: metal.Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "11.0.0.0", Length: "24"}},
-			wantAF:       metal.AddressFamilies{metal.IPv4AddressFamily: true},
+			wantAF:       metal.AddressFamilies{metal.IPv4AddressFamily},
 		},
 		{
 			name:         "simple all ipv6",
 			prefixes:     []string{"2001::/64", "fbaa::/48"},
 			wantPrefixes: metal.Prefixes{{IP: "2001::", Length: "64"}, {IP: "fbaa::", Length: "48"}},
-			wantAF:       metal.AddressFamilies{metal.IPv6AddressFamily: true},
+			wantAF:       metal.AddressFamilies{metal.IPv6AddressFamily},
 		},
 		{
 			name:         "mixed af",
 			prefixes:     []string{"10.0.0.0/8", "2001::/64"},
 			wantPrefixes: metal.Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "2001::", Length: "64"}},
-			wantAF:       metal.AddressFamilies{metal.IPv4AddressFamily: true, metal.IPv6AddressFamily: true},
+			wantAF:       metal.AddressFamilies{metal.IPv4AddressFamily, metal.IPv6AddressFamily},
 			wantErr:      false,
 		},
 	}

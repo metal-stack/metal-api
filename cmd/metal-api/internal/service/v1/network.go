@@ -63,11 +63,11 @@ type NetworkFindRequest struct {
 // NetworkUpdateRequest defines the properties of a Network which can be updated.
 type NetworkUpdateRequest struct {
 	Common
-	Prefixes                   []string          `json:"prefixes" description:"the prefixes of this network" optional:"true"`
-	DestinationPrefixes        []string          `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
-	Labels                     map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
-	Shared                     *bool             `json:"shared" description:"marks a network as shareable." optional:"true"`
-	AdditionalAnnouncableCIDRs []string          `json:"additionalAnnouncableCIDRs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks" optional:"true"`
+	Prefixes                   []string                `json:"prefixes" description:"the prefixes of this network" optional:"true"`
+	DestinationPrefixes        []string                `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
+	Labels                     map[string]string       `json:"labels" description:"free labels that you associate with this network." optional:"true"`
+	Shared                     *bool                   `json:"shared" description:"marks a network as shareable." optional:"true"`
+	AdditionalAnnouncableCIDRs []string                `json:"additionalAnnouncableCIDRs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks" optional:"true"`
 	DefaultChildPrefixLength   metal.ChildPrefixLength `json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil" optional:"true"`
 }
 
@@ -103,12 +103,10 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 
 	// Existing tenant networks where not migrated and get AF created here
 	if len(network.AddressFamilies) == 0 {
-		network.AddressFamilies = metal.AddressFamilies{
-			metal.IPv4AddressFamily: true,
-		}
+		network.AddressFamilies = metal.AddressFamilies{metal.IPv4AddressFamily}
 	}
 
-	for af := range network.AddressFamilies {
+	for _, af := range network.AddressFamilies {
 		if af == metal.IPv4AddressFamily {
 			usagev4 = NetworkUsage{
 				AvailableIPs:      usage.AvailableIPs[af],

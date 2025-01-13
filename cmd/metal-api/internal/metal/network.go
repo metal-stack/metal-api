@@ -228,7 +228,7 @@ type ChildPrefixLength map[AddressFamily]uint8
 
 // AddressFamily identifies IPv4/IPv6
 type AddressFamily string
-type AddressFamilies map[AddressFamily]bool
+type AddressFamilies []AddressFamily
 type AddressFamilyUsage map[AddressFamily]uint64
 
 const (

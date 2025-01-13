@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
+	"github.com/samber/lo"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -481,8 +482,7 @@ func validatePrefixesAndAddressFamilies(prefixes, destinationPrefixes []string, 
 
 	for af, length := range defaultChildPrefixLength {
 		fmt.Printf("af %s length:%d addressfamilies:%v", af, length, addressFamilies)
-		ok := addressFamilies[af]
-		if !ok {
+		if !slices.Contains(addressFamilies, af) {
 			return nil, nil, nil, fmt.Errorf("private super network must always contain a defaultchildprefixlength per addressfamily:%s", af)
 		}
 
@@ -510,7 +510,7 @@ func validatePrefixesAndAddressFamilies(prefixes, destinationPrefixes []string, 
 func validatePrefixes(prefixes []string) (metal.Prefixes, metal.AddressFamilies, error) {
 	var (
 		result          metal.Prefixes
-		addressFamilies = metal.AddressFamilies{}
+		addressFamilies = make(map[metal.AddressFamily]bool)
 	)
 	for _, p := range prefixes {
 		prefix, ipprefix, err := metal.NewPrefixFromCIDR(p)
@@ -525,7 +525,7 @@ func validatePrefixes(prefixes []string) (metal.Prefixes, metal.AddressFamilies,
 		}
 		result = append(result, *prefix)
 	}
-	return result, addressFamilies, nil
+	return result, lo.Keys(addressFamilies), nil
 }
 
 // TODO add possibility to allocate from a non super network if given in the AllocateRequest and super has childprefixlength
@@ -651,7 +651,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		length = metal.ChildPrefixLength{
 			af: bits,
 		}
-		nwSpec.AddressFamilies = metal.AddressFamilies{af: true}
+		nwSpec.AddressFamilies = metal.AddressFamilies{af}
 	}
 
 	r.log.Info("network allocate", "supernetwork", superNetwork.ID, "defaultchildprefixlength", superNetwork.DefaultChildPrefixLength, "length", length)
@@ -852,8 +852,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 
 	if len(requestPayload.DefaultChildPrefixLength) > 0 {
 		for af, defaultChildPrefixLength := range requestPayload.DefaultChildPrefixLength {
-			afExists := newNetwork.AddressFamilies[af]
-			if !afExists {
+			if !slices.Contains(newNetwork.AddressFamilies, af) {
 				r.sendError(request, response, defaultError(fmt.Errorf("no addressfamily %q present for defaultchildprefixlength: %d", af, defaultChildPrefixLength)))
 				return
 			}
