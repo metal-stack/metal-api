@@ -48,7 +48,7 @@ func (n *NSQClient) WaitForPublisher() {
 }
 
 func (n *NSQClient) CreateEndpoints(lookupds ...string) error {
-	c, err := bus.NewConsumer(n.logger, n.config.TLS, lookupds...)
+	c, err := bus.NewConsumer(n.logger, n.config.NSQ, lookupds...)
 	if err != nil {
 		return fmt.Errorf("cannot create consumer for endpoints: %w", err)
 	}

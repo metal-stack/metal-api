@@ -30,8 +30,6 @@ import (
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/rest"
 
-	nsq2 "github.com/nsqio/go-nsq"
-
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
@@ -75,12 +73,12 @@ const (
 var (
 	logger *slog.Logger
 
-	ds                 *datastore.RethinkStore
-	ipamer             ipam.IPAMer
-	publisherTLSConfig *bus.TLSConfig
-	nsqer              *eventbus.NSQClient
-	mdc                mdm.Client
-	headscaleClient    *headscale.HeadscaleClient
+	ds              *datastore.RethinkStore
+	ipamer          ipam.IPAMer
+	nsqer           *eventbus.NSQClient
+	publisherCfg    *bus.PublisherConfig
+	mdc             mdm.Client
+	headscaleClient *headscale.HeadscaleClient
 )
 
 var rootCmd = &cobra.Command{
@@ -257,6 +255,7 @@ func init() {
 	rootCmd.Flags().StringP("nsqd-http-endpoint", "", "nsqd:4151", "the address of the nsqd http endpoint")
 	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
 	rootCmd.Flags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
+	rootCmd.Flags().StringP("nsqd-client-cert-key-file", "", "", "the client certificate key file to access nsqd")
 	rootCmd.Flags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
 	rootCmd.Flags().StringP("nsqlookupd-addr", "", "", "the http addresses of the nsqlookupd as a commalist")
 
@@ -415,19 +414,22 @@ func initEventBus() {
 	if err != nil {
 		writeTimeout = 0
 	}
-	caCertFile := viper.GetString("nsqd-ca-cert-file")
-	clientCertFile := viper.GetString("nsqd-client-cert-file")
-	if caCertFile != "" && clientCertFile != "" {
-		publisherTLSConfig = &bus.TLSConfig{
-			CACertFile:     caCertFile,
-			ClientCertFile: clientCertFile,
-		}
+
+	var (
+		caCertFile        = viper.GetString("nsqd-ca-cert-file")
+		clientCertFile    = viper.GetString("nsqd-client-cert-file")
+		clientCertKeyFile = viper.GetString("nsqd-client-cert-key-file")
+	)
+
+	cfg, err := bus.CreateNSQConfig(caCertFile, clientCertFile, clientCertKeyFile)
+	if err != nil {
+		panic(err)
 	}
-	publisherCfg := &bus.PublisherConfig{
+
+	publisherCfg = &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
 		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
-		TLS:          publisherTLSConfig,
-		NSQ:          nsq2.NewConfig(),
+		NSQ:          cfg,
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
@@ -969,7 +971,7 @@ func run() error {
 		p = nsqer.Publisher
 	}
 
-	c, err := bus.NewConsumer(logger, publisherTLSConfig, viper.GetString("nsqlookupd-addr"))
+	c, err := bus.NewConsumer(logger, publisherCfg.NSQ, viper.GetString("nsqlookupd-addr"))
 	if err != nil {
 		log.Fatalf("cannot connect to NSQ: %s", err)
 	}
