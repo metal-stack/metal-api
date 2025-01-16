@@ -3784,7 +3784,7 @@
           "type": "string"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
+          "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "parentnetworkid": {
@@ -3920,7 +3920,7 @@
           "type": "array"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
+          "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "parentnetworkid": {
@@ -4027,7 +4027,7 @@
           "type": "string"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
+          "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "parentnetworkid": {

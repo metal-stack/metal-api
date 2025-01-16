@@ -95,8 +95,8 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 
 	var (
 		parentNetworkID *string
-		usagev4         NetworkUsage
-		usagev6         NetworkUsage
+		usagev4         *NetworkUsage
+		usagev6         *NetworkUsage
 	)
 
 	if network.ParentNetworkID != "" {
@@ -114,7 +114,7 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 
 	for _, af := range network.AddressFamilies {
 		if af == metal.IPv4AddressFamily {
-			usagev4 = NetworkUsage{
+			usagev4 = &NetworkUsage{
 				AvailableIPs:      usage.AvailableIPs[af],
 				UsedIPs:           usage.UsedIPs[af],
 				AvailablePrefixes: usage.AvailablePrefixes[af],
@@ -122,7 +122,7 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			}
 		}
 		if af == metal.IPv6AddressFamily {
-			usagev6 = NetworkUsage{
+			usagev6 = &NetworkUsage{
 				AvailableIPs:      usage.AvailableIPs[af],
 				UsedIPs:           usage.UsedIPs[af],
 				AvailablePrefixes: usage.AvailablePrefixes[af],
@@ -131,7 +131,7 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 		}
 	}
 
-	return &NetworkResponse{
+	response := &NetworkResponse{
 		Common: Common{
 			Identifiable: Identifiable{
 				ID: network.ID,
@@ -159,14 +159,20 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			AddressFamilies:            network.AddressFamilies,
 			AdditionalAnnouncableCIDRs: network.AdditionalAnnouncableCIDRs,
 		},
-		Usage: usagev4,
-		Consumption: NetworkConsumption{
-			IPv4: &usagev4,
-			IPv6: &usagev6,
-		},
+		Consumption: NetworkConsumption{},
 		Timestamps: Timestamps{
 			Created: network.Created,
 			Changed: network.Changed,
 		},
 	}
+
+	if usagev4 != nil {
+		response.Usage = *usagev4
+		response.Consumption.IPv4 = usagev4
+	}
+	if usagev6 != nil {
+		response.Consumption.IPv6 = usagev6
+	}
+
+	return response
 }
