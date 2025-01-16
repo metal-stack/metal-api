@@ -18,7 +18,7 @@ type NetworkImmutable struct {
 	Prefixes                   []string                `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
 	DestinationPrefixes        []string                `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	DefaultChildPrefixLength   metal.ChildPrefixLength `json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil" optional:"true"`
-	Nat                        bool                    `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	Nat                        bool                    `json:"nat" description:"if set to true, packets leaving this ipv4 network get masqueraded behind interface ip"`
 	PrivateSuper               bool                    `json:"privatesuper" description:"if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition"`
 	Underlay                   bool                    `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 	Vrf                        *uint                   `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
@@ -26,6 +26,11 @@ type NetworkImmutable struct {
 	ParentNetworkID            *string                 `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
 	AddressFamilies            metal.AddressFamilies   `json:"addressfamilies" description:"the addressfamilies in this network, either IPv4 or IPv6 or both"`
 	AdditionalAnnouncableCIDRs []string                `json:"additionalAnnouncableCIDRs,omitempty" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks"`
+}
+
+type NetworkConsumption struct {
+	IPv4 *NetworkUsage `json:"ipv4" description:"ip and prefix consumption in the ipv4 addressfamily" optional:"true" readonly:"true"`
+	IPv6 *NetworkUsage `json:"ipv6" description:"ip and prefix consumption in the ipv6 addressfamily" optional:"true" readonly:"true"`
 }
 
 // NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.
@@ -76,8 +81,9 @@ type NetworkResponse struct {
 	Common
 	NetworkBase
 	NetworkImmutable
-	Usage   NetworkUsage `json:"usage" description:"usage of IPv4 ips and prefixes in this network" readonly:"true"`
-	UsageV6 NetworkUsage `json:"usagev6" description:"usage of IPv6 ips and prefixes in this network" readonly:"true"`
+	Consumption NetworkConsumption `json:"consumption" description:"consumption of ips and prefixes in this network" readonly:"true"`
+	// Deprecated: The Usage field will be removed in later releases. Use Consumption instead.
+	Usage NetworkUsage `json:"usage" description:"usage of IPv4 ips and prefixes in this network" readonly:"true"`
 	Timestamps
 }
 
@@ -153,8 +159,11 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			AddressFamilies:            network.AddressFamilies,
 			AdditionalAnnouncableCIDRs: network.AdditionalAnnouncableCIDRs,
 		},
-		Usage:   usagev4,
-		UsageV6: usagev6,
+		Usage: usagev4,
+		Consumption: NetworkConsumption{
+			IPv4: &usagev4,
+			IPv6: &usagev6,
+		},
 		Timestamps: Timestamps{
 			Created: network.Created,
 			Changed: network.Changed,

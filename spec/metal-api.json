@@ -3722,6 +3722,18 @@
         }
       }
     },
+    "v1.NetworkConsumption": {
+      "properties": {
+        "ipv4": {
+          "$ref": "#/definitions/v1.NetworkUsage",
+          "description": "ip and prefix consumption in the ipv4 addressfamily"
+        },
+        "ipv6": {
+          "$ref": "#/definitions/v1.NetworkUsage",
+          "description": "ip and prefix consumption in the ipv6 addressfamily"
+        }
+      }
+    },
     "v1.NetworkCreateRequest": {
       "properties": {
         "additionalAnnouncableCIDRs": {
@@ -3971,6 +3983,10 @@
           "readOnly": true,
           "type": "string"
         },
+        "consumption": {
+          "$ref": "#/definitions/v1.NetworkConsumption",
+          "description": "consumption of ips and prefixes in this network"
+        },
         "created": {
           "description": "the creation time of this entity",
           "format": "date-time",
@@ -4049,10 +4065,6 @@
           "$ref": "#/definitions/v1.NetworkUsage",
           "description": "usage of IPv4 ips and prefixes in this network"
         },
-        "usagev6": {
-          "$ref": "#/definitions/v1.NetworkUsage",
-          "description": "usage of IPv6 ips and prefixes in this network"
-        },
         "vrf": {
           "description": "the vrf this network is associated with",
           "format": "integer",
@@ -4065,14 +4077,14 @@
       },
       "required": [
         "addressfamilies",
+        "consumption",
         "destinationprefixes",
         "id",
         "nat",
         "prefixes",
         "privatesuper",
         "underlay",
-        "usage",
-        "usagev6"
+        "usage"
       ]
     },
     "v1.NetworkUpdateRequest": {
