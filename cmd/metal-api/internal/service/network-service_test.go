@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -602,6 +603,9 @@ func Test_validatePrefixes(t *testing.T) {
 			if diff := cmp.Diff(got, tt.wantPrefixes); diff != "" {
 				t.Errorf("validatePrefixes() diff=%s", diff)
 			}
+
+			slices.Sort(af)
+			slices.Sort(tt.wantAF)
 			if diff := cmp.Diff(af, tt.wantAF); diff != "" {
 				t.Errorf("validatePrefixes() diff=%s", diff)
 			}
