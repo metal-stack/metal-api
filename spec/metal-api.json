@@ -263,6 +263,10 @@
     "datastore.NetworkSearchQuery": {
       "properties": {
         "addressfamily": {
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
           "type": "string"
         },
         "destinationprefixes": {
@@ -3858,6 +3862,10 @@
     "v1.NetworkFindRequest": {
       "properties": {
         "addressfamily": {
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
           "type": "string"
         },
         "destinationprefixes": {
