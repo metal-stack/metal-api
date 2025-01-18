@@ -304,6 +304,34 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 			},
 			wantErr: nil,
 		},
+		{
+			name: "search by ipv4 addressfamily",
+			q: &NetworkSearchQuery{
+				AddressFamily: pointer.Pointer(string(metal.IPv4AddressFamily)),
+			},
+			mock: []*metal.Network{
+				{Base: metal.Base{ID: "1"}, Prefixes: metal.Prefixes{{IP: "1.2.3.4", Length: "32"}}},
+				{Base: metal.Base{ID: "2"}, Prefixes: metal.Prefixes{{IP: "fe80::", Length: "64"}}},
+			},
+			want: []*metal.Network{
+				tt.defaultBody(&metal.Network{Base: metal.Base{ID: "1"}, Prefixes: metal.Prefixes{{IP: "1.2.3.4", Length: "32"}}}),
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by ipv6 addressfamily",
+			q: &NetworkSearchQuery{
+				AddressFamily: pointer.Pointer(string(metal.IPv6AddressFamily)),
+			},
+			mock: []*metal.Network{
+				{Base: metal.Base{ID: "1"}, Prefixes: metal.Prefixes{{IP: "1.2.3.4", Length: "32"}}},
+				{Base: metal.Base{ID: "2"}, Prefixes: metal.Prefixes{{IP: "fe80::", Length: "64"}}},
+			},
+			want: []*metal.Network{
+				tt.defaultBody(&metal.Network{Base: metal.Base{ID: "2"}, Prefixes: metal.Prefixes{{IP: "fe80::", Length: "64"}}}),
+			},
+			wantErr: nil,
+		},
 	}
 
 	for i := range tests {

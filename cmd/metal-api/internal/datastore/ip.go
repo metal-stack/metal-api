@@ -20,6 +20,7 @@ type IPSearchQuery struct {
 	ProjectID        *string  `json:"projectid" description:"the project this ip address belongs to, empty if not strong coupled" optional:"true"`
 	Type             *string  `json:"type" description:"the type of the ip address, ephemeral or static" optional:"true"`
 	MachineID        *string  `json:"machineid" description:"the machine an ip address is associated to" optional:"true"`
+	AddressFamily    *string  `json:"addressfamily" optional:"true" enum:"IPv4|IPv6"`
 }
 
 // GenerateTerm generates the project search query term.
@@ -76,6 +77,21 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.Type != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("type").Eq(*p.Type)
+		})
+	}
+
+	if p.AddressFamily != nil {
+		separator := "."
+		af := metal.ToAddressFamily(*p.AddressFamily)
+		switch af {
+		case metal.IPv4AddressFamily:
+			separator = "\\."
+		case metal.IPv6AddressFamily:
+			separator = ":"
+		}
+
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("id").Match(separator)
 		})
 	}
 

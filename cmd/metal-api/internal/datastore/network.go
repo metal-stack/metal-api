@@ -24,6 +24,7 @@ type NetworkSearchQuery struct {
 	Vrf                 *int64            `json:"vrf" optional:"true"`
 	ParentNetworkID     *string           `json:"parentnetworkid" optional:"true"`
 	Labels              map[string]string `json:"labels" optional:"true"`
+	AddressFamily       *string           `json:"addressfamily" optional:"true" enum:"IPv4|IPv6"`
 }
 
 func (p *NetworkSearchQuery) Validate() error {
@@ -151,6 +152,25 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 			return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
 				return dp.Field("length")
 			}).Contains(r.Expr(strconv.Itoa(length)))
+		})
+	}
+
+	if p.AddressFamily != nil {
+		separator := "."
+		af := metal.ToAddressFamily(*p.AddressFamily)
+		switch af {
+		case metal.IPv4AddressFamily:
+			separator = "\\."
+		case metal.IPv6AddressFamily:
+			separator = ":"
+		}
+
+		fmt.Printf("Separator:%s\n", separator)
+
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("prefixes").Contains(func(p r.Term) r.Term {
+				return p.Field("ip").Match(separator)
+			})
 		})
 	}
 
