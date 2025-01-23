@@ -40,12 +40,13 @@ type SwitchOS struct {
 type SwitchNics []SwitchNic
 
 type SwitchNic struct {
-	MacAddress string           `json:"mac" description:"the mac address of this network interface"`
-	Name       string           `json:"name" description:"the name of this network interface"`
-	Identifier string           `json:"identifier" description:"the identifier of this network interface"`
-	Vrf        string           `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
-	BGPFilter  *BGPFilter       `json:"filter" description:"configures the bgp filter applied at the switch port" optional:"true"`
-	Actual     SwitchPortStatus `json:"actual" description:"the current state of the nic" enum:"UP|DOWN|UNKNOWN"`
+	MacAddress   string                    `json:"mac" description:"the mac address of this network interface"`
+	Name         string                    `json:"name" description:"the name of this network interface"`
+	Identifier   string                    `json:"identifier" description:"the identifier of this network interface"`
+	Vrf          string                    `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
+	BGPFilter    *BGPFilter                `json:"filter" description:"configures the bgp filter applied at the switch port" optional:"true"`
+	Actual       SwitchPortStatus          `json:"actual" description:"the current state of the nic" enum:"UP|DOWN|UNKNOWN"`
+	BGPPortState *metal.SwitchBGPPortState `json:"bgp_port_state" description:"the current bgp port state" optional:"true"`
 }
 
 type BGPFilter struct {
@@ -100,9 +101,20 @@ type SwitchMigrateRequest struct {
 // to the metal-api after a sync operation. It contains the duration of
 // the sync, any error that occurred, and the updated switch port states.
 type SwitchNotifyRequest struct {
-	Duration   time.Duration               `json:"sync_duration" description:"the duration of the switch synchronization"`
-	Error      *string                     `json:"error"`
-	PortStates map[string]SwitchPortStatus `json:"port_states" description:"the current switch port states"`
+	Duration      time.Duration                 `json:"sync_duration" description:"the duration of the switch synchronization"`
+	Error         *string                       `json:"error"`
+	PortStates    map[string]SwitchPortStatus   `json:"port_states" description:"the current switch port states"`
+	BGPPortStates map[string]SwitchBGPPortState `json:"bgp_port_states" description:"the current bgp port states" optional:"true"`
+}
+
+type SwitchBGPPortState struct {
+	Neighbor              string
+	PeerGroup             string
+	VrfName               string
+	BgpState              string
+	BgpTimerUpEstablished int64
+	SentPrefixCounter     int64
+	AcceptedPrefixCounter int64
 }
 
 type SwitchNotifyResponse struct {
