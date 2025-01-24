@@ -24,7 +24,6 @@ type NetworkImmutable struct {
 	Vrf                        *uint                   `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
 	VrfShared                  *bool                   `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)" optional:"true"`
 	ParentNetworkID            *string                 `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
-	AddressFamilies            metal.AddressFamilies   `json:"addressfamilies" description:"the addressfamilies in this network, either IPv4 or IPv6 or both"`
 	AdditionalAnnouncableCIDRs []string                `json:"additionalAnnouncableCIDRs,omitempty" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks"`
 }
 
@@ -107,11 +106,6 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 		labels = make(map[string]string)
 	}
 
-	// Existing tenant networks where not migrated and get AF created here
-	if len(network.AddressFamilies) == 0 {
-		network.AddressFamilies = metal.AddressFamilies{metal.IPv4AddressFamily}
-	}
-
 	for _, af := range network.AddressFamilies {
 		if af == metal.IPv4AddressFamily {
 			usagev4 = &NetworkUsage{
@@ -156,7 +150,6 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			Underlay:                   network.Underlay,
 			Vrf:                        &network.Vrf,
 			ParentNetworkID:            parentNetworkID,
-			AddressFamilies:            network.AddressFamilies,
 			AdditionalAnnouncableCIDRs: network.AdditionalAnnouncableCIDRs,
 		},
 		Consumption: NetworkConsumption{},

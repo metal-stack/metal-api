@@ -287,7 +287,6 @@ func createTestEnvironment(t *testing.T, log *slog.Logger, ds *datastore.Rethink
 			Prefixes:                 []string{testPrivateSuperCidr},
 			PrivateSuper:             true,
 			DefaultChildPrefixLength: map[metal.AddressFamily]uint8{metal.IPv4AddressFamily: 22},
-			AddressFamilies:          metal.AddressFamilies{metal.IPv4AddressFamily},
 		},
 	}
 	log.Info("try to create a network", "request", ncr)

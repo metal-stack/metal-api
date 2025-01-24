@@ -3801,13 +3801,6 @@
           },
           "type": "array"
         },
-        "addressfamilies": {
-          "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
         "defaultchildprefixlength": {
           "additionalProperties": {
             "type": "integer"
@@ -3887,7 +3880,6 @@
         }
       },
       "required": [
-        "addressfamilies",
         "destinationprefixes",
         "id",
         "nat",
@@ -3963,13 +3955,6 @@
           },
           "type": "array"
         },
-        "addressfamilies": {
-          "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
         "defaultchildprefixlength": {
           "additionalProperties": {
             "type": "integer"
@@ -4018,7 +4003,6 @@
         }
       },
       "required": [
-        "addressfamilies",
         "destinationprefixes",
         "nat",
         "prefixes",
@@ -4030,13 +4014,6 @@
       "properties": {
         "additionalAnnouncableCIDRs": {
           "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "addressfamilies": {
-          "description": "the addressfamilies in this network, either IPv4 or IPv6 or both",
           "items": {
             "type": "string"
           },
@@ -4141,7 +4118,6 @@
         }
       },
       "required": [
-        "addressfamilies",
         "consumption",
         "destinationprefixes",
         "id",
