@@ -468,7 +468,7 @@ func validatePrefixesAndAddressFamilies(prefixes, destinationPrefixes []string, 
 		return nil, nil, nil, err
 	}
 	if len(destinationAddressFamilies) > len(addressFamilies) {
-		return nil, nil, nil, fmt.Errorf("destination prefixes have more addressfamilies then prefixes")
+		return nil, nil, nil, fmt.Errorf("destination prefixes have more addressfamilies than prefixes")
 
 	}
 
