@@ -7,6 +7,8 @@ type Partition struct {
 	MgmtServiceAddress         string            `rethinkdb:"mgmtserviceaddr" json:"mgmtserviceaddr"`
 	PrivateNetworkPrefixLength uint8             `rethinkdb:"privatenetworkprefixlength" json:"privatenetworkprefixlength"`
 	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
+	DNSServers                 DNSServers        `rethinkdb:"dns_servers" json:"dns_servers"`
+	NTPServers                 NTPServers        `rethinkdb:"ntp_servers" json:"ntp_servers"`
 }
 
 // BootConfiguration defines the metal-hammer initrd, kernel and commandline

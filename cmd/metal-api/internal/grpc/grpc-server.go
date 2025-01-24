@@ -106,7 +106,7 @@ func Run(cfg *ServerConfig) error {
 	})
 	grpcPanicRecoveryHandler := func(p any) (err error) {
 		panicsTotal.Inc()
-		log.Error("msg", "recovered from panic", "panic", p, "stack", debug.Stack())
+		log.Error("recovered from panic", "panic", p, "stack", debug.Stack())
 		return status.Errorf(codes.Internal, "%s", p)
 	}
 

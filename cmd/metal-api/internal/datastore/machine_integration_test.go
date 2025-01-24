@@ -107,6 +107,12 @@ func (_ *machineTestable) defaultBody(m *metal.Machine) *metal.Machine {
 		if m.Allocation.SSHPubKeys == nil {
 			m.Allocation.SSHPubKeys = []string{}
 		}
+		if m.Allocation.DNSServers == nil {
+			m.Allocation.DNSServers = metal.DNSServers{}
+		}
+		if m.Allocation.NTPServers == nil {
+			m.Allocation.NTPServers = metal.NTPServers{}
+		}
 		for i := range m.Allocation.MachineNetworks {
 			n := m.Allocation.MachineNetworks[i]
 			if n.Prefixes == nil {
@@ -119,6 +125,9 @@ func (_ *machineTestable) defaultBody(m *metal.Machine) *metal.Machine {
 				n.DestinationPrefixes = []string{}
 			}
 		}
+	}
+	if m.IPMI.PowerSupplies == nil {
+		m.IPMI.PowerSupplies = metal.PowerSupplies{}
 	}
 	return m
 }
@@ -936,6 +945,7 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 			want: &metal.Machine{
 				Base:     metal.Base{ID: "1"},
 				Hardware: metal.MachineHardware{Nics: metal.Nics{}, Disks: []metal.BlockDevice{}, MetalCPUs: []metal.MetalCPU{}, MetalGPUs: []metal.MetalGPU{}},
+				IPMI:     metal.IPMI{PowerSupplies: metal.PowerSupplies{}},
 				Tags:     []string{"a=b"},
 			},
 		},

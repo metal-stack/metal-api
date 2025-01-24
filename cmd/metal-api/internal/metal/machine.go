@@ -1,8 +1,10 @@
 package metal
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -10,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/dustin/go-humanize"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
 	"github.com/samber/lo"
@@ -153,6 +156,8 @@ type MachineAllocation struct {
 	VPN              *MachineVPN       `rethinkdb:"vpn" json:"vpn"`
 	UUID             string            `rethinkdb:"uuid" json:"uuid"`
 	FirewallRules    *FirewallRules    `rethinkdb:"firewall_rules" json:"firewall_rules"`
+	DNSServers       DNSServers        `rethinkdb:"dns_servers" json:"dns_servers"`
+	NTPServers       NTPServers        `rethinkdb:"ntp_servers" json:"ntp_servers"`
 }
 
 type FirewallRules struct {
@@ -173,6 +178,18 @@ type IngressRule struct {
 	To       []string `rethinkdb:"to" json:"to"`
 	From     []string `rethinkdb:"from" json:"from"`
 	Comment  string   `rethinkdb:"comment" json:"comment"`
+}
+
+type DNSServers []DNSServer
+
+type DNSServer struct {
+	IP string `rethinkdb:"ip" json:"ip" description:"ip address of this dns server"`
+}
+
+type NTPServers []NTPServer
+
+type NTPServer struct {
+	Address string `address:"address" json:"address" description:"ip address or dns hostname of this ntp server"`
 }
 
 type Protocol string
@@ -564,16 +581,17 @@ type Fru struct {
 // IPMI connection data
 type IPMI struct {
 	// Address is host:port of the connection to the ipmi BMC, host can be either a ip address or a hostname
-	Address     string       `rethinkdb:"address" json:"address"`
-	MacAddress  string       `rethinkdb:"mac" json:"mac"`
-	User        string       `rethinkdb:"user" json:"user"`
-	Password    string       `rethinkdb:"password" json:"password"`
-	Interface   string       `rethinkdb:"interface" json:"interface"`
-	Fru         Fru          `rethinkdb:"fru" json:"fru"`
-	BMCVersion  string       `rethinkdb:"bmcversion" json:"bmcversion"`
-	PowerState  string       `rethinkdb:"powerstate" json:"powerstate"`
-	PowerMetric *PowerMetric `rethinkdb:"powermetric" json:"powermetric"`
-	LastUpdated time.Time    `rethinkdb:"last_updated" json:"last_updated"`
+	Address       string        `rethinkdb:"address" json:"address"`
+	MacAddress    string        `rethinkdb:"mac" json:"mac"`
+	User          string        `rethinkdb:"user" json:"user"`
+	Password      string        `rethinkdb:"password" json:"password"`
+	Interface     string        `rethinkdb:"interface" json:"interface"`
+	Fru           Fru           `rethinkdb:"fru" json:"fru"`
+	BMCVersion    string        `rethinkdb:"bmcversion" json:"bmcversion"`
+	PowerState    string        `rethinkdb:"powerstate" json:"powerstate"`
+	PowerMetric   *PowerMetric  `rethinkdb:"powermetric" json:"powermetric"`
+	PowerSupplies PowerSupplies `rethinkdb:"powersupplies" json:"powersupplies"`
+	LastUpdated   time.Time     `rethinkdb:"last_updated" json:"last_updated"`
 }
 
 type PowerMetric struct {
@@ -594,6 +612,17 @@ type PowerMetric struct {
 	// minimum power level in watts that occurred within the last
 	// IntervalInMin minutes.
 	MinConsumedWatts float32 `rethinkdb:"minconsumedwatts" json:"minconsumedwatts"`
+}
+
+type PowerSupplies []PowerSupply
+type PowerSupply struct {
+	// Status shall contain any status or health properties
+	// of the resource.
+	Status PowerSupplyStatus `rethinkdb:"status" json:"status"`
+}
+type PowerSupplyStatus struct {
+	Health string `rethinkdb:"health" json:"health"`
+	State  string `rethinkdb:"state" json:"state"`
 }
 
 // BIOS contains machine bios information
@@ -704,4 +733,46 @@ func (i *MachineIPMISuperUser) User() string {
 
 func DisabledIPMISuperUser() MachineIPMISuperUser {
 	return MachineIPMISuperUser{}
+}
+
+func (d DNSServers) Validate() error {
+	if len(d) == 0 {
+		return nil
+	}
+
+	if len(d) > 3 {
+		return errors.New("please specify a maximum of three dns servers")
+	}
+
+	for _, dnsServer := range d {
+		_, err := netip.ParseAddr(dnsServer.IP)
+		if err != nil {
+			return fmt.Errorf("ip: %s for dns server not correct err: %w", dnsServer, err)
+		}
+	}
+	return nil
+}
+
+func (n NTPServers) Validate() error {
+	if len(n) == 0 {
+		return nil
+	}
+
+	if len(n) < 3 || len(n) > 5 {
+		return errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
+	}
+
+	for _, ntpserver := range n {
+		if net.ParseIP(ntpserver.Address) != nil {
+			_, err := netip.ParseAddr(ntpserver.Address)
+			if err != nil {
+				return fmt.Errorf("ip: %s for ntp server not correct err: %w", ntpserver, err)
+			}
+		} else {
+			if !govalidator.IsDNSName(ntpserver.Address) {
+				return fmt.Errorf("dns name: %s for ntp server not correct", ntpserver)
+			}
+		}
+	}
+	return nil
 }

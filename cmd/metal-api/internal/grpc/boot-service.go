@@ -224,8 +224,9 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 				Value:       metal.LEDStateOff,
 				Description: "Machine registered",
 			},
-			Tags: req.Tags,
-			IPMI: ipmi,
+			Tags:        req.Tags,
+			IPMI:        ipmi,
+			PartitionID: req.PartitionId,
 		}
 
 		err = b.ds.CreateMachine(m)
@@ -243,6 +244,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		m.BIOS.Date = req.Bios.Date
 		m.IPMI = ipmi
 		m.State.MetalHammerVersion = req.MetalHammerVersion
+		m.PartitionID = req.PartitionId
 
 		err = b.ds.UpdateMachine(&old, m)
 		if err != nil {
@@ -269,7 +271,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 	old := *m
 	err = retry.Do(
 		func() error {
-			// RackID and PartitionID is set
+			// RackID is set here
 			err := b.ds.ConnectMachineWithSwitches(m)
 			if err != nil {
 				return err

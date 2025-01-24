@@ -23,8 +23,9 @@ var (
 			Role:    metal.RoleMachine,
 			MachineNetworks: []*metal.MachineNetwork{
 				{
-					Private: true,
-					Vrf:     1,
+					NetworkID: "3",
+					Private:   true,
+					Vrf:       1,
 				},
 			},
 		},
@@ -190,13 +191,6 @@ var (
 				Max:  1000000000000,
 			},
 		},
-		Reservations: metal.Reservations{
-			{
-				Amount:       3,
-				PartitionIDs: []string{Partition1.ID},
-				ProjectID:    "p1",
-			},
-		},
 	}
 	Sz2 = metal.Size{
 		Base: metal.Base{
@@ -323,13 +317,14 @@ var (
 		Base: metal.Base{
 			ID: "super-tenant-network-1",
 		},
-		Prefixes:        metal.Prefixes{{IP: "10.0.0.0", Length: "16"}},
-		PartitionID:     Partition1.ID,
-		ParentNetworkID: "",
-		ProjectID:       "",
-		PrivateSuper:    true,
-		Nat:             false,
-		Underlay:        false,
+		Prefixes:                   metal.Prefixes{{IP: "10.0.0.0", Length: "16"}},
+		PartitionID:                Partition1.ID,
+		ParentNetworkID:            "",
+		ProjectID:                  "",
+		PrivateSuper:               true,
+		Nat:                        false,
+		Underlay:                   false,
+		AdditionalAnnouncableCIDRs: []string{"10.240.0.0/12"},
 	}
 
 	Partition2PrivateSuperNetwork = metal.Network{
@@ -538,6 +533,7 @@ var (
 		Base: metal.Base{
 			ID: "switch1",
 		},
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		PartitionID: "1",
 		RackID:      "1",
 		Nics: []metal.Nic{
@@ -548,7 +544,7 @@ var (
 			"1": metal.Connections{
 				metal.Connection{
 					Nic: metal.Nic{
-						Name:       "swp1",
+						Name:       "swp2",
 						MacAddress: metal.MacAddress("21:11:11:11:11:11"),
 					},
 					MachineID: "1",
@@ -566,6 +562,7 @@ var (
 		Base: metal.Base{
 			ID: "switch2",
 		},
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		PartitionID: "1",
 		RackID:      "1",
 		Nics: []metal.Nic{
@@ -577,6 +574,7 @@ var (
 		Base: metal.Base{
 			ID: "switch3",
 		},
+		OS:                 &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		PartitionID:        "1",
 		RackID:             "3",
 		MachineConnections: metal.ConnectionMap{},
@@ -585,6 +583,7 @@ var (
 		Base: metal.Base{
 			ID: "switch1",
 		},
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		PartitionID: "1",
 		RackID:      "1",
 		Nics: []metal.Nic{
@@ -607,7 +606,7 @@ var (
 	// Nics
 	Nic1 = metal.Nic{
 		MacAddress: metal.MacAddress("11:11:11:11:11:11"),
-		Name:       "eth0",
+		Name:       "swp1",
 		Neighbors: []metal.Nic{
 			{
 				MacAddress: "21:11:11:11:11:11",
@@ -619,7 +618,7 @@ var (
 	}
 	Nic2 = metal.Nic{
 		MacAddress: metal.MacAddress("21:11:11:11:11:11"),
-		Name:       "swp1",
+		Name:       "swp2",
 		Neighbors: []metal.Nic{
 			{
 				MacAddress: "11:11:11:11:11:11",
@@ -631,7 +630,7 @@ var (
 	}
 	Nic3 = metal.Nic{
 		MacAddress: metal.MacAddress("31:11:11:11:11:11"),
-		Name:       "swp2",
+		Name:       "swp3",
 		Neighbors: []metal.Nic{
 			{
 				MacAddress: "21:11:11:11:11:11",
@@ -643,7 +642,7 @@ var (
 	}
 	Nic4 = metal.Nic{
 		MacAddress: metal.MacAddress("41:11:11:11:11:11"),
-		Name:       "swp1",
+		Name:       "swp2",
 	}
 
 	// IPMIs
@@ -753,24 +752,6 @@ var (
 		"33:11:11:11:11:11",
 	}
 
-	// Create the Connections Array
-	TestConnections = []metal.Connection{
-		{
-			Nic: metal.Nic{
-				Name:       "swp1",
-				MacAddress: "11:11:11",
-			},
-			MachineID: "machine-1",
-		},
-		{
-			Nic: metal.Nic{
-				Name:       "swp2",
-				MacAddress: "22:11:11",
-			},
-			MachineID: "machine-2",
-		},
-	}
-
 	TestMachinesHardwares = []metal.MachineHardware{
 		MachineHardware1, MachineHardware2,
 	}
@@ -871,6 +852,9 @@ func InitMockDBData(mock *r.Mock) {
 		map[string]interface{}{"new_val": M3},
 	}, nil)
 	mock.On(r.DB("mockdb").Table("integerpool").Get(r.MockAnything()).Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}}, nil)
+
+	// Find
+	mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything())).Return(metal.SizeReservations{}, nil)
 
 	// Default: Return Empty result
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything())).Return(EmptyResult, nil)

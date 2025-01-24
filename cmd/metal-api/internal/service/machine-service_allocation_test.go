@@ -89,7 +89,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	e, _ := errgroup.WithContext(context.Background())
 	for i := range machineCount {
 		e.Go(func() error {
-			mr := createMachineRegisterRequest(i)
+			mr := createMachineRegisterRequest(i + 1)
 			err := retry.Do(
 				func() error {
 					var err2 error
@@ -271,6 +271,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 			Vendor:  "metal",
 			Date:    "1970",
 		},
+		PartitionId: "p1",
 		Hardware: &grpcv1.MachineHardware{
 			Memory: 4,
 			Cpus: []*grpcv1.MachineCPU{
@@ -286,7 +287,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 					Mac:  fmt.Sprintf("aa:ba:%d", i),
 					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name: fmt.Sprintf("swp-%d", i),
+							Name: fmt.Sprintf("swp%d", i),
 							Mac:  fmt.Sprintf("%s:%d", swp1MacPrefix, i),
 						},
 					},
@@ -296,7 +297,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 					Mac:  fmt.Sprintf("aa:bb:%d", i),
 					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name: fmt.Sprintf("swp-%d", i),
+							Name: fmt.Sprintf("swp%d", i),
 							Mac:  fmt.Sprintf("%s:%d", swp2MacPrefix, i),
 						},
 					},
@@ -369,7 +370,7 @@ func setupTestEnvironment(machineCount int, t *testing.T, ds *datastore.RethinkS
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {
 	for i := range machineCount {
-		id := fmt.Sprintf("WaitingMachine%d", i)
+		id := fmt.Sprintf("WaitingMachine%d", i+1)
 		m := &metal.Machine{
 			Base:        metal.Base{ID: id},
 			SizeID:      "s1",
@@ -411,19 +412,19 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IP
 	sw2nics := metal.Nics{}
 	for j := range machineCount {
 		sw1nic := metal.Nic{
-			Name:       fmt.Sprintf("swp-%d", j),
-			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp1MacPrefix, j)),
+			Name:       fmt.Sprintf("swp%d", j+1),
+			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp1MacPrefix, j+1)),
 		}
 		sw2nic := metal.Nic{
-			Name:       fmt.Sprintf("swp-%d", j),
-			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp2MacPrefix, j)),
+			Name:       fmt.Sprintf("swp%d", j+1),
+			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp2MacPrefix, j+1)),
 		}
 		sw1nics = append(sw1nics, sw1nic)
 		sw2nics = append(sw2nics, sw2nic)
 	}
-	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw1"}, PartitionID: "p1", Nics: sw1nics, MachineConnections: metal.ConnectionMap{}})
+	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw1"}, OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus}, PartitionID: "p1", Nics: sw1nics, MachineConnections: metal.ConnectionMap{}})
 	require.NoError(t, err)
-	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw2"}, PartitionID: "p1", Nics: sw2nics, MachineConnections: metal.ConnectionMap{}})
+	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw2"}, OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus}, PartitionID: "p1", Nics: sw2nics, MachineConnections: metal.ConnectionMap{}})
 	require.NoError(t, err)
 	err = rs.CreateFilesystemLayout(&metal.FilesystemLayout{Base: metal.Base{ID: "fsl1"}, Constraints: metal.FilesystemLayoutConstraints{Sizes: []string{"s1"}, Images: map[string]string{"i": "*"}}})
 	require.NoError(t, err)

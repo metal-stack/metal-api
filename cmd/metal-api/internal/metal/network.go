@@ -207,17 +207,18 @@ func (p *Prefix) equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes            Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
-	DestinationPrefixes Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-	PartitionID         string            `rethinkdb:"partitionid" json:"partitionid"`
-	ProjectID           string            `rethinkdb:"projectid" json:"projectid"`
-	ParentNetworkID     string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
-	Vrf                 uint              `rethinkdb:"vrf" json:"vrf"`
-	PrivateSuper        bool              `rethinkdb:"privatesuper" json:"privatesuper"`
-	Nat                 bool              `rethinkdb:"nat" json:"nat"`
-	Underlay            bool              `rethinkdb:"underlay" json:"underlay"`
-	Shared              bool              `rethinkdb:"shared" json:"shared"`
-	Labels              map[string]string `rethinkdb:"labels" json:"labels"`
+	Prefixes                   Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
+	DestinationPrefixes        Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+	PartitionID                string            `rethinkdb:"partitionid" json:"partitionid"`
+	ProjectID                  string            `rethinkdb:"projectid" json:"projectid"`
+	ParentNetworkID            string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
+	Vrf                        uint              `rethinkdb:"vrf" json:"vrf"`
+	PrivateSuper               bool              `rethinkdb:"privatesuper" json:"privatesuper"`
+	Nat                        bool              `rethinkdb:"nat" json:"nat"`
+	Underlay                   bool              `rethinkdb:"underlay" json:"underlay"`
+	Shared                     bool              `rethinkdb:"shared" json:"shared"`
+	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
+	AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks"`
 }
 
 // Networks is a list of networks.
@@ -234,7 +235,7 @@ type NetworkUsage struct {
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
-// ByID creates an indexed map of partitions where the id is the index.
+// ByID creates an indexed map of networks where the id is the index.
 func (nws Networks) ByID() NetworkMap {
 	res := make(NetworkMap)
 	for i, nw := range nws {
@@ -302,9 +303,12 @@ func (nics Nics) FilterByHostname(hostname string) (res Nics) {
 	return res
 }
 
+// NicMap maps nic names to the corresponding nics
+type NicMap map[string]*Nic
+
 // ByName creates a map (nic names --> nic) from a nic list.
-func (nics Nics) ByName() map[string]*Nic {
-	res := make(map[string]*Nic)
+func (nics Nics) ByName() NicMap {
+	res := make(NicMap)
 
 	for i, n := range nics {
 		res[n.Name] = &nics[i]
@@ -314,8 +318,8 @@ func (nics Nics) ByName() map[string]*Nic {
 }
 
 // ByIdentifier creates a map (nic identifier --> nic) from a nic list.
-func (nics Nics) ByIdentifier() map[string]*Nic {
-	res := make(map[string]*Nic)
+func (nics Nics) ByIdentifier() NicMap {
+	res := make(NicMap)
 
 	for i, n := range nics {
 		res[n.GetIdentifier()] = &nics[i]

@@ -138,7 +138,11 @@ func (rs *RethinkStore) SetVrfAtSwitches(m *metal.Machine, vrf string) (metal.Sw
 }
 
 func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
-	switches, err := rs.ListSwitches()
+	if m.PartitionID == "" {
+		return fmt.Errorf("partitionID is empty in machine:%s", m.ID)
+	}
+	var switches metal.Switches
+	err := rs.SearchSwitches(&SwitchSearchQuery{PartitionID: &m.PartitionID}, &switches)
 	if err != nil {
 		return err
 	}
@@ -177,9 +181,21 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 	if err != nil {
 		return err
 	}
+	// e.g. "swp1s0" -> "Ethernet0"
+	switchPortMapping, err := s1.MapPortNames(s2.OS.Vendor)
+	if err != nil {
+		return fmt.Errorf("could not create port mapping %w", err)
+	}
+
 	for _, con := range s1.MachineConnections[m.ID] {
-		if con2, has := byNicName[con.Nic.Name]; has {
-			if con.Nic.Name != con2.Nic.Name {
+		// get the corresponding interface name for s2
+		name, ok := switchPortMapping[con.Nic.Name]
+		if !ok {
+			return fmt.Errorf("could not translate port name %s to equivalent port name of switch os %s", con.Nic.Name, s1.OS.Vendor)
+		}
+		// check if s2 contains nic of name corresponding to con.Nic.Name
+		if con2, has := byNicName[name]; has {
+			if name != con2.Nic.Name {
 				return connectionMapError
 			}
 		} else {
@@ -210,4 +226,9 @@ func (rs *RethinkStore) GetSwitchStatus(id string) (*metal.SwitchStatus, error) 
 // SetSwitchStatus create or update the switch status.
 func (rs *RethinkStore) SetSwitchStatus(state *metal.SwitchStatus) error {
 	return rs.upsertEntity(rs.switchStatusTable(), state)
+}
+
+// DeleteSwitchStatus delete SwitchStatus
+func (rs *RethinkStore) DeleteSwitchStatus(status *metal.SwitchStatus) error {
+	return rs.deleteEntity(rs.switchStatusTable(), status)
 }

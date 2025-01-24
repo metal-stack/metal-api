@@ -618,6 +618,17 @@
         "id"
       ]
     },
+    "v1.DNSServer": {
+      "properties": {
+        "ip": {
+          "description": "ip address of this dns server",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ip"
+      ]
+    },
     "v1.Describable": {
       "properties": {
         "description": {
@@ -1009,6 +1020,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "filesystemlayoutid": {
           "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
@@ -1040,6 +1058,13 @@
           "description": "the networks that this machine will be placed in.",
           "items": {
             "$ref": "#/definitions/v1.MachineAllocationNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -1984,6 +2009,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "filesystemlayoutid": {
           "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
@@ -2011,6 +2043,13 @@
           "description": "the networks that this machine will be placed in.",
           "items": {
             "$ref": "#/definitions/v1.MachineAllocationNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -2087,6 +2126,13 @@
           "description": "a description for this machine",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "filesystemlayout": {
           "$ref": "#/definitions/v1.FilesystemLayoutResponse",
           "description": "filesystemlayout to create on this machine"
@@ -2112,6 +2158,13 @@
           "description": "the networks of this machine",
           "items": {
             "$ref": "#/definitions/v1.MachineNetwork"
+          },
+          "type": "array"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers used for the machine",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
         },
@@ -2658,6 +2711,12 @@
         "powerstate": {
           "type": "string"
         },
+        "powersupplies": {
+          "items": {
+            "$ref": "#/definitions/v1.PowerSupply"
+          },
+          "type": "array"
+        },
         "user": {
           "type": "string"
         }
@@ -2672,6 +2731,7 @@
         "password",
         "powermetric",
         "powerstate",
+        "powersupplies",
         "user"
       ]
     },
@@ -2790,6 +2850,12 @@
         },
         "PowerState": {
           "type": "string"
+        },
+        "PowerSupplies": {
+          "items": {
+            "$ref": "#/definitions/v1.PowerSupply"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -2799,7 +2865,8 @@
         "FRU",
         "IndicatorLEDState",
         "PowerMetric",
-        "PowerState"
+        "PowerState",
+        "PowerSupplies"
       ]
     },
     "v1.MachineIpmiReportResponse": {
@@ -3546,6 +3613,17 @@
         "vendor"
       ]
     },
+    "v1.NTPServer": {
+      "properties": {
+        "address": {
+          "description": "ip address or dns hostname of this ntp server",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address"
+      ]
+    },
     "v1.NetworkAllocateRequest": {
       "properties": {
         "description": {
@@ -3613,6 +3691,13 @@
     },
     "v1.NetworkCreateRequest": {
       "properties": {
+        "additionalAnnouncableCIDRs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3746,6 +3831,13 @@
     "v1.NetworkImmutable": {
       "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
       "properties": {
+        "additionalAnnouncableCIDRs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "destinationprefixes": {
           "description": "the destination prefixes of this network",
           "items": {
@@ -3796,6 +3888,13 @@
     },
     "v1.NetworkResponse": {
       "properties": {
+        "additionalAnnouncableCIDRs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "changed": {
           "description": "the last changed timestamp of this entity",
           "format": "date-time",
@@ -3895,6 +3994,13 @@
     },
     "v1.NetworkUpdateRequest": {
       "properties": {
+        "additionalAnnouncableCIDRs": {
+          "description": "list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3981,6 +4087,13 @@
     },
     "v1.PartitionBase": {
       "properties": {
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "labels": {
           "additionalProperties": {
             "type": "string"
@@ -3991,6 +4104,13 @@
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         },
         "privatenetworkprefixlength": {
           "description": "the length of private networks for the machine's child networks in this partition, default 22",
@@ -4051,11 +4171,18 @@
           "description": "the id of the partition",
           "type": "string"
         },
+        "projectid": {
+          "description": "if provided the machine reservations of this project will be respected in the free counts",
+          "type": "string"
+        },
         "sizeid": {
           "description": "the size to filter for",
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "projectid"
+      ]
     },
     "v1.PartitionCreateRequest": {
       "properties": {
@@ -4066,6 +4193,13 @@
         "description": {
           "description": "a description for this entity",
           "type": "string"
+        },
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
         },
         "id": {
           "description": "the unique ID of this entity",
@@ -4085,6 +4219,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         },
         "privatenetworkprefixlength": {
           "description": "the length of private networks for the machine's child networks in this partition, default 22",
@@ -4121,6 +4262,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string"
@@ -4139,6 +4287,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         },
         "privatenetworkprefixlength": {
           "description": "the length of private networks for the machine's child networks in this partition, default 22",
@@ -4163,6 +4318,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "dns_servers": {
+          "description": "the dns servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.DNSServer"
+          },
+          "type": "array"
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string"
@@ -4181,10 +4343,19 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "ntp_servers": {
+          "description": "the ntp servers for this partition",
+          "items": {
+            "$ref": "#/definitions/v1.NTPServer"
+          },
+          "type": "array"
         }
       },
       "required": [
-        "id"
+        "dns_servers",
+        "id",
+        "ntp_servers"
       ]
     },
     "v1.PowerMetric": {
@@ -4211,6 +4382,30 @@
         "intervalinmin",
         "maxconsumedwatts",
         "minconsumedwatts"
+      ]
+    },
+    "v1.PowerSupply": {
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1.PowerSupplyStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "v1.PowerSupplyStatus": {
+      "properties": {
+        "health": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "health",
+        "state"
       ]
     },
     "v1.Project": {
@@ -4371,39 +4566,54 @@
     },
     "v1.ServerCapacity": {
       "properties": {
+        "allocatable": {
+          "description": "free machines with this size, size reservations are not considered",
+          "format": "int32",
+          "type": "integer"
+        },
         "allocated": {
-          "description": "allocated servers with this size",
+          "description": "allocated machines",
           "format": "int32",
           "type": "integer"
         },
         "faulty": {
-          "description": "servers with issues with this size",
+          "description": "machines with issues with this size",
           "format": "int32",
           "type": "integer"
         },
         "faultymachines": {
-          "description": "servers with issues with this size",
+          "description": "machine ids with issues with this size",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "free": {
-          "description": "free servers with this size",
+          "description": "free machines with this size (freely allocatable)",
           "format": "int32",
           "type": "integer"
         },
         "other": {
-          "description": "servers neither free, allocated or faulty with this size",
+          "description": "machines neither phoned home nor waiting but in another provisioning state",
           "format": "int32",
           "type": "integer"
         },
         "othermachines": {
-          "description": "servers neither free, allocated or faulty with this size",
+          "description": "machine ids neither allocated nor waiting with this size",
           "items": {
             "type": "string"
           },
           "type": "array"
+        },
+        "phoned_home": {
+          "description": "machines in phoned home provisioning state",
+          "format": "int32",
+          "type": "integer"
+        },
+        "remainingreservations": {
+          "description": "the amount of unused / remaining / open reservations for this size",
+          "format": "int32",
+          "type": "integer"
         },
         "reservations": {
           "description": "the amount of reservations for this size",
@@ -4411,11 +4621,16 @@
           "type": "integer"
         },
         "size": {
-          "description": "the size of the server",
+          "description": "the size of the machine",
           "type": "string"
         },
         "total": {
-          "description": "total amount of servers with this size",
+          "description": "total amount of machines with size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "unavailable": {
+          "description": "unavailable machines with this size",
           "format": "int32",
           "type": "integer"
         },
@@ -4423,19 +4638,15 @@
           "description": "the amount of used reservations for this size",
           "format": "int32",
           "type": "integer"
+        },
+        "waiting": {
+          "description": "machines in waiting provisioning state",
+          "format": "int32",
+          "type": "integer"
         }
       },
       "required": [
-        "allocated",
-        "faulty",
-        "faultymachines",
-        "free",
-        "other",
-        "othermachines",
-        "reservations",
-        "size",
-        "total",
-        "usedreservations"
+        "size"
       ]
     },
     "v1.SizeConstraint": {
@@ -4497,13 +4708,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "reservations": {
-          "description": "reservations for this size, which are considered during machine allocation",
-          "items": {
-            "$ref": "#/definitions/v1.SizeReservation"
-          },
-          "type": "array"
         }
       },
       "required": [
@@ -4609,15 +4813,19 @@
         "id"
       ]
     },
-    "v1.SizeReservation": {
+    "v1.SizeReservationCreateRequest": {
       "properties": {
         "amount": {
-          "description": "the amount of reserved machine allocations for this size",
+          "description": "the amount of reservations of this size reservation",
           "format": "int32",
           "type": "integer"
         },
         "description": {
-          "description": "a description for this reservation",
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "labels": {
@@ -4627,26 +4835,40 @@
           "description": "free labels associated with this size reservation.",
           "type": "object"
         },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
         "partitionids": {
-          "description": "the partitions in which this size reservation is considered, the amount is valid for every partition",
+          "description": "the partition id of this size reservation",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "projectid": {
-          "description": "the project for which this size reservation is considered",
+          "description": "the project id of this size reservation",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id of this size reservation",
           "type": "string"
         }
       },
       "required": [
         "amount",
+        "id",
         "partitionids",
-        "projectid"
+        "projectid",
+        "sizeid"
       ]
     },
     "v1.SizeReservationListRequest": {
       "properties": {
+        "id": {
+          "description": "the id of this size reservation",
+          "type": "string"
+        },
         "partitionid": {
           "description": "the partition id of this size reservation",
           "type": "string"
@@ -4658,21 +4880,136 @@
         "sizeid": {
           "description": "the size id of this size reservation",
           "type": "string"
-        },
-        "tenant": {
-          "description": "the tenant of this size reservation",
-          "type": "string"
         }
       }
     },
     "v1.SizeReservationResponse": {
       "properties": {
+        "amount": {
+          "description": "the amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "changed": {
+          "description": "the last changed timestamp of this entity",
+          "format": "date-time",
+          "readOnly": true,
+          "type": "string"
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "format": "date-time",
+          "readOnly": true,
+          "type": "string"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string"
+        },
         "labels": {
           "additionalProperties": {
             "type": "string"
           },
           "description": "free labels associated with this size reservation.",
           "type": "object"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partitionids": {
+          "description": "the partition id of this size reservation",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "projectid": {
+          "description": "the project id of this size reservation",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id of this size reservation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "id",
+        "partitionids",
+        "projectid",
+        "sizeid"
+      ]
+    },
+    "v1.SizeReservationUpdateRequest": {
+      "properties": {
+        "amount": {
+          "description": "the amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string"
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels associated with this size reservation.",
+          "type": "object"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partitionids": {
+          "description": "the partition id of this size reservation",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "amount",
+        "id",
+        "partitionids"
+      ]
+    },
+    "v1.SizeReservationUsageResponse": {
+      "properties": {
+        "amount": {
+          "description": "the amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string"
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels associated with this size reservation.",
+          "type": "object"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
         },
         "partitionid": {
           "description": "the partition id of this size reservation",
@@ -4687,38 +5024,24 @@
           "description": "the project id of this size reservation",
           "type": "string"
         },
-        "projectname": {
-          "description": "the project name of this size reservation",
-          "type": "string"
-        },
-        "reservations": {
-          "description": "the amount of reservations of this size reservation",
-          "format": "int32",
-          "type": "integer"
-        },
         "sizeid": {
           "description": "the size id of this size reservation",
           "type": "string"
         },
-        "tenant": {
-          "description": "the tenant of this size reservation",
-          "type": "string"
-        },
-        "usedreservations": {
+        "usedamount": {
           "description": "the used amount of reservations of this size reservation",
           "format": "int32",
           "type": "integer"
         }
       },
       "required": [
+        "amount",
+        "id",
         "partitionid",
         "projectallocations",
         "projectid",
-        "projectname",
-        "reservations",
         "sizeid",
-        "tenant",
-        "usedreservations"
+        "usedamount"
       ]
     },
     "v1.SizeResponse": {
@@ -4760,13 +5083,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "reservations": {
-          "description": "reservations for this size, which are considered during machine allocation",
-          "items": {
-            "$ref": "#/definitions/v1.SizeReservation"
-          },
-          "type": "array"
         }
       },
       "required": [
@@ -4813,13 +5129,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "reservations": {
-          "description": "reservations for this size, which are considered during machine allocation",
-          "items": {
-            "$ref": "#/definitions/v1.SizeReservation"
-          },
-          "type": "array"
         }
       },
       "required": [
@@ -4894,6 +5203,22 @@
           "type": "string"
         }
       }
+    },
+    "v1.SwitchMigrateRequest": {
+      "properties": {
+        "new_switch_id": {
+          "description": "the id of the new switch to migrate to",
+          "type": "string"
+        },
+        "old_switch_id": {
+          "description": "the id of the switch that should be migrated away from",
+          "type": "string"
+        }
+      },
+      "required": [
+        "new_switch_id",
+        "old_switch_id"
+      ]
     },
     "v1.SwitchNic": {
       "properties": {
@@ -4993,6 +5318,10 @@
         },
         "vendor": {
           "description": "the operating system vendor the switch currently has",
+          "enum": [
+            "Cumulus",
+            "SONiC"
+          ],
           "type": "string"
         },
         "version": {
@@ -7886,6 +8215,13 @@
         "operationId": "updateNetwork",
         "parameters": [
           {
+            "default": false,
+            "description": "if true update forcefully",
+            "in": "query",
+            "name": "force",
+            "type": "boolean"
+          },
+          {
             "in": "body",
             "name": "body",
             "required": true,
@@ -9033,11 +9369,129 @@
       }
     },
     "/v1/size/reservations": {
-      "post": {
+      "get": {
         "consumes": [
           "application/json"
         ],
         "operationId": "listSizeReservations",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeReservationResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all size reservations",
+        "tags": [
+          "size"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateSizeReservation",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeReservationUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeReservationResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a size reservation. if the size reservation was changed since this one was read, a conflict is returned",
+        "tags": [
+          "size"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "createSizeReservation",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeReservationCreateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeReservationResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create a size reservation. if the given ID already exists a conflict is returned",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/reservations/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findSizeReservations",
         "parameters": [
           {
             "in": "body",
@@ -9069,6 +9523,122 @@
           }
         },
         "summary": "get all size reservations",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/reservations/usage": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "sizeReservationsUsage",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeReservationListRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeReservationUsageResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all size reservations",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/reservations/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "deleteSizeReservation",
+        "parameters": [
+          {
+            "description": "identifier of the size reservation",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeReservationResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "deletes a size reservation and returns the deleted entity",
+        "tags": [
+          "size"
+        ]
+      },
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getSizeReservation",
+        "parameters": [
+          {
+            "description": "identifier of the size reservation",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeReservationResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get size reservation by id",
         "tags": [
           "size"
         ]
@@ -9302,6 +9872,45 @@
           }
         },
         "summary": "get all switches that match given properties",
+        "tags": [
+          "switch"
+        ]
+      }
+    },
+    "/v1/switch/migrate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "migrateSwitch",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchMigrateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "migrates machine connections from one switch to another",
         "tags": [
           "switch"
         ]

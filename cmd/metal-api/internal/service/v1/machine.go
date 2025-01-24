@@ -45,6 +45,8 @@ type MachineAllocation struct {
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 	AllocationUUID   string                    `json:"allocationuuid" description:"a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time."`
 	FirewallRules    *FirewallRules            `json:"firewall_rules,omitempty" description:"a set of firewall rules to apply" optional:"true"`
+	DNSServers       []DNSServer               `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
+	NTPServers       []NTPServer               `json:"ntp_servers,omitempty" description:"the ntp servers used for the machine" optional:"true"`
 }
 
 type FirewallRules struct {
@@ -160,16 +162,17 @@ type MachineBIOS struct {
 }
 
 type MachineIPMI struct {
-	Address     string       `json:"address" modelDescription:"The IPMI connection data"`
-	MacAddress  string       `json:"mac"`
-	User        string       `json:"user"`
-	Password    string       `json:"password"`
-	Interface   string       `json:"interface"`
-	Fru         MachineFru   `json:"fru"`
-	BMCVersion  string       `json:"bmcversion"`
-	PowerState  string       `json:"powerstate"`
-	PowerMetric *PowerMetric `json:"powermetric"`
-	LastUpdated time.Time    `json:"last_updated"`
+	Address       string        `json:"address" modelDescription:"The IPMI connection data"`
+	MacAddress    string        `json:"mac"`
+	User          string        `json:"user"`
+	Password      string        `json:"password"`
+	Interface     string        `json:"interface"`
+	Fru           MachineFru    `json:"fru"`
+	BMCVersion    string        `json:"bmcversion"`
+	PowerState    string        `json:"powerstate"`
+	PowerMetric   *PowerMetric  `json:"powermetric"`
+	PowerSupplies PowerSupplies `json:"powersupplies"`
+	LastUpdated   time.Time     `json:"last_updated"`
 }
 
 type PowerMetric struct {
@@ -190,6 +193,16 @@ type PowerMetric struct {
 	// minimum power level in watts that occurred within the last
 	// IntervalInMin minutes.
 	MinConsumedWatts float32 `json:"minconsumedwatts"`
+}
+type PowerSupplies []PowerSupply
+type PowerSupply struct {
+	// Status shall contain any status or health properties
+	// of the resource.
+	Status PowerSupplyStatus `json:"status"`
+}
+type PowerSupplyStatus struct {
+	Health string `json:"health"`
+	State  string `json:"state"`
 }
 
 type MachineFru struct {
@@ -218,6 +231,8 @@ type MachineAllocateRequest struct {
 	Networks           MachineAllocationNetworks `json:"networks" description:"the networks that this machine will be placed in." optional:"true"`
 	IPs                []string                  `json:"ips" description:"the ips to attach to this machine additionally" optional:"true"`
 	PlacementTags      []string                  `json:"placement_tags,omitempty" description:"by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags"`
+	DNSServers         []DNSServer               `json:"dns_servers,omitempty" description:"the dns servers used for the machine" optional:"true"`
+	NTPServers         []NTPServer               `json:"ntp_servers,omitempty" description:"the ntp servers used for the machine" optional:"true"`
 }
 
 type MachineAllocationNetworks []MachineAllocationNetwork
@@ -270,6 +285,7 @@ type MachineIpmiReport struct {
 	PowerState        string
 	IndicatorLEDState string
 	PowerMetric       *PowerMetric
+	PowerSupplies     PowerSupplies
 }
 
 type MachineIpmiReports struct {
@@ -320,6 +336,14 @@ type MachineIssue struct {
 	Details     string `json:"details" description:"details of the issue"`
 }
 
+type DNSServer struct {
+	IP string `json:"ip" description:"ip address of this dns server"`
+}
+
+type NTPServer struct {
+	Address string `json:"address" description:"ip address or dns hostname of this ntp server"`
+}
+
 func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 	var chassisPartNumber string
 	if r.Fru.ChassisPartNumber != nil {
@@ -362,6 +386,15 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 			MinConsumedWatts:     r.PowerMetric.MinConsumedWatts,
 		}
 	}
+	var powerSupplies metal.PowerSupplies
+	for _, ps := range r.PowerSupplies {
+		powerSupplies = append(powerSupplies, metal.PowerSupply{
+			Status: metal.PowerSupplyStatus{
+				Health: ps.Status.Health,
+				State:  ps.Status.State,
+			},
+		})
+	}
 
 	return metal.IPMI{
 		Address:     r.Address,
@@ -381,8 +414,9 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 			ProductPartNumber:   productPartNumber,
 			ProductSerial:       productSerial,
 		},
-		PowerState:  r.PowerState,
-		PowerMetric: powerMetric,
+		PowerState:    r.PowerState,
+		PowerMetric:   powerMetric,
+		PowerSupplies: powerSupplies,
 	}
 }
 
@@ -398,20 +432,30 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 			MinConsumedWatts:     m.IPMI.PowerMetric.MinConsumedWatts,
 		}
 	}
+	var powerSupplies PowerSupplies
+	for _, ps := range m.IPMI.PowerSupplies {
+		powerSupplies = append(powerSupplies, PowerSupply{
+			Status: PowerSupplyStatus{
+				Health: ps.Status.Health,
+				State:  ps.Status.State,
+			},
+		})
+	}
 
 	return &MachineIPMIResponse{
 		Common:      machineResponse.Common,
 		MachineBase: machineResponse.MachineBase,
 		IPMI: MachineIPMI{
-			Address:     m.IPMI.Address,
-			MacAddress:  m.IPMI.MacAddress,
-			User:        m.IPMI.User,
-			Password:    m.IPMI.Password,
-			Interface:   m.IPMI.Interface,
-			BMCVersion:  m.IPMI.BMCVersion,
-			PowerState:  m.IPMI.PowerState,
-			PowerMetric: powerMetric,
-			LastUpdated: m.IPMI.LastUpdated,
+			Address:       m.IPMI.Address,
+			MacAddress:    m.IPMI.MacAddress,
+			User:          m.IPMI.User,
+			Password:      m.IPMI.Password,
+			Interface:     m.IPMI.Interface,
+			BMCVersion:    m.IPMI.BMCVersion,
+			PowerState:    m.IPMI.PowerState,
+			PowerMetric:   powerMetric,
+			PowerSupplies: powerSupplies,
+			LastUpdated:   m.IPMI.LastUpdated,
 			Fru: MachineFru{
 				ChassisPartNumber:   &m.IPMI.Fru.ChassisPartNumber,
 				ChassisPartSerial:   &m.IPMI.Fru.ChassisPartSerial,
@@ -548,6 +592,22 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			}
 		}
 
+		var (
+			dnsServers []DNSServer
+			ntpServers []NTPServer
+		)
+
+		for _, s := range m.Allocation.DNSServers {
+			dnsServers = append(dnsServers, DNSServer{
+				IP: s.IP,
+			})
+		}
+		for _, s := range m.Allocation.NTPServers {
+			ntpServers = append(ntpServers, NTPServer{
+				Address: s.Address,
+			})
+		}
+
 		allocation = &MachineAllocation{
 			Creator:          m.Allocation.Creator,
 			Created:          m.Allocation.Created,
@@ -565,6 +625,8 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			VPN:              NewMachineVPN(m.Allocation.VPN),
 			AllocationUUID:   m.Allocation.UUID,
 			FirewallRules:    firewallRules,
+			DNSServers:       dnsServers,
+			NTPServers:       ntpServers,
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall

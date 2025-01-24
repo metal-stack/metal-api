@@ -18,7 +18,7 @@ func Test_EvaluateVPNConnected(t *testing.T) {
 	tests := []struct {
 		name              string
 		mockFn            func(mock *r.Mock)
-		headscaleMachines []*headscalev1.Machine
+		headscaleMachines []*headscalev1.Node
 		wantErr           error
 	}{
 		{
@@ -60,7 +60,7 @@ func Test_EvaluateVPNConnected(t *testing.T) {
 				// unfortunately, it's too hard to check the replace exactly for specific fields...
 				mock.On(r.DB("mockdb").Table("machine").Get("toggle").Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 			},
-			headscaleMachines: []*headscalev1.Machine{
+			headscaleMachines: []*headscalev1.Node{
 				{
 					Name: "toggle",
 					User: &headscalev1.User{
@@ -104,9 +104,9 @@ func Test_EvaluateVPNConnected(t *testing.T) {
 }
 
 type headscaleTest struct {
-	ms []*headscalev1.Machine
+	ms []*headscalev1.Node
 }
 
-func (h *headscaleTest) MachinesConnected(ctx context.Context) ([]*headscalev1.Machine, error) {
+func (h *headscaleTest) NodesConnected(ctx context.Context) ([]*headscalev1.Node, error) {
 	return h.ms, nil
 }
