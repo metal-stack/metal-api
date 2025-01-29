@@ -59,7 +59,7 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 
 	if p.ParentPrefixCidr != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networkprefix").Eq(*p.ParentPrefixCidr)
+			return row.Field("prefix").Eq(*p.ParentPrefixCidr)
 		})
 	}
 
