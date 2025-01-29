@@ -210,6 +210,30 @@ func (p Prefixes) String() []string {
 	return result
 }
 
+// OfFamily returns the prefixes of the given address family.
+// be aware that malformed prefixes are just skipped, so do not use this for validation or something.
+func (p Prefixes) OfFamily(af AddressFamily) Prefixes {
+	var res Prefixes
+
+	for _, prefix := range p {
+		pfx, err := netip.ParsePrefix(prefix.String())
+		if err != nil {
+			continue
+		}
+
+		if pfx.Addr().Is4() && af == IPv6AddressFamily {
+			continue
+		}
+		if pfx.Addr().Is6() && af == IPv4AddressFamily {
+			continue
+		}
+
+		res = append(res, prefix)
+	}
+
+	return res
+}
+
 // equals returns true when prefixes have the same cidr.
 func (p *Prefix) equals(other *Prefix) bool {
 	return p.String() == other.String()

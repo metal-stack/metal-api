@@ -481,22 +481,15 @@ func validatePrefixesAndAddressFamilies(prefixes, destinationPrefixes []string, 
 	}
 
 	for af, length := range defaultChildPrefixLength {
-		fmt.Printf("af %s length:%d addressfamilies:%v", af, length, addressFamilies)
 		if !slices.Contains(addressFamilies, af) {
 			return nil, nil, nil, fmt.Errorf("private super network must always contain a defaultchildprefixlength per addressfamily:%s", af)
 		}
 
 		// check if childprefixlength is set and matches addressfamily
-		for _, p := range pfxs {
+		for _, p := range pfxs.OfFamily(af) {
 			ipprefix, err := netip.ParsePrefix(p.String())
 			if err != nil {
 				return nil, nil, nil, fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)
-			}
-			if ipprefix.Addr().Is4() && af == metal.IPv6AddressFamily {
-				continue
-			}
-			if ipprefix.Addr().Is6() && af == metal.IPv4AddressFamily {
-				continue
 			}
 			if int(length) <= ipprefix.Bits() {
 				return nil, nil, nil, fmt.Errorf("given defaultchildprefixlength %d is not greater than prefix length of:%s", length, p.String())
@@ -1006,21 +999,11 @@ func (r *networkResource) getNetworkUsage(ctx context.Context, nw *metal.Network
 
 func (r *networkResource) createChildPrefix(ctx context.Context, parentPrefixes metal.Prefixes, af metal.AddressFamily, childLength uint8) (*metal.Prefix, error) {
 	var (
-		errs        []error
-		childPrefix *metal.Prefix
+		errs []error
 	)
-	for _, parentPrefix := range parentPrefixes {
-		pfx, err := netip.ParsePrefix(parentPrefix.String())
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse prefix: %w", err)
-		}
-		if pfx.Addr().Is4() && af == metal.IPv6AddressFamily {
-			continue
-		}
-		if pfx.Addr().Is6() && af == metal.IPv4AddressFamily {
-			continue
-		}
-		childPrefix, err = r.ipamer.AllocateChildPrefix(ctx, parentPrefix, childLength)
+
+	for _, parentPrefix := range parentPrefixes.OfFamily(af) {
+		childPrefix, err := r.ipamer.AllocateChildPrefix(ctx, parentPrefix, childLength)
 		if err != nil {
 			var connectErr *connect.Error
 			if errors.As(err, &connectErr) {
@@ -1031,18 +1014,15 @@ func (r *networkResource) createChildPrefix(ctx context.Context, parentPrefixes 
 			errs = append(errs, err)
 			continue
 		}
-		if childPrefix != nil {
-			break
-		}
-	}
-	if childPrefix == nil {
-		if len(errs) > 0 {
-			return nil, fmt.Errorf("cannot allocate free child prefix in ipam: %w", errors.Join(errs...))
-		}
-		return nil, fmt.Errorf("cannot allocate free child prefix in one of the given parent prefixes in ipam: %s", parentPrefixes.String())
+
+		return childPrefix, nil
 	}
 
-	return childPrefix, nil
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("cannot allocate free child prefix in ipam: %w", errors.Join(errs...))
+	}
+
+	return nil, fmt.Errorf("cannot allocate free child prefix in one of the given parent prefixes in ipam: %s", parentPrefixes.String())
 }
 
 func checkAnyIPOfPrefixesInUse(ips []metal.IP, prefixes metal.Prefixes) error {

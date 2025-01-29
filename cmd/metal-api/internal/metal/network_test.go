@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestNics_ByIdentifier(t *testing.T) {
@@ -331,6 +333,61 @@ func TestNicState_SetState(t *testing.T) {
 			}
 			if got1 != tt.changed {
 				t.Errorf("NicState.SetState() got1 = %v, want %v", got1, tt.changed)
+			}
+		})
+	}
+}
+
+func TestPrefixes_OfFamily(t *testing.T) {
+	tests := []struct {
+		name string
+		af   AddressFamily
+		p    Prefixes
+		want Prefixes
+	}{
+		{
+			name: "no prefixes filtered by ipv4",
+			af:   IPv4AddressFamily,
+			p:    Prefixes{},
+			want: nil,
+		},
+		{
+			name: "prefixes filtered by ipv4",
+			af:   IPv4AddressFamily,
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "64"},
+			},
+			want: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+			},
+		},
+		{
+			name: "prefixes filtered by ipv6",
+			af:   IPv6AddressFamily,
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "64"},
+			},
+			want: Prefixes{
+				{IP: "fe80::", Length: "64"},
+			},
+		},
+		{
+			name: "malformed prefixes are skipped",
+			af:   IPv6AddressFamily,
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "metal-stack-rulez"},
+			},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.p.OfFamily(tt.af)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("diff = %s", diff)
 			}
 		})
 	}

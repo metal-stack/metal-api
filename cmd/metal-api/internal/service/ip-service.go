@@ -424,7 +424,12 @@ func allocateSpecificIP(ctx context.Context, parent *metal.Network, specificIP s
 		return "", "", fmt.Errorf("unable to parse specific ip: %w", err)
 	}
 
-	for _, prefix := range parent.Prefixes {
+	af := metal.IPv4AddressFamily
+	if parsedIP.Is6() {
+		af = metal.IPv6AddressFamily
+	}
+
+	for _, prefix := range parent.Prefixes.OfFamily(af) {
 		pfx, err := netip.ParsePrefix(prefix.String())
 		if err != nil {
 			return "", "", fmt.Errorf("unable to parse prefix: %w", err)
@@ -433,6 +438,7 @@ func allocateSpecificIP(ctx context.Context, parent *metal.Network, specificIP s
 		if !pfx.Contains(parsedIP) {
 			continue
 		}
+
 		ipAddress, err = ipamer.AllocateSpecificIP(ctx, prefix, specificIP)
 		var connectErr *connect.Error
 		if errors.As(err, &connectErr) {
@@ -458,18 +464,7 @@ func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IP
 		addressfamily = parent.AddressFamilies[0]
 	}
 
-	for _, prefix := range parent.Prefixes {
-		pfx, err := netip.ParsePrefix(prefix.String())
-		if err != nil {
-			return "", "", fmt.Errorf("unable to parse prefix: %w", err)
-		}
-		if pfx.Addr().Is4() && addressfamily == metal.IPv6AddressFamily {
-			continue
-		}
-		if pfx.Addr().Is6() && addressfamily == metal.IPv4AddressFamily {
-			continue
-		}
-
+	for _, prefix := range parent.Prefixes.OfFamily(addressfamily) {
 		ipAddress, err = ipamer.AllocateIP(ctx, prefix)
 		if err != nil {
 			var connectErr *connect.Error
