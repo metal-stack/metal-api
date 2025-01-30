@@ -284,7 +284,12 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 
 	var childPrefixLength = metal.ChildPrefixLength{}
 	for af, length := range requestPayload.DefaultChildPrefixLength {
-		childPrefixLength[metal.ToAddressFamily(string(af))] = length
+		addressfamily, err := metal.ValidateAddressFamily(string(af))
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamily of defaultchildprefixlength is invalid %w", err)))
+			return
+		}
+		childPrefixLength[addressfamily] = length
 	}
 
 	prefixes, destPrefixes, addressFamilies, err := validatePrefixesAndAddressFamilies(requestPayload.Prefixes, requestPayload.DestinationPrefixes, childPrefixLength, privateSuper)
@@ -627,21 +632,30 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	length := superNetwork.DefaultChildPrefixLength
 	if len(requestPayload.Length) > 0 {
 		for af, l := range requestPayload.Length {
-			length[metal.ToAddressFamily(string(af))] = l
+			addressfamily, err := metal.ValidateAddressFamily(string(af))
+			if err != nil {
+				r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamily of length is invalid %w", err)))
+				return
+			}
+			length[addressfamily] = l
 		}
 	}
 
 	if requestPayload.AddressFamily != nil {
-		af := metal.ToAddressFamily(string(*requestPayload.AddressFamily))
-		bits, ok := length[af]
+		addressfamily, err := metal.ValidateAddressFamily(string(*requestPayload.AddressFamily))
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamily is invalid %w", err)))
+			return
+		}
+		bits, ok := length[addressfamily]
 		if !ok {
 			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamiliy %s specified, but no childprefixlength for this addressfamily", *requestPayload.AddressFamily)))
 			return
 		}
 		length = metal.ChildPrefixLength{
-			af: bits,
+			addressfamily: bits,
 		}
-		nwSpec.AddressFamilies = metal.AddressFamilies{af}
+		nwSpec.AddressFamilies = metal.AddressFamilies{addressfamily}
 	}
 
 	r.log.Info("network allocate", "supernetwork", superNetwork.ID, "defaultchildprefixlength", superNetwork.DefaultChildPrefixLength, "length", length)

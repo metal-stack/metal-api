@@ -1,6 +1,7 @@
 package metal
 
 import (
+	"fmt"
 	"net"
 	"net/netip"
 	"strconv"
@@ -266,11 +267,24 @@ type AddressFamily string
 type AddressFamilies []AddressFamily
 
 const (
+	// InvalidAddressFamily identifies a invalid Addressfamily
+	InvalidAddressFamily = AddressFamily("invalid")
 	// IPv4AddressFamily identifies IPv4
 	IPv4AddressFamily = AddressFamily("IPv4")
 	// IPv6AddressFamily identifies IPv6
 	IPv6AddressFamily = AddressFamily("IPv6")
 )
+
+// Validate a string if it is a addressfamily and returns an error if it is not.
+func ValidateAddressFamily(af string) (AddressFamily, error) {
+	switch strings.ToLower(af) {
+	case "ipv4":
+		return IPv4AddressFamily, nil
+	case "ipv6":
+		return IPv6AddressFamily, nil
+	}
+	return InvalidAddressFamily, fmt.Errorf("given addressfamily:%q is invalid", af)
+}
 
 // ToAddressFamily will convert a string af to a AddressFamily
 func ToAddressFamily(af string) AddressFamily {

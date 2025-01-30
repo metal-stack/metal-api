@@ -285,7 +285,12 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	}
 
 	if requestPayload.AddressFamily != nil {
-		if !slices.Contains(nw.AddressFamilies, metal.ToAddressFamily(string(*requestPayload.AddressFamily))) {
+		af, err := metal.ValidateAddressFamily(string(*requestPayload.AddressFamily))
+		if err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+		if !slices.Contains(nw.AddressFamilies, af) {
 			r.sendError(request, response, httperrors.BadRequest(
 				fmt.Errorf("there is no prefix for the given addressfamily:%s present in network:%s", string(*requestPayload.AddressFamily), requestPayload.NetworkID)),
 			)
