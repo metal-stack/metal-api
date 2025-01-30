@@ -991,8 +991,8 @@ func (r *networkResource) getNetworkUsage(ctx context.Context, nw *metal.Network
 			consumption.IPv4.AvailablePrefixes += u.AvailablePrefixes
 			consumption.IPv4.UsedPrefixes += u.UsedPrefixes
 		case metal.IPv6AddressFamily:
-			if consumption.IPv4 == nil {
-				consumption.IPv4 = &v1.NetworkUsage{}
+			if consumption.IPv6 == nil {
+				consumption.IPv6 = &v1.NetworkUsage{}
 			}
 			consumption.IPv6.AvailableIPs += u.AvailableIPs
 			consumption.IPv6.UsedIPs += u.UsedIPs
