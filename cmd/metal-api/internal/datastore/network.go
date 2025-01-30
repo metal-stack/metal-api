@@ -156,7 +156,7 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 	}
 
 	if p.AddressFamily != nil {
-		separator := "."
+		var separator string
 		af := metal.ToAddressFamily(*p.AddressFamily)
 		switch af {
 		case metal.IPv4AddressFamily:
@@ -164,8 +164,6 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 		case metal.IPv6AddressFamily:
 			separator = ":"
 		}
-
-		fmt.Printf("Separator:%s\n", separator)
 
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("prefixes").Contains(func(p r.Term) r.Term {

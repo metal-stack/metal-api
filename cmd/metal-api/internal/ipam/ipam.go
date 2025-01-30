@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/netip"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/healthstatus"
@@ -155,33 +154,14 @@ func (i *ipam) PrefixUsage(ctx context.Context, cidr string) (*metal.NetworkUsag
 	if err != nil {
 		return nil, fmt.Errorf("prefix usage for cidr:%s not found %w", cidr, err)
 	}
-	pfx, err := netip.ParsePrefix(cidr)
-	if err != nil {
-		return nil, err
-	}
-	af := metal.IPv4AddressFamily
-	if pfx.Addr().Is6() {
-		af = metal.IPv6AddressFamily
-	}
-	availableIPs := metal.AddressFamilyUsage{
-		af: usage.Msg.AvailableIps,
-	}
-	usedIPs := metal.AddressFamilyUsage{
-		af: usage.Msg.AcquiredIps,
-	}
-	availablePrefixes := metal.AddressFamilyUsage{
-		af: usage.Msg.AvailableSmallestPrefixes,
-	}
-	usedPrefixes := metal.AddressFamilyUsage{
-		af: usage.Msg.AcquiredPrefixes,
-	}
+
 	return &metal.NetworkUsage{
-		AvailableIPs: availableIPs,
-		UsedIPs:      usedIPs,
+		AvailableIPs: usage.Msg.AvailableIps,
+		UsedIPs:      usage.Msg.AcquiredIps,
 		// FIXME add usage.AvailablePrefixList as already done here
 		// https://github.com/metal-stack/metal-api/pull/152/files#diff-fe05f7f1480be933b5c482b74af28c8b9ca7ef2591f8341eb6e6663cbaeda7baR828
-		AvailablePrefixes: availablePrefixes,
-		UsedPrefixes:      usedPrefixes,
+		AvailablePrefixes: usage.Msg.AvailableSmallestPrefixes,
+		UsedPrefixes:      usage.Msg.AcquiredPrefixes,
 	}, nil
 }
 

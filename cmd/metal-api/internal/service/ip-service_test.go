@@ -287,7 +287,7 @@ func TestAllocateIP(t *testing.T) {
 			wantErr:      errors.New("specific ip not contained in any of the defined prefixes"),
 		},
 		{
-			name: "allocate a IPv4 address",
+			name: "allocate an IPv4 address",
 			allocateRequest: v1.IPAllocateRequest{
 				Describable: v1.Describable{},
 				IPBase: v1.IPBase{
@@ -302,7 +302,7 @@ func TestAllocateIP(t *testing.T) {
 			wantedStatus: http.StatusCreated,
 		},
 		{
-			name: "allocate a IPv6 address",
+			name: "allocate an IPv6 address",
 			allocateRequest: v1.IPAllocateRequest{
 				Describable: v1.Describable{},
 				IPBase: v1.IPBase{
@@ -316,7 +316,7 @@ func TestAllocateIP(t *testing.T) {
 			wantErr:      errors.New("there is no prefix for the given addressfamily:IPv6 present in network:4"),
 		},
 		{
-			name: "allocate a IPv4 (no addressfamily specified) address from a IPv6 Only network",
+			name: "allocate an IPv4 (no addressfamily specified) address from an IPv6 only network",
 			allocateRequest: v1.IPAllocateRequest{
 				Describable: v1.Describable{},
 				IPBase: v1.IPBase{

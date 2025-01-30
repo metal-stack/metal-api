@@ -87,15 +87,13 @@ type NetworkResponse struct {
 }
 
 // NewNetworkResponse converts the metal Network in the NetworkResponse visible from the API.
-func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *NetworkResponse {
+func NewNetworkResponse(network *metal.Network, consumption *NetworkConsumption) *NetworkResponse {
 	if network == nil {
 		return nil
 	}
 
 	var (
 		parentNetworkID *string
-		usagev4         *NetworkUsage
-		usagev6         *NetworkUsage
 	)
 
 	if network.ParentNetworkID != "" {
@@ -104,25 +102,6 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 	labels := network.Labels
 	if labels == nil {
 		labels = make(map[string]string)
-	}
-
-	for _, af := range network.AddressFamilies {
-		if af == metal.IPv4AddressFamily {
-			usagev4 = &NetworkUsage{
-				AvailableIPs:      usage.AvailableIPs[af],
-				UsedIPs:           usage.UsedIPs[af],
-				AvailablePrefixes: usage.AvailablePrefixes[af],
-				UsedPrefixes:      usage.UsedPrefixes[af],
-			}
-		}
-		if af == metal.IPv6AddressFamily {
-			usagev6 = &NetworkUsage{
-				AvailableIPs:      usage.AvailableIPs[af],
-				UsedIPs:           usage.UsedIPs[af],
-				AvailablePrefixes: usage.AvailablePrefixes[af],
-				UsedPrefixes:      usage.UsedPrefixes[af],
-			}
-		}
 	}
 
 	response := &NetworkResponse{
@@ -152,19 +131,15 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			ParentNetworkID:            parentNetworkID,
 			AdditionalAnnouncableCIDRs: network.AdditionalAnnouncableCIDRs,
 		},
-		Consumption: NetworkConsumption{},
+		Consumption: *consumption,
 		Timestamps: Timestamps{
 			Created: network.Created,
 			Changed: network.Changed,
 		},
 	}
 
-	if usagev4 != nil {
-		response.Usage = *usagev4
-		response.Consumption.IPv4 = usagev4
-	}
-	if usagev6 != nil {
-		response.Consumption.IPv6 = usagev6
+	if consumption.IPv4 != nil {
+		response.Usage = *consumption.IPv4
 	}
 
 	return response

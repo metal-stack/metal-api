@@ -161,13 +161,13 @@ func (r *networkResource) findNetwork(request *restful.Request, response *restfu
 		return
 	}
 	ctx := request.Request.Context()
-	usage, err := r.getNetworkUsage(ctx, nw)
+	consumption, err := r.getNetworkUsage(ctx, nw)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, usage))
+	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, consumption))
 }
 
 func (r *networkResource) listNetworks(request *restful.Request, response *restful.Response) {
@@ -179,13 +179,13 @@ func (r *networkResource) listNetworks(request *restful.Request, response *restf
 	ctx := request.Request.Context()
 	var result []*v1.NetworkResponse
 	for i := range nws {
-		usage, err := r.getNetworkUsage(ctx, &nws[i])
+		consumption, err := r.getNetworkUsage(ctx, &nws[i])
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
 		}
 
-		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
+		result = append(result, v1.NewNetworkResponse(&nws[i], consumption))
 	}
 
 	r.send(request, response, http.StatusOK, result)
@@ -214,13 +214,13 @@ func (r *networkResource) findNetworks(request *restful.Request, response *restf
 	ctx := request.Request.Context()
 	result := []*v1.NetworkResponse{}
 	for i := range nws {
-		usage, err := r.getNetworkUsage(ctx, &nws[i])
+		consumption, err := r.getNetworkUsage(ctx, &nws[i])
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
 		}
 
-		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
+		result = append(result, v1.NewNetworkResponse(&nws[i], consumption))
 	}
 
 	r.send(request, response, http.StatusOK, result)
@@ -334,15 +334,12 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 			return
 		}
 
-		// We should support two private super per partition, one per addressfamily
-		// the network allocate request must be configurable with addressfamily
 		if privateSuper {
 			var nw metal.Network
 			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{
 				PartitionID:  &partition.ID,
 				PrivateSuper: pointer.Pointer(true),
 			}, &nw)
-			r.log.Info("createnetwork", "found", nw)
 			if err != nil && !metal.IsNotFound(err) {
 				r.sendError(request, response, defaultError(err))
 				return
@@ -428,13 +425,13 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	usage, err := r.getNetworkUsage(ctx, nw)
+	consumption, err := r.getNetworkUsage(ctx, nw)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, consumption))
 }
 
 func validateAdditionalAnnouncableCIDRs(additionalCidrs []string, privateSuper bool) error {
@@ -467,6 +464,7 @@ func validatePrefixesAndAddressFamilies(prefixes, destinationPrefixes []string, 
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
 	if len(destinationAddressFamilies) > len(addressFamilies) {
 		return nil, nil, nil, fmt.Errorf("destination prefixes have more addressfamilies than prefixes")
 
@@ -607,10 +605,9 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		return
 	}
 	if len(superNetwork.DefaultChildPrefixLength) == 0 {
-		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("supernetwork %s has no defaultchildprefixlength specified", superNetwork.ID)))
+		r.sendError(request, response, httperrors.InternalServerError(fmt.Errorf("supernetwork %s has no defaultchildprefixlength specified", superNetwork.ID)))
 		return
 	}
-	r.log.Info("network allocate", "supernetwork", superNetwork.ID)
 
 	nwSpec := &metal.Network{
 		Base: metal.Base{
@@ -656,13 +653,13 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		return
 	}
 
-	usage, err := r.getNetworkUsage(ctx, nw)
+	consumption, err := r.getNetworkUsage(ctx, nw)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, consumption))
 }
 
 func (r *networkResource) createChildNetwork(ctx context.Context, nwSpec *metal.Network, parent *metal.Network, childLengths metal.ChildPrefixLength) (*metal.Network, error) {
@@ -742,7 +739,7 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 		return
 	}
 
-	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
+	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, &v1.NetworkConsumption{}))
 }
 
 func (r *networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
@@ -963,38 +960,48 @@ func (r *networkResource) deleteNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
+	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, &v1.NetworkConsumption{}))
 }
 
-func (r *networkResource) getNetworkUsage(ctx context.Context, nw *metal.Network) (*metal.NetworkUsage, error) {
-	usage := &metal.NetworkUsage{
-		AvailableIPs:      metal.AddressFamilyUsage{},
-		UsedIPs:           metal.AddressFamilyUsage{},
-		AvailablePrefixes: metal.AddressFamilyUsage{},
-		UsedPrefixes:      metal.AddressFamilyUsage{},
-	}
+func (r *networkResource) getNetworkUsage(ctx context.Context, nw *metal.Network) (*v1.NetworkConsumption, error) {
+	consumption := &v1.NetworkConsumption{}
 	if nw == nil {
-		return usage, nil
+		return consumption, nil
 	}
 	for _, prefix := range nw.Prefixes {
 		pfx, err := netip.ParsePrefix(prefix.String())
 		if err != nil {
 			return nil, err
 		}
-		key := metal.IPv4AddressFamily
+		af := metal.IPv4AddressFamily
 		if pfx.Addr().Is6() {
-			key = metal.IPv6AddressFamily
+			af = metal.IPv6AddressFamily
 		}
 		u, err := r.ipamer.PrefixUsage(ctx, prefix.String())
 		if err != nil {
 			return nil, err
 		}
-		usage.AvailableIPs[key] += u.AvailableIPs[key]
-		usage.UsedIPs[key] += u.UsedIPs[key]
-		usage.AvailablePrefixes[key] += u.AvailablePrefixes[key]
-		usage.UsedPrefixes[key] += u.UsedPrefixes[key]
+		switch af {
+		case metal.IPv4AddressFamily:
+			if consumption.IPv4 == nil {
+				consumption.IPv4 = &v1.NetworkUsage{}
+			}
+			consumption.IPv4.AvailableIPs += u.AvailableIPs
+			consumption.IPv4.UsedIPs += u.UsedIPs
+			consumption.IPv4.AvailablePrefixes += u.AvailablePrefixes
+			consumption.IPv4.UsedPrefixes += u.UsedPrefixes
+		case metal.IPv6AddressFamily:
+			if consumption.IPv4 == nil {
+				consumption.IPv4 = &v1.NetworkUsage{}
+			}
+			consumption.IPv6.AvailableIPs += u.AvailableIPs
+			consumption.IPv6.UsedIPs += u.UsedIPs
+			consumption.IPv6.AvailablePrefixes += u.AvailablePrefixes
+			consumption.IPv6.UsedPrefixes += u.UsedPrefixes
+		}
+
 	}
-	return usage, nil
+	return consumption, nil
 }
 
 func (r *networkResource) createChildPrefix(ctx context.Context, parentPrefixes metal.Prefixes, af metal.AddressFamily, childLength uint8) (*metal.Prefix, error) {
