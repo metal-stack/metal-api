@@ -2,11 +2,11 @@ package helper
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"strings"
 	"time"
 
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
@@ -26,10 +26,11 @@ func WaitForAllocation(ctx context.Context, log *slog.Logger, service v1.BootSer
 		if err != nil {
 			log.Error("failed waiting for allocation", "retry after", timeout, "error", err)
 
-			if strings.Contains(err.Error(), "failed to verify certificate") {
+			var unknownAuthorityError x509.UnknownAuthorityError
+			if errors.Is(err, &unknownAuthorityError) {
 				return fmt.Errorf("certificate changed, rebooting")
 			}
-			
+
 			time.Sleep(timeout)
 			continue
 		}
