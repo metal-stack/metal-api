@@ -791,7 +791,14 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	}
 
 	if audit != nil {
-		httpFilter, err := auditing.HttpFilter(audit, logger.WithGroup("audit-middleware"))
+		filterOpt := auditing.NewHttpFilterErrorCallback(func(err error, response *restful.Response) {
+			httperr := httperrors.InternalServerError(err)
+			if err := response.WriteHeaderAndEntity(httperr.StatusCode, httperr); err != nil {
+				logger.Error("failed to send response", "error", err)
+			}
+		})
+
+		httpFilter, err := auditing.HttpFilter(audit, logger.WithGroup("audit-middleware"), filterOpt)
 		if err != nil {
 			log.Fatalf("unable to create http filter for auditing: %s", err)
 		}
