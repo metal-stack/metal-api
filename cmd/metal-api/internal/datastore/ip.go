@@ -24,7 +24,7 @@ type IPSearchQuery struct {
 }
 
 // GenerateTerm generates the project search query term.
-func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
+func (p *IPSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 	q := *rs.ipTable()
 
 	if p.IPAddress != nil {
@@ -88,6 +88,8 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 			separator = "\\."
 		case metal.IPv6AddressFamily:
 			separator = ":"
+		case metal.InvalidAddressFamily:
+			return nil, fmt.Errorf("given addressfamily is invalid:%s", af)
 		}
 
 		q = q.Filter(func(row r.Term) r.Term {
@@ -95,7 +97,7 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		})
 	}
 
-	return &q
+	return &q, nil
 }
 
 // FindIPByID returns an ip of a given id.
@@ -110,7 +112,11 @@ func (rs *RethinkStore) FindIPByID(id string) (*metal.IP, error) {
 
 // SearchIPs returns the result of the ips search request query.
 func (rs *RethinkStore) SearchIPs(q *IPSearchQuery, ips *metal.IPs) error {
-	return rs.searchEntities(q.generateTerm(rs), ips)
+	term, err := q.generateTerm(rs)
+	if err != nil {
+		return err
+	}
+	return rs.searchEntities(term, ips)
 }
 
 // ListIPs returns all ips.

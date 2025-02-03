@@ -163,6 +163,8 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 			separator = "\\."
 		case metal.IPv6AddressFamily:
 			separator = ":"
+		case metal.InvalidAddressFamily:
+			return nil, fmt.Errorf("given addressfamily is invalid:%s", af)
 		}
 
 		q = q.Filter(func(row r.Term) r.Term {

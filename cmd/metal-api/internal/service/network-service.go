@@ -1012,6 +1012,8 @@ func (r *networkResource) getNetworkUsage(ctx context.Context, nw *metal.Network
 			consumption.IPv6.UsedIPs += u.UsedIPs
 			consumption.IPv6.AvailablePrefixes += u.AvailablePrefixes
 			consumption.IPv6.UsedPrefixes += u.UsedPrefixes
+		case metal.InvalidAddressFamily:
+			return nil, fmt.Errorf("given addressfamily is invalid:%s", af)
 		}
 
 	}
