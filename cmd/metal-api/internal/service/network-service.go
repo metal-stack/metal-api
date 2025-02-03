@@ -470,9 +470,10 @@ func validatePrefixesAndAddressFamilies(prefixes, destinationPrefixes []string, 
 		return nil, nil, nil, err
 	}
 
-	if len(destinationAddressFamilies) > len(addressFamilies) {
-		return nil, nil, nil, fmt.Errorf("destination prefixes have more addressfamilies than prefixes")
-
+	for _, af := range destinationAddressFamilies {
+		if !slices.Contains(addressFamilies, af) {
+			return nil, nil, nil, fmt.Errorf("addressfamily:%s of destination prefixes is not present in existing prefixes", af)
+		}
 	}
 
 	if !privateSuper {
