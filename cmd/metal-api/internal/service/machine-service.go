@@ -1672,8 +1672,7 @@ func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer 
 	if n.auto {
 
 		for _, af := range n.network.AddressFamilies {
-			addressFamily := metal.ToAddressFamily(string(af))
-			ipAddress, ipParentCidr, err := allocateRandomIP(ctx, n.network, ipamer, &addressFamily)
+			ipAddress, ipParentCidr, err := allocateRandomIP(ctx, n.network, ipamer, &af)
 			if err != nil {
 				return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 			}
