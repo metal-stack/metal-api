@@ -306,7 +306,8 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 	n2fetched, err := rs.FindNetworkByID(n2.ID)
 	require.NoError(t, err)
 	require.NotNil(t, n2fetched)
-	require.Equal(t, p2.PrivateNetworkPrefixLength, n2fetched.DefaultChildPrefixLength[metal.IPv6AddressFamily], "childprefixlength:%v", n2fetched.DefaultChildPrefixLength)
+	require.Equal(t, p2.PrivateNetworkPrefixLength, n2fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily], "childprefixlength:%v", n2fetched.DefaultChildPrefixLength)
+	require.Equal(t, n2fetched.DefaultChildPrefixLength, metal.ChildPrefixLength{metal.IPv4AddressFamily: 24, metal.IPv6AddressFamily: 64})
 	require.Contains(t, n2fetched.AddressFamilies, metal.IPv6AddressFamily)
 
 	n3fetched, err := rs.FindNetworkByID(n3.ID)

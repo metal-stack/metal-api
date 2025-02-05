@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"net/netip"
+	"slices"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
@@ -44,38 +45,37 @@ func init() {
 				new := old
 
 				var (
-					af                       metal.AddressFamily
+					afs                      metal.AddressFamilies
 					defaultChildPrefixLength = metal.ChildPrefixLength{}
 				)
-				// FIXME check all prefixes
-				parsed, err := netip.ParsePrefix(new.Prefixes[0].String())
-				if err != nil {
-					return err
+				for _, prefix := range new.Prefixes {
+					parsed, err := netip.ParsePrefix(prefix.String())
+					if err != nil {
+						return err
+					}
+					var af metal.AddressFamily
+					if parsed.Addr().Is4() {
+						af = metal.IPv4AddressFamily
+						defaultChildPrefixLength[af] = 22
+					}
+					if parsed.Addr().Is6() {
+						af = metal.IPv6AddressFamily
+						defaultChildPrefixLength[af] = 64
+					}
+					if !slices.Contains(afs, af) {
+						afs = append(afs, af)
+					}
 				}
-				if parsed.Addr().Is4() {
-					af = metal.IPv4AddressFamily
-					defaultChildPrefixLength[af] = 22
-				}
-				if parsed.Addr().Is6() {
-					af = metal.IPv6AddressFamily
-					defaultChildPrefixLength[af] = 64
-				}
-
-				if new.AddressFamilies == nil {
-					new.AddressFamilies = metal.AddressFamilies{}
-				}
-				new.AddressFamilies = metal.AddressFamilies{af}
+				new.AddressFamilies = afs
 
 				if new.PrivateSuper {
 					if new.DefaultChildPrefixLength == nil {
-						new.DefaultChildPrefixLength = make(map[metal.AddressFamily]uint8)
+						new.DefaultChildPrefixLength = metal.ChildPrefixLength{}
 					}
 					if partition.PrivateNetworkPrefixLength > 0 {
-						new.DefaultChildPrefixLength[af] = partition.PrivateNetworkPrefixLength
-					} else {
-						new.DefaultChildPrefixLength = defaultChildPrefixLength
+						defaultChildPrefixLength[metal.IPv4AddressFamily] = partition.PrivateNetworkPrefixLength
 					}
-
+					new.DefaultChildPrefixLength = defaultChildPrefixLength
 				}
 				err = rs.UpdateNetwork(&old, &new)
 				if err != nil {
