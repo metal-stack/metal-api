@@ -282,6 +282,11 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
+	if !privateSuper && (requestPayload.DefaultChildPrefixLength != nil || len(requestPayload.DefaultChildPrefixLength) > 0) {
+		r.sendError(request, response, httperrors.BadRequest(errors.New("defaultchildprefixlength can only be set for privatesuper networks")))
+		return
+	}
+
 	var childPrefixLength = metal.ChildPrefixLength{}
 	for af, length := range requestPayload.DefaultChildPrefixLength {
 		addressfamily, err := metal.ValidateAddressFamily(string(af))
@@ -485,6 +490,10 @@ func validatePrefixesAndAddressFamilies(prefixes, destinationPrefixes []string, 
 	}
 
 	for af, length := range defaultChildPrefixLength {
+		_, err := metal.ValidateAddressFamily(string(af))
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("addressfamily of defaultchildprefixlength is invalid %w", err)
+		}
 		if !slices.Contains(addressFamilies, af) {
 			return nil, nil, nil, fmt.Errorf("private super network must always contain a defaultchildprefixlength per addressfamily:%s", af)
 		}
