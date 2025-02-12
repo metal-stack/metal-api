@@ -14,8 +14,9 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/dustin/go-humanize"
-	mn "github.com/metal-stack/metal-lib/pkg/net"
 	"github.com/samber/lo"
+
+	mn "github.com/metal-stack/metal-lib/pkg/net"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -758,8 +759,8 @@ func (n NTPServers) Validate() error {
 		return nil
 	}
 
-	if len(n) < 3 || len(n) > 5 {
-		return errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
+	if len(n) > 5 {
+		return errors.New("please specify a maximum of five ntp servers")
 	}
 
 	for _, ntpserver := range n {
