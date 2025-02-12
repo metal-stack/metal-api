@@ -287,6 +287,7 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
 	rootCmd.Flags().Bool("auditing-enabled", false, "enable auditing")
+	rootCmd.Flags().String("auditing-search-backend", "", "the auditing backend used as a source for search in the audit service. if explicitly specified the first one configured is picked given the following order of precedence: timescaledb,meilisearch")
 
 	rootCmd.Flags().String("auditing-meili-url", "http://localhost:7700", "url of the auditing service")
 	rootCmd.Flags().String("auditing-meili-api-key", "secret", "api key for the auditing service")
@@ -699,7 +700,7 @@ func initAuth(lg *slog.Logger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
-func initRestServices(audit []auditing.Auditing, withauth bool, ipmiSuperUser metal.MachineIPMISuperUser) *restfulspec.Config {
+func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []auditing.Auditing, withauth bool, ipmiSuperUser metal.MachineIPMISuperUser) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
 		log.Fatal("base path must start and end with a slash")
@@ -765,7 +766,7 @@ func initRestServices(audit []auditing.Auditing, withauth bool, ipmiSuperUser me
 		releaseVersion = pointer.Pointer(viper.GetString("release-version"))
 	}
 
-	restful.DefaultContainer.Add(service.NewAudit(logger.WithGroup("audit-service"), pointer.FirstOrZero(audit)))
+	restful.DefaultContainer.Add(service.NewAudit(logger.WithGroup("audit-service"), searchAuditBackend))
 	restful.DefaultContainer.Add(service.NewPartition(logger.WithGroup("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.WithGroup("image-service"), ds))
 	restful.DefaultContainer.Add(service.NewSize(logger.WithGroup("size-service"), ds, mdc))
@@ -798,7 +799,7 @@ func initRestServices(audit []auditing.Auditing, withauth bool, ipmiSuperUser me
 		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
 	}
 
-	for _, backend := range audit {
+	for _, backend := range allAuditBackends {
 		httpFilter, err := auditing.HttpFilter(backend, logger.WithGroup("audit-middleware"))
 		if err != nil {
 			log.Fatalf("unable to create http filter for auditing: %s", err)
@@ -838,10 +839,9 @@ func initHeadscale() error {
 }
 
 func dumpSwaggerJSON() {
-
 	// This is required to make dump work
 	ipamer = ipam.New(nil)
-	cfg := initRestServices(nil, false, metal.DisabledIPMISuperUser())
+	cfg := initRestServices(nil, nil, false, metal.DisabledIPMISuperUser())
 	actual := restfulspec.BuildSwagger(*cfg)
 
 	// declare custom type for default errors, see:
@@ -916,19 +916,17 @@ func evaluateVPNConnected() error {
 }
 
 // might return (nil, nil) if auditing is disabled!
-func createAuditingClient(log *slog.Logger) ([]auditing.Auditing, error) {
+func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, backends []auditing.Auditing, err error) {
 	isEnabled := viper.GetBool("auditing-enabled")
 	if !isEnabled {
 		log.Warn("auditing is disabled, can be enabled by setting --auditing-enabled=true")
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	c := auditing.Config{
 		Component: "metal-api",
 		Log:       log,
 	}
-
-	var backends []auditing.Auditing
 
 	if viper.IsSet("auditing-timescaledb-host") {
 		backend, err := auditing.NewTimescaleDB(c, auditing.TimescaleDbConfig{
@@ -941,10 +939,14 @@ func createAuditingClient(log *slog.Logger) ([]auditing.Auditing, error) {
 		})
 
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		backends = append(backends, backend)
+
+		if viper.GetString("auditing-search-backend") == "timescaledb" {
+			searchBackend = backend
+		}
 	}
 
 	if viper.IsSet("auditing-meili-api-key") {
@@ -957,23 +959,31 @@ func createAuditingClient(log *slog.Logger) ([]auditing.Auditing, error) {
 		})
 
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		backends = append(backends, backend)
+
+		if viper.GetString("auditing-search-backend") == "meilisearch" {
+			searchBackend = backend
+		}
 	}
 
-	return backends, nil
+	if searchBackend == nil {
+		searchBackend = pointer.FirstOrZero(backends)
+	}
+
+	return searchBackend, backends, nil
 }
 
 func run() error {
 	ipmiSuperUser := metal.NewIPMISuperUser(logger, viper.GetString("bmc-superuser-pwd-file"))
 
-	audit, err := createAuditingClient(logger)
+	auditSearchBackend, allAuditBackends, err := createAuditingClient(logger)
 	if err != nil {
 		log.Fatalf("cannot create auditing client:%s ", err)
 	}
-	initRestServices(audit, true, ipmiSuperUser)
+	initRestServices(auditSearchBackend, allAuditBackends, true, ipmiSuperUser)
 
 	// enable OPTIONS-request so clients can query CORS information
 	restful.DefaultContainer.Filter(restful.DefaultContainer.OPTIONSFilter)
@@ -1033,7 +1043,7 @@ func run() error {
 			ServerCertFile:           viper.GetString("grpc-server-cert-file"),
 			ServerKeyFile:            viper.GetString("grpc-server-key-file"),
 			BMCSuperUserPasswordFile: viper.GetString("bmc-superuser-pwd-file"),
-			Auditing:                 audit,
+			Auditing:                 allAuditBackends,
 			IPMISuperUser:            ipmiSuperUser,
 		})
 		if err != nil {
