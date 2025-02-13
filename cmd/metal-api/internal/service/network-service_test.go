@@ -565,7 +565,7 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 	}
 }
 
-func Test_validatePrefixes(t *testing.T) {
+func Test_convertToPrefixesAndAddressFamilies(t *testing.T) {
 	tests := []struct {
 		name         string
 		prefixes     []string
@@ -590,7 +590,13 @@ func Test_validatePrefixes(t *testing.T) {
 			prefixes:     []string{"10.0.0.0/8", "2001::/64"},
 			wantPrefixes: metal.Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "2001::", Length: "64"}},
 			wantAF:       metal.AddressFamilies{metal.IPv4AddressFamily, metal.IPv6AddressFamily},
-			wantErr:      false,
+		},
+		{
+			name:         "wrong ipv6 pfx",
+			prefixes:     []string{"10.0.0.0/8", "2001:/64"},
+			wantPrefixes: nil,
+			wantAF:       nil,
+			wantErr:      true,
 		},
 	}
 	for _, tt := range tests {
@@ -608,6 +614,89 @@ func Test_validatePrefixes(t *testing.T) {
 			slices.Sort(tt.wantAF)
 			if diff := cmp.Diff(af, tt.wantAF); diff != "" {
 				t.Errorf("validatePrefixes() diff=%s", diff)
+			}
+		})
+	}
+}
+
+func Test_validatePrefixesAndAddressFamilies(t *testing.T) {
+	tests := []struct {
+		name                     string
+		prefixes                 metal.Prefixes
+		prefixesAfs              metal.AddressFamilies
+		destPrefixesAfs          metal.AddressFamilies
+		defaultChildPrefixLength metal.ChildPrefixLength
+		privateSuper             bool
+		wantErr                  bool
+		wantErrMsg               string
+	}{
+		{
+			name:                     "all is valid",
+			prefixes:                 metal.Prefixes{{IP: "1.3.4.0", Length: "24"}},
+			prefixesAfs:              metal.AddressFamilies{metal.IPv4AddressFamily},
+			destPrefixesAfs:          metal.AddressFamilies{metal.IPv4AddressFamily},
+			defaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv4AddressFamily: 28},
+			privateSuper:             true,
+			wantErr:                  false,
+		},
+		{
+			name:                     "mixed afs in prefixes and destination prefixes",
+			prefixes:                 metal.Prefixes{{IP: "1.3.4.0", Length: "24"}},
+			prefixesAfs:              metal.AddressFamilies{metal.IPv4AddressFamily},
+			destPrefixesAfs:          metal.AddressFamilies{metal.IPv6AddressFamily},
+			defaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv4AddressFamily: 28},
+			privateSuper:             true,
+			wantErr:                  true,
+			wantErrMsg:               "addressfamily:IPv6 of destination prefixes is not present in existing prefixes",
+		},
+		{
+			name:            "defaultChildPrefixLength not set for private super",
+			prefixes:        metal.Prefixes{{IP: "1.3.4.0", Length: "24"}},
+			prefixesAfs:     metal.AddressFamilies{metal.IPv4AddressFamily},
+			destPrefixesAfs: metal.AddressFamilies{metal.IPv4AddressFamily},
+			privateSuper:    true,
+			wantErr:         true,
+			wantErrMsg:      "private super network must always contain a defaultchildprefixlength",
+		},
+		{
+			name:                     "defaultChildPrefixLength has invalid AF",
+			prefixes:                 metal.Prefixes{{IP: "1.3.4.0", Length: "24"}},
+			prefixesAfs:              metal.AddressFamilies{metal.IPv4AddressFamily},
+			destPrefixesAfs:          metal.AddressFamilies{metal.IPv4AddressFamily},
+			defaultChildPrefixLength: metal.ChildPrefixLength{metal.AddressFamily("ipv5"): 28},
+			privateSuper:             true,
+			wantErr:                  true,
+			wantErrMsg:               "addressfamily of defaultchildprefixlength is invalid given addressfamily:\"ipv5\" is invalid",
+		},
+		{
+			name:                     "defaultChildPrefixLength does not contain prefixes AF",
+			prefixes:                 metal.Prefixes{{IP: "1.3.4.0", Length: "24"}},
+			prefixesAfs:              metal.AddressFamilies{metal.IPv4AddressFamily, metal.IPv6AddressFamily},
+			destPrefixesAfs:          metal.AddressFamilies{metal.IPv4AddressFamily},
+			defaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv6AddressFamily: 64},
+			privateSuper:             true,
+			wantErr:                  true,
+			wantErrMsg:               "private super network must always contain a defaultchildprefixlength per addressfamily:IPv4",
+		},
+		{
+			name:                     "defaultChildPrefixLength does not contain prefixes AF",
+			prefixes:                 metal.Prefixes{{IP: "1.3.4.0", Length: "24"}},
+			prefixesAfs:              metal.AddressFamilies{metal.IPv4AddressFamily},
+			destPrefixesAfs:          metal.AddressFamilies{metal.IPv4AddressFamily},
+			defaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv4AddressFamily: 24},
+			privateSuper:             true,
+			wantErr:                  true,
+			wantErrMsg:               "given defaultchildprefixlength 24 is not greater than prefix length of:1.3.4.0/24",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePrefixesAndAddressFamilies(tt.prefixes, tt.prefixesAfs, tt.destPrefixesAfs, tt.defaultChildPrefixLength, tt.privateSuper)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePrefixesAndAddressFamilies() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if (err != nil) && tt.wantErr {
+				require.Equal(t, tt.wantErrMsg, err.Error())
 			}
 		})
 	}

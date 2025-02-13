@@ -494,9 +494,6 @@ func validatePrefixesAndAddressFamilies(prefixes metal.Prefixes, prefixesAfs, de
 		if err != nil {
 			return fmt.Errorf("addressfamily of defaultchildprefixlength is invalid %w", err)
 		}
-		if !slices.Contains(prefixesAfs, af) {
-			return fmt.Errorf("private super network must always contain a defaultchildprefixlength per addressfamily:%s", af)
-		}
 
 		// check if childprefixlength is set and matches addressfamily
 		for _, p := range prefixes.OfFamily(af) {
@@ -507,6 +504,12 @@ func validatePrefixesAndAddressFamilies(prefixes metal.Prefixes, prefixesAfs, de
 			if int(length) <= ipprefix.Bits() {
 				return fmt.Errorf("given defaultchildprefixlength %d is not greater than prefix length of:%s", length, p.String())
 			}
+		}
+	}
+
+	for _, af := range prefixesAfs {
+		if _, exists := defaultChildPrefixLength[af]; !exists {
+			return fmt.Errorf("private super network must always contain a defaultchildprefixlength per addressfamily:%s", af)
 		}
 	}
 
