@@ -595,7 +595,7 @@ func Test_validatePrefixes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, af, err := validatePrefixes(tt.prefixes)
+			got, af, err := convertToPrefixesAndAddressFamilies(tt.prefixes)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validatePrefixes() error = %v, wantErr %v", err, tt.wantErr)
 				return
