@@ -287,7 +287,7 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
 	rootCmd.Flags().Bool("auditing-enabled", false, "enable auditing")
-	rootCmd.Flags().String("auditing-search-backend", "", "the auditing backend used as a source for search in the audit service. if explicitly specified the first one configured is picked given the following order of precedence: timescaledb,meilisearch")
+	rootCmd.Flags().String("auditing-search-backend", "", "the auditing backend used as a source for search in the audit service. if not specified the first one configured is picked given the following order of precedence: timescaledb,meilisearch")
 
 	rootCmd.Flags().String("auditing-meili-url", "http://localhost:7700", "url of the auditing service")
 	rootCmd.Flags().String("auditing-meili-api-key", "secret", "api key for the auditing service")
