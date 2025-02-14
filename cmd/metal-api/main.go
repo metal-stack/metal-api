@@ -70,6 +70,9 @@ const (
 	DataStoreConnectTableInit dsConnectOpt = 0
 	// DataStoreConnectNoDemotion connects to the data store without demoting to runtime user in the end
 	DataStoreConnectNoDemotion dsConnectOpt = 1
+
+	auditingBackendTimescaleDB = "timescaledb"
+	auditingBackendMeilisearch = "meilisearch"
 )
 
 var (
@@ -944,7 +947,7 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 
 		backends = append(backends, backend)
 
-		if viper.GetString("auditing-search-backend") == "timescaledb" {
+		if viper.GetString("auditing-search-backend") == auditingBackendTimescaleDB {
 			searchBackend = backend
 		}
 	}
@@ -964,7 +967,7 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 
 		backends = append(backends, backend)
 
-		if viper.GetString("auditing-search-backend") == "meilisearch" {
+		if viper.GetString("auditing-search-backend") == auditingBackendMeilisearch {
 			searchBackend = backend
 		}
 	}
