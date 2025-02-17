@@ -312,25 +312,21 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, n1fetched)
 	require.Equal(t, p1.PrivateNetworkPrefixLength, n1fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily], "childprefixlength:%v", n1fetched.DefaultChildPrefixLength)
-	require.Contains(t, n1fetched.AddressFamilies, metal.IPv4AddressFamily)
 
 	n2fetched, err := rs.FindNetworkByID(n2.ID)
 	require.NoError(t, err)
 	require.NotNil(t, n2fetched)
 	require.Equal(t, p2.PrivateNetworkPrefixLength, n2fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily], "childprefixlength:%v", n2fetched.DefaultChildPrefixLength)
 	require.Equal(t, metal.ChildPrefixLength{metal.IPv4AddressFamily: 24, metal.IPv6AddressFamily: 64}, n2fetched.DefaultChildPrefixLength)
-	require.Contains(t, n2fetched.AddressFamilies, metal.IPv6AddressFamily)
 
 	n3fetched, err := rs.FindNetworkByID(n3.ID)
 	require.NoError(t, err)
 	require.NotNil(t, n3fetched)
 	require.Nil(t, n3fetched.DefaultChildPrefixLength)
-	require.Contains(t, n3fetched.AddressFamilies, metal.IPv4AddressFamily)
 
 	n4fetched, err := rs.FindNetworkByID(n4.ID)
 	require.NoError(t, err)
 	require.NotNil(t, n4fetched)
 	require.NotNil(t, n4fetched.DefaultChildPrefixLength)
-	require.Contains(t, n4fetched.AddressFamilies, metal.IPv4AddressFamily)
 	require.Equal(t, uint8(22), n4fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily])
 }

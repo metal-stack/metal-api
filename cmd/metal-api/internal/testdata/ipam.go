@@ -36,8 +36,7 @@ func InitMockIpamData(dbMock *r.Mock, withIP bool) (ipam.IPAMer, error) {
 			Name:        "IPAM Network",
 			Description: "description IPAM",
 		},
-		Prefixes:        prefixesIPAM,
-		AddressFamilies: metal.AddressFamilies{metal.IPv4AddressFamily},
+		Prefixes: prefixesIPAM,
 	}
 
 	// now, let's get an ip from the IPAM for IPAMIP

@@ -68,9 +68,6 @@ func (_ *networkTestable) defaultBody(n *metal.Network) *metal.Network {
 	if n.AdditionalAnnouncableCIDRs == nil {
 		n.AdditionalAnnouncableCIDRs = []string{}
 	}
-	if n.AddressFamilies == nil {
-		n.AddressFamilies = metal.AddressFamilies{}
-	}
 	return n
 }
 

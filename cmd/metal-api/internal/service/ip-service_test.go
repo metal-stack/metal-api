@@ -316,7 +316,7 @@ func TestAllocateIP(t *testing.T) {
 			wantErr:      errors.New("there is no prefix for the given addressfamily:IPv6 present in network:4"),
 		},
 		{
-			name: "allocate an IPv4 (no addressfamily specified) address from an IPv6 only network",
+			name: "allocate a random IPv6 (no addressfamily specified) address from an IPv6 only network",
 			allocateRequest: v1.IPAllocateRequest{
 				Describable: v1.Describable{},
 				IPBase: v1.IPBase{

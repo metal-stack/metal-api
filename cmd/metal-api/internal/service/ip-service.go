@@ -284,13 +284,18 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
+	if len(nw.Prefixes) == 0 {
+		r.sendError(request, response, httperrors.UnprocessableEntity(fmt.Errorf("network %s does not have prefixes configured", nw.Prefixes)))
+		return
+	}
+
 	if requestPayload.AddressFamily != nil {
 		af, err := metal.ToAddressFamily(string(*requestPayload.AddressFamily))
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
 		}
-		if !slices.Contains(nw.AddressFamilies, af) {
+		if !slices.Contains(nw.Prefixes.AddressFamilies(), af) {
 			r.sendError(request, response, httperrors.BadRequest(
 				fmt.Errorf("there is no prefix for the given addressfamily:%s present in network:%s", string(*requestPayload.AddressFamily), requestPayload.NetworkID)),
 			)
@@ -465,8 +470,8 @@ func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IP
 	var addressfamily = metal.IPv4AddressFamily
 	if af != nil {
 		addressfamily = *af
-	} else if len(parent.AddressFamilies) == 1 {
-		addressfamily = parent.AddressFamilies[0]
+	} else if len(parent.Prefixes.AddressFamilies()) == 1 {
+		addressfamily = parent.Prefixes.AddressFamilies()[0]
 	}
 
 	for _, prefix := range parent.Prefixes.OfFamily(addressfamily) {

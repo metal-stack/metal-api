@@ -392,3 +392,46 @@ func TestPrefixes_OfFamily(t *testing.T) {
 		})
 	}
 }
+
+func TestPrefixes_AddressFamilies(t *testing.T) {
+	tests := []struct {
+		name string
+		p    Prefixes
+		want AddressFamilies
+	}{
+		{
+			name: "only ipv4",
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+			},
+			want: AddressFamilies{IPv4AddressFamily},
+		},
+		{
+			name: "only ipv6",
+			p: Prefixes{
+				{IP: "fe80::", Length: "64"},
+			},
+			want: AddressFamilies{IPv6AddressFamily},
+		},
+		{
+			name: "both afs",
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "64"},
+			},
+			want: AddressFamilies{IPv4AddressFamily, IPv6AddressFamily},
+		},
+		{
+			name: "nil prefixes",
+			p:    nil,
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.p.AddressFamilies(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Prefixes.AddressFamilies() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -235,6 +236,32 @@ func (p Prefixes) OfFamily(af AddressFamily) Prefixes {
 	return res
 }
 
+// AddressFamilies returns the addressfamilies of given prefixes.
+// be aware that malformed prefixes are just skipped, so do not use this for validation or something.
+func (p Prefixes) AddressFamilies() AddressFamilies {
+	var afs AddressFamilies
+
+	for _, prefix := range p {
+		pfx, err := netip.ParsePrefix(prefix.String())
+		if err != nil {
+			continue
+		}
+
+		var af AddressFamily
+		if pfx.Addr().Is4() {
+			af = IPv4AddressFamily
+		}
+		if pfx.Addr().Is6() {
+			af = IPv6AddressFamily
+		}
+		if !slices.Contains(afs, af) {
+			afs = append(afs, af)
+		}
+	}
+
+	return afs
+}
+
 // equals returns true when prefixes have the same cidr.
 func (p *Prefix) equals(other *Prefix) bool {
 	return p.String() == other.String()
@@ -244,20 +271,20 @@ func (p *Prefix) equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes                   Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
-	DestinationPrefixes        Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-	DefaultChildPrefixLength   ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
-	PartitionID                string            `rethinkdb:"partitionid" json:"partitionid"`
-	ProjectID                  string            `rethinkdb:"projectid" json:"projectid"`
-	ParentNetworkID            string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
-	Vrf                        uint              `rethinkdb:"vrf" json:"vrf"`
-	PrivateSuper               bool              `rethinkdb:"privatesuper" json:"privatesuper"`
-	Nat                        bool              `rethinkdb:"nat" json:"nat"`
-	Underlay                   bool              `rethinkdb:"underlay" json:"underlay"`
-	Shared                     bool              `rethinkdb:"shared" json:"shared"`
-	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
-	AddressFamilies            AddressFamilies   `rethinkdb:"addressfamilies" json:"addressfamilies"`
-	AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
+	Prefixes                 Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
+	DestinationPrefixes      Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+	DefaultChildPrefixLength ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
+	PartitionID              string            `rethinkdb:"partitionid" json:"partitionid"`
+	ProjectID                string            `rethinkdb:"projectid" json:"projectid"`
+	ParentNetworkID          string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
+	Vrf                      uint              `rethinkdb:"vrf" json:"vrf"`
+	PrivateSuper             bool              `rethinkdb:"privatesuper" json:"privatesuper"`
+	Nat                      bool              `rethinkdb:"nat" json:"nat"`
+	Underlay                 bool              `rethinkdb:"underlay" json:"underlay"`
+	Shared                   bool              `rethinkdb:"shared" json:"shared"`
+	Labels                   map[string]string `rethinkdb:"labels" json:"labels"`
+	// AddressFamilies            AddressFamilies   `rethinkdb:"addressfamilies" json:"addressfamilies"`
+	AdditionalAnnouncableCIDRs []string `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
 }
 
 type ChildPrefixLength map[AddressFamily]uint8

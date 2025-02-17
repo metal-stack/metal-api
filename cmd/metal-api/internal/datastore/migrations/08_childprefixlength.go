@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"net/netip"
-	"slices"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
@@ -45,7 +44,6 @@ func init() {
 				new := old
 
 				var (
-					afs                      metal.AddressFamilies
 					defaultChildPrefixLength = metal.ChildPrefixLength{}
 				)
 				for _, prefix := range new.Prefixes {
@@ -53,20 +51,13 @@ func init() {
 					if err != nil {
 						return err
 					}
-					var af metal.AddressFamily
 					if parsed.Addr().Is4() {
-						af = metal.IPv4AddressFamily
-						defaultChildPrefixLength[af] = 22
+						defaultChildPrefixLength[metal.IPv4AddressFamily] = 22
 					}
 					if parsed.Addr().Is6() {
-						af = metal.IPv6AddressFamily
-						defaultChildPrefixLength[af] = 64
-					}
-					if !slices.Contains(afs, af) {
-						afs = append(afs, af)
+						defaultChildPrefixLength[metal.IPv6AddressFamily] = 64
 					}
 				}
-				new.AddressFamilies = afs
 
 				if new.PrivateSuper {
 					if new.DefaultChildPrefixLength == nil {

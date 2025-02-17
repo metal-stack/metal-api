@@ -426,7 +426,6 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		Underlay:                   underlay,
 		Vrf:                        vrf,
 		Labels:                     labels,
-		AddressFamilies:            addressFamilies,
 		AdditionalAnnouncableCIDRs: requestPayload.AdditionalAnnouncableCIDRs,
 	}
 
@@ -638,7 +637,6 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		DestinationPrefixes: destPrefixes,
 		Shared:              shared,
 		Nat:                 nat,
-		AddressFamilies:     superNetwork.AddressFamilies,
 	}
 
 	// Allow configurable prefix length per AF
@@ -668,7 +666,6 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		length = metal.ChildPrefixLength{
 			addressfamily: bits,
 		}
-		nwSpec.AddressFamilies = metal.AddressFamilies{addressfamily}
 	}
 
 	r.log.Info("network allocate", "supernetwork", superNetwork.ID, "defaultchildprefixlength", superNetwork.DefaultChildPrefixLength, "length", length)
@@ -723,7 +720,6 @@ func (r *networkResource) createChildNetwork(ctx context.Context, nwSpec *metal.
 		Vrf:                 *vrf,
 		ParentNetworkID:     parent.ID,
 		Labels:              nwSpec.Labels,
-		AddressFamilies:     nwSpec.AddressFamilies,
 	}
 
 	err = r.ds.CreateNetwork(nw)
@@ -876,11 +872,10 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
-	newNetwork.AddressFamilies = addressFamilies
 
 	if len(requestPayload.DefaultChildPrefixLength) > 0 {
 		for af, defaultChildPrefixLength := range requestPayload.DefaultChildPrefixLength {
-			if !slices.Contains(newNetwork.AddressFamilies, af) {
+			if !slices.Contains(addressFamilies, af) {
 				r.sendError(request, response, defaultError(fmt.Errorf("no addressfamily %q present for defaultchildprefixlength: %d", af, defaultChildPrefixLength)))
 				return
 			}

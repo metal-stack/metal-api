@@ -1449,9 +1449,6 @@ func makeNetworks(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.I
 		if n == nil || n.network == nil {
 			continue
 		}
-		if len(n.network.AddressFamilies) == 0 {
-			n.network.AddressFamilies = metal.AddressFamilies{metal.IPv4AddressFamily}
-		}
 		machineNetwork, err := makeMachineNetwork(ctx, ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return err
@@ -1670,8 +1667,10 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 
 func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
-
-		for _, af := range n.network.AddressFamilies {
+		if len(n.network.Prefixes) == 0 {
+			return nil, fmt.Errorf("given network %s does not have prefixes configured", n.network.ID)
+		}
+		for _, af := range n.network.Prefixes.AddressFamilies() {
 			ipAddress, ipParentCidr, err := allocateRandomIP(ctx, n.network, ipamer, &af)
 			if err != nil {
 				return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)

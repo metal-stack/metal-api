@@ -297,7 +297,6 @@ var (
 		Prefixes:                 prefixes1,
 		PrivateSuper:             true,
 		DefaultChildPrefixLength: cpl1,
-		AddressFamilies:          metal.AddressFamilies{metal.IPv4AddressFamily},
 	}
 	Nw2 = metal.Network{
 		Base: metal.Base{
@@ -309,7 +308,6 @@ var (
 		Prefixes:                 prefixes2,
 		Underlay:                 true,
 		DefaultChildPrefixLength: cpl2,
-		AddressFamilies:          metal.AddressFamilies{metal.IPv4AddressFamily},
 	}
 	Nw3 = metal.Network{
 		Base: metal.Base{
@@ -320,7 +318,6 @@ var (
 		Prefixes:        prefixes3,
 		PartitionID:     Partition1.ID,
 		ParentNetworkID: Nw1.ID,
-		AddressFamilies: metal.AddressFamilies{metal.IPv4AddressFamily},
 	}
 
 	Partition1PrivateSuperNetwork = metal.Network{
@@ -344,7 +341,6 @@ var (
 		Prefixes:                 metal.Prefixes{superPrefix},
 		PartitionID:              Partition2.ID,
 		DefaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv4AddressFamily: 22},
-		AddressFamilies:          metal.AddressFamilies{metal.IPv4AddressFamily},
 		ParentNetworkID:          "",
 		ProjectID:                "",
 		PrivateSuper:             true,
@@ -359,7 +355,6 @@ var (
 		Prefixes:                 metal.Prefixes{superPrefixV6},
 		PartitionID:              Partition2.ID,
 		DefaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv6AddressFamily: 64},
-		AddressFamilies:          metal.AddressFamilies{metal.IPv6AddressFamily},
 		ParentNetworkID:          "",
 		ProjectID:                "",
 		PrivateSuper:             true,
@@ -374,7 +369,6 @@ var (
 		Prefixes:                 metal.Prefixes{superPrefix, superPrefixV6},
 		PartitionID:              "4",
 		DefaultChildPrefixLength: metal.ChildPrefixLength{metal.IPv4AddressFamily: 22, metal.IPv6AddressFamily: 64},
-		AddressFamilies:          metal.AddressFamilies{metal.IPv4AddressFamily, metal.IPv6AddressFamily},
 		ParentNetworkID:          "",
 		ProjectID:                "",
 		PrivateSuper:             true,
@@ -493,7 +487,6 @@ var (
 			Description: "description IPAM",
 		},
 		Prefixes:        prefixesIPAM,
-		AddressFamilies: metal.AddressFamilies{metal.IPv4AddressFamily},
 	}
 
 	// IPs
