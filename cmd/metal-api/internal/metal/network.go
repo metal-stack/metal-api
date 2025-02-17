@@ -189,7 +189,7 @@ type Prefixes []Prefix
 func NewPrefixFromCIDR(cidr string) (*Prefix, *netip.Prefix, error) {
 	prefix, err := netip.ParsePrefix(cidr)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("given cidr %s is not a valid ip with mask: %w", cidr, err)
 	}
 	ip := prefix.Addr().String()
 	length := strconv.Itoa(prefix.Bits())
@@ -197,6 +197,20 @@ func NewPrefixFromCIDR(cidr string) (*Prefix, *netip.Prefix, error) {
 		IP:     ip,
 		Length: length,
 	}, &prefix, nil
+}
+
+func NewPrefixesFromCIDRs(cidrs []string) (Prefixes, error) {
+	var (
+		result Prefixes
+	)
+	for _, p := range cidrs {
+		prefix, _, err := NewPrefixFromCIDR(p)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, *prefix)
+	}
+	return result, nil
 }
 
 // String implements the Stringer interface

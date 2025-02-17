@@ -3,6 +3,7 @@ package metal
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -431,6 +432,61 @@ func TestPrefixes_AddressFamilies(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.p.AddressFamilies(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Prefixes.AddressFamilies() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_NewPrefixesFromCidrs(t *testing.T) {
+	tests := []struct {
+		name         string
+		prefixes     []string
+		wantPrefixes Prefixes
+		wantAF       AddressFamilies
+		wantErr      bool
+	}{
+		{
+			name:         "simple all ipv4",
+			prefixes:     []string{"10.0.0.0/8", "11.0.0.0/24"},
+			wantPrefixes: Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "11.0.0.0", Length: "24"}},
+			wantAF:       AddressFamilies{IPv4AddressFamily},
+		},
+		{
+			name:         "simple all ipv6",
+			prefixes:     []string{"2001::/64", "fbaa::/48"},
+			wantPrefixes: Prefixes{{IP: "2001::", Length: "64"}, {IP: "fbaa::", Length: "48"}},
+			wantAF:       AddressFamilies{IPv6AddressFamily},
+		},
+		{
+			name:         "mixed af",
+			prefixes:     []string{"10.0.0.0/8", "2001::/64"},
+			wantPrefixes: Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "2001::", Length: "64"}},
+			wantAF:       AddressFamilies{IPv4AddressFamily, IPv6AddressFamily},
+		},
+		{
+			name:         "wrong ipv6 pfx",
+			prefixes:     []string{"10.0.0.0/8", "2001:/64"},
+			wantPrefixes: nil,
+			wantAF:       nil,
+			wantErr:      true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewPrefixesFromCIDRs(tt.prefixes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePrefixes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got, tt.wantPrefixes); diff != "" {
+				t.Errorf("validatePrefixes() diff=%s", diff)
+			}
+
+			afs := got.AddressFamilies()
+			slices.Sort(afs)
+			slices.Sort(tt.wantAF)
+			if diff := cmp.Diff(afs, tt.wantAF); diff != "" {
+				t.Errorf("validatePrefixes() diff=%s", diff)
 			}
 		})
 	}

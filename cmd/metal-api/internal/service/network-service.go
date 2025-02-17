@@ -297,12 +297,12 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		childPrefixLength[addressfamily] = length
 	}
 
-	prefixes, err := convertToPrefixesAndAddressFamilies(requestPayload.Prefixes)
+	prefixes, err := metal.NewPrefixesFromCIDRs(requestPayload.Prefixes)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
-	destPrefixes, err := convertToPrefixesAndAddressFamilies(requestPayload.DestinationPrefixes)
+	destPrefixes, err := metal.NewPrefixesFromCIDRs(requestPayload.DestinationPrefixes)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -516,20 +516,6 @@ func validatePrefixesAndAddressFamilies(prefixes metal.Prefixes, destPrefixesAfs
 	}
 
 	return nil
-}
-
-func convertToPrefixesAndAddressFamilies(prefixes []string) (metal.Prefixes, error) {
-	var (
-		result metal.Prefixes
-	)
-	for _, p := range prefixes {
-		prefix, _, err := metal.NewPrefixFromCIDR(p)
-		if err != nil {
-			return nil, fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)
-		}
-		result = append(result, *prefix)
-	}
-	return result, nil
 }
 
 // TODO add possibility to allocate from a non super network if given in the AllocateRequest and super has childprefixlength
@@ -818,7 +804,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	)
 
 	if len(requestPayload.Prefixes) > 0 {
-		prefixes, err := convertToPrefixesAndAddressFamilies(requestPayload.Prefixes)
+		prefixes, err := metal.NewPrefixesFromCIDRs(requestPayload.Prefixes)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -847,7 +833,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		destPrefixAfs metal.AddressFamilies
 	)
 	if len(requestPayload.DestinationPrefixes) > 0 {
-		destPrefixes, err := convertToPrefixesAndAddressFamilies(requestPayload.DestinationPrefixes)
+		destPrefixes, err := metal.NewPrefixesFromCIDRs(requestPayload.DestinationPrefixes)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -856,7 +842,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		destPrefixAfs = destPrefixes.AddressFamilies()
 	}
 
-	prefixes, err := convertToPrefixesAndAddressFamilies(newNetwork.Prefixes.String())
+	prefixes, err := metal.NewPrefixesFromCIDRs(newNetwork.Prefixes.String())
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return

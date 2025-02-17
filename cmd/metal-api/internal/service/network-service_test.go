@@ -7,11 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"slices"
 	"testing"
 
 	restful "github.com/emicklei/go-restful/v3"
-	"github.com/google/go-cmp/cmp"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -348,7 +346,7 @@ func Test_networkResource_createNetwork(t *testing.T) {
 			privateSuper:         true,
 			vrf:                  uint(10000),
 			expectedStatus:       http.StatusBadRequest,
-			expectedErrorMessage: "given prefix 192.168.265.0/24 is not a valid ip with mask: netip.ParsePrefix(\"192.168.265.0/24\"): ParseAddr(\"192.168.265.0\"): IPv4 field has value >255",
+			expectedErrorMessage: "given cidr 192.168.265.0/24 is not a valid ip with mask: netip.ParsePrefix(\"192.168.265.0/24\"): ParseAddr(\"192.168.265.0\"): IPv4 field has value >255",
 		},
 		{
 			name:                 "broken IPv6",
@@ -360,7 +358,7 @@ func Test_networkResource_createNetwork(t *testing.T) {
 			privateSuper:         true,
 			vrf:                  uint(10000),
 			expectedStatus:       http.StatusBadRequest,
-			expectedErrorMessage: "given prefix fdaa:::/50 is not a valid ip with mask: netip.ParsePrefix(\"fdaa:::/50\"): ParseAddr(\"fdaa:::\"): each colon-separated field must have at least one digit (at \":\")",
+			expectedErrorMessage: "given cidr fdaa:::/50 is not a valid ip with mask: netip.ParsePrefix(\"fdaa:::/50\"): ParseAddr(\"fdaa:::\"): each colon-separated field must have at least one digit (at \":\")",
 		},
 		{
 			name:                "mixed prefix addressfamilies",
@@ -381,7 +379,7 @@ func Test_networkResource_createNetwork(t *testing.T) {
 			destinationPrefixes:  []string{"0.0.0.0/33"},
 			vrf:                  uint(10000),
 			expectedStatus:       http.StatusBadRequest,
-			expectedErrorMessage: "given prefix 0.0.0.0/33 is not a valid ip with mask: netip.ParsePrefix(\"0.0.0.0/33\"): prefix length out of range",
+			expectedErrorMessage: "given cidr 0.0.0.0/33 is not a valid ip with mask: netip.ParsePrefix(\"0.0.0.0/33\"): prefix length out of range",
 		},
 		{
 			name:        "broken childprefixlength",
@@ -562,61 +560,6 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 			require.Equal(t, tt.partitionID, *result.PartitionID)
 			require.Equal(t, tt.projectID, *result.ProjectID)
 		}
-	}
-}
-
-func Test_convertToPrefixesAndAddressFamilies(t *testing.T) {
-	tests := []struct {
-		name         string
-		prefixes     []string
-		wantPrefixes metal.Prefixes
-		wantAF       metal.AddressFamilies
-		wantErr      bool
-	}{
-		{
-			name:         "simple all ipv4",
-			prefixes:     []string{"10.0.0.0/8", "11.0.0.0/24"},
-			wantPrefixes: metal.Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "11.0.0.0", Length: "24"}},
-			wantAF:       metal.AddressFamilies{metal.IPv4AddressFamily},
-		},
-		{
-			name:         "simple all ipv6",
-			prefixes:     []string{"2001::/64", "fbaa::/48"},
-			wantPrefixes: metal.Prefixes{{IP: "2001::", Length: "64"}, {IP: "fbaa::", Length: "48"}},
-			wantAF:       metal.AddressFamilies{metal.IPv6AddressFamily},
-		},
-		{
-			name:         "mixed af",
-			prefixes:     []string{"10.0.0.0/8", "2001::/64"},
-			wantPrefixes: metal.Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "2001::", Length: "64"}},
-			wantAF:       metal.AddressFamilies{metal.IPv4AddressFamily, metal.IPv6AddressFamily},
-		},
-		{
-			name:         "wrong ipv6 pfx",
-			prefixes:     []string{"10.0.0.0/8", "2001:/64"},
-			wantPrefixes: nil,
-			wantAF:       nil,
-			wantErr:      true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := convertToPrefixesAndAddressFamilies(tt.prefixes)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validatePrefixes() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if diff := cmp.Diff(got, tt.wantPrefixes); diff != "" {
-				t.Errorf("validatePrefixes() diff=%s", diff)
-			}
-
-			afs := got.AddressFamilies()
-			slices.Sort(afs)
-			slices.Sort(tt.wantAF)
-			if diff := cmp.Diff(afs, tt.wantAF); diff != "" {
-				t.Errorf("validatePrefixes() diff=%s", diff)
-			}
-		})
 	}
 }
 
