@@ -289,7 +289,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 
 	var childPrefixLength = metal.ChildPrefixLength{}
 	for af, length := range requestPayload.DefaultChildPrefixLength {
-		addressfamily, err := metal.ValidateAddressFamily(string(af))
+		addressfamily, err := metal.ToAddressFamily(string(af))
 		if err != nil {
 			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamily of defaultchildprefixlength is invalid %w", err)))
 			return
@@ -490,7 +490,7 @@ func validatePrefixesAndAddressFamilies(prefixes metal.Prefixes, prefixesAfs, de
 	}
 
 	for af, length := range defaultChildPrefixLength {
-		_, err := metal.ValidateAddressFamily(string(af))
+		_, err := metal.ToAddressFamily(string(af))
 		if err != nil {
 			return fmt.Errorf("addressfamily of defaultchildprefixlength is invalid %w", err)
 		}
@@ -645,7 +645,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	length := superNetwork.DefaultChildPrefixLength
 	if len(requestPayload.Length) > 0 {
 		for af, l := range requestPayload.Length {
-			addressfamily, err := metal.ValidateAddressFamily(string(af))
+			addressfamily, err := metal.ToAddressFamily(string(af))
 			if err != nil {
 				r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamily of length is invalid %w", err)))
 				return
@@ -655,7 +655,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	}
 
 	if requestPayload.AddressFamily != nil {
-		addressfamily, err := metal.ValidateAddressFamily(string(*requestPayload.AddressFamily))
+		addressfamily, err := metal.ToAddressFamily(string(*requestPayload.AddressFamily))
 		if err != nil {
 			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamily is invalid %w", err)))
 			return

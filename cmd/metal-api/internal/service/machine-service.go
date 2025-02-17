@@ -1696,7 +1696,7 @@ func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer 
 
 	// from the makeNetworks call, a lot of ips might be set in this network
 	// add a machine tag to all of them
-	ipAddresses := []string{}
+	var ipAddresses []string
 	for i := range n.ips {
 		ip := n.ips[i]
 		newIP := ip

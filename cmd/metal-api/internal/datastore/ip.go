@@ -82,7 +82,10 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 
 	if p.AddressFamily != nil {
 		var separator string
-		af := metal.ToAddressFamily(*p.AddressFamily)
+		af, err := metal.ToAddressFamily(*p.AddressFamily)
+		if err != nil {
+			return nil, err
+		}
 		switch af {
 		case metal.IPv4AddressFamily:
 			separator = "\\."

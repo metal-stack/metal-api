@@ -285,7 +285,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	}
 
 	if requestPayload.AddressFamily != nil {
-		af, err := metal.ValidateAddressFamily(string(*requestPayload.AddressFamily))
+		af, err := metal.ToAddressFamily(string(*requestPayload.AddressFamily))
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return

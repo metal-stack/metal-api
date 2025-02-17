@@ -270,6 +270,15 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 			PartitionID:  "p3",
 			PrivateSuper: true,
 		}
+		n5 = &metal.Network{
+			Base: metal.Base{
+				ID: "n5",
+			},
+			Prefixes: metal.Prefixes{
+				{IP: "9.0.0.0", Length: "8"},
+			},
+			PrivateSuper: true,
+		}
 	)
 	_, err = r.DB("metal").Table("partition").Insert(p1).RunWrite(rs.Session())
 	require.NoError(t, err)
@@ -285,6 +294,8 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 	err = rs.CreateNetwork(n3)
 	require.NoError(t, err)
 	err = rs.CreateNetwork(n4)
+	require.NoError(t, err)
+	err = rs.CreateNetwork(n5)
 	require.NoError(t, err)
 
 	err = rs.Migrate(nil, false)

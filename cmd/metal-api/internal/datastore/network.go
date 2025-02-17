@@ -155,9 +155,13 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 		})
 	}
 
+	// Could simply check for the addressfamilies field match
 	if p.AddressFamily != nil {
 		var separator string
-		af := metal.ToAddressFamily(*p.AddressFamily)
+		af, err := metal.ToAddressFamily(*p.AddressFamily)
+		if err != nil {
+			return nil, err
+		}
 		switch af {
 		case metal.IPv4AddressFamily:
 			separator = "\\."

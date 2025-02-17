@@ -275,8 +275,8 @@ const (
 	IPv6AddressFamily = AddressFamily("IPv6")
 )
 
-// Validate a string if it is a addressfamily and returns an error if it is not.
-func ValidateAddressFamily(af string) (AddressFamily, error) {
+// ToAddressFamily will convert a string af to a AddressFamily
+func ToAddressFamily(af string) (AddressFamily, error) {
 	switch strings.ToLower(af) {
 	case "ipv4":
 		return IPv4AddressFamily, nil
@@ -284,17 +284,6 @@ func ValidateAddressFamily(af string) (AddressFamily, error) {
 		return IPv6AddressFamily, nil
 	}
 	return InvalidAddressFamily, fmt.Errorf("given addressfamily:%q is invalid", af)
-}
-
-// ToAddressFamily will convert a string af to a AddressFamily
-func ToAddressFamily(af string) AddressFamily {
-	switch strings.ToLower(af) {
-	case "ipv4":
-		return IPv4AddressFamily
-	case "ipv6":
-		return IPv6AddressFamily
-	}
-	return IPv4AddressFamily
 }
 
 // Networks is a list of networks.
