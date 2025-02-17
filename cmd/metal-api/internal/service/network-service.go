@@ -13,7 +13,6 @@ import (
 	"connectrpc.com/connect"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
-	"github.com/samber/lo"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -294,20 +293,28 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamily of defaultchildprefixlength is invalid %w", err)))
 			return
 		}
+
 		childPrefixLength[addressfamily] = length
 	}
-	prefixes, addressFamilies, err := convertToPrefixesAndAddressFamilies(requestPayload.Prefixes)
+
+	prefixes, err := convertToPrefixesAndAddressFamilies(requestPayload.Prefixes)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
-	destPrefixes, destPrefixAfs, err := convertToPrefixesAndAddressFamilies(requestPayload.DestinationPrefixes)
+	destPrefixes, err := convertToPrefixesAndAddressFamilies(requestPayload.DestinationPrefixes)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	err = validatePrefixesAndAddressFamilies(prefixes, addressFamilies, destPrefixAfs, childPrefixLength, privateSuper)
+	err = validatePrefixesAndAddressFamilies(prefixes, destPrefixes.AddressFamilies(), childPrefixLength, privateSuper)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	err = validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, privateSuper)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -369,9 +376,9 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 				return
 			}
 		}
+
 		if underlay {
-			boolTrue := true
-			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: &boolTrue}, &metal.Network{})
+			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: pointer.Pointer(true)}, &metal.Network{})
 			if err != nil {
 				if !metal.IsNotFound(err) {
 					r.sendError(request, response, defaultError(err))
@@ -382,17 +389,12 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 				return
 			}
 		}
+
 		partitionID = partition.ID
 	}
 
 	if (privateSuper || underlay) && nat {
 		r.sendError(request, response, httperrors.BadRequest(errors.New("private super or underlay network is not supposed to NAT")))
-		return
-	}
-
-	err = validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, privateSuper)
-	if err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -430,6 +432,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	}
 
 	ctx := request.Request.Context()
+
 	for _, p := range nw.Prefixes {
 		err := r.ipamer.CreatePrefix(ctx, p)
 		if err != nil {
@@ -472,10 +475,10 @@ func validateAdditionalAnnouncableCIDRs(additionalCidrs []string, privateSuper b
 	return nil
 }
 
-func validatePrefixesAndAddressFamilies(prefixes metal.Prefixes, prefixesAfs, destPrefixesAfs metal.AddressFamilies, defaultChildPrefixLength metal.ChildPrefixLength, privateSuper bool) error {
+func validatePrefixesAndAddressFamilies(prefixes metal.Prefixes, destPrefixesAfs metal.AddressFamilies, defaultChildPrefixLength metal.ChildPrefixLength, privateSuper bool) error {
 
 	for _, af := range destPrefixesAfs {
-		if !slices.Contains(prefixesAfs, af) {
+		if !slices.Contains(prefixes.AddressFamilies(), af) {
 			return fmt.Errorf("addressfamily:%s of destination prefixes is not present in existing prefixes", af)
 		}
 	}
@@ -506,7 +509,7 @@ func validatePrefixesAndAddressFamilies(prefixes metal.Prefixes, prefixesAfs, de
 		}
 	}
 
-	for _, af := range prefixesAfs {
+	for _, af := range prefixes.AddressFamilies() {
 		if _, exists := defaultChildPrefixLength[af]; !exists {
 			return fmt.Errorf("private super network must always contain a defaultchildprefixlength per addressfamily:%s", af)
 		}
@@ -515,25 +518,18 @@ func validatePrefixesAndAddressFamilies(prefixes metal.Prefixes, prefixesAfs, de
 	return nil
 }
 
-func convertToPrefixesAndAddressFamilies(prefixes []string) (metal.Prefixes, metal.AddressFamilies, error) {
+func convertToPrefixesAndAddressFamilies(prefixes []string) (metal.Prefixes, error) {
 	var (
-		result          metal.Prefixes
-		addressFamilies = make(map[metal.AddressFamily]bool)
+		result metal.Prefixes
 	)
 	for _, p := range prefixes {
-		prefix, ipprefix, err := metal.NewPrefixFromCIDR(p)
+		prefix, _, err := metal.NewPrefixFromCIDR(p)
 		if err != nil {
-			return nil, nil, fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)
-		}
-		if ipprefix.Addr().Is4() {
-			addressFamilies[metal.IPv4AddressFamily] = true
-		}
-		if ipprefix.Addr().Is6() {
-			addressFamilies[metal.IPv6AddressFamily] = true
+			return nil, fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)
 		}
 		result = append(result, *prefix)
 	}
-	return result, lo.Keys(addressFamilies), nil
+	return result, nil
 }
 
 // TODO add possibility to allocate from a non super network if given in the AllocateRequest and super has childprefixlength
@@ -822,7 +818,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	)
 
 	if len(requestPayload.Prefixes) > 0 {
-		prefixes, _, err := convertToPrefixesAndAddressFamilies(requestPayload.Prefixes)
+		prefixes, err := convertToPrefixesAndAddressFamilies(requestPayload.Prefixes)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -851,23 +847,23 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		destPrefixAfs metal.AddressFamilies
 	)
 	if len(requestPayload.DestinationPrefixes) > 0 {
-		destPrefixes, afs, err := convertToPrefixesAndAddressFamilies(requestPayload.DestinationPrefixes)
+		destPrefixes, err := convertToPrefixesAndAddressFamilies(requestPayload.DestinationPrefixes)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
 		}
 		newNetwork.DestinationPrefixes = destPrefixes
-		destPrefixAfs = afs
+		destPrefixAfs = destPrefixes.AddressFamilies()
 	}
 
-	prefixes, addressFamilies, err := convertToPrefixesAndAddressFamilies(newNetwork.Prefixes.String())
+	prefixes, err := convertToPrefixesAndAddressFamilies(newNetwork.Prefixes.String())
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 	newNetwork.Prefixes = prefixes
 
-	err = validatePrefixesAndAddressFamilies(newNetwork.Prefixes, addressFamilies, destPrefixAfs, oldNetwork.DefaultChildPrefixLength, oldNetwork.PrivateSuper)
+	err = validatePrefixesAndAddressFamilies(newNetwork.Prefixes, destPrefixAfs, oldNetwork.DefaultChildPrefixLength, oldNetwork.PrivateSuper)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -875,7 +871,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 
 	if len(requestPayload.DefaultChildPrefixLength) > 0 {
 		for af, defaultChildPrefixLength := range requestPayload.DefaultChildPrefixLength {
-			if !slices.Contains(addressFamilies, af) {
+			if !slices.Contains(newNetwork.Prefixes.AddressFamilies(), af) {
 				r.sendError(request, response, defaultError(fmt.Errorf("no addressfamily %q present for defaultchildprefixlength: %d", af, defaultChildPrefixLength)))
 				return
 			}

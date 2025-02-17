@@ -601,7 +601,7 @@ func Test_convertToPrefixesAndAddressFamilies(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, af, err := convertToPrefixesAndAddressFamilies(tt.prefixes)
+			got, err := convertToPrefixesAndAddressFamilies(tt.prefixes)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validatePrefixes() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -610,9 +610,10 @@ func Test_convertToPrefixesAndAddressFamilies(t *testing.T) {
 				t.Errorf("validatePrefixes() diff=%s", diff)
 			}
 
-			slices.Sort(af)
+			afs := got.AddressFamilies()
+			slices.Sort(afs)
 			slices.Sort(tt.wantAF)
-			if diff := cmp.Diff(af, tt.wantAF); diff != "" {
+			if diff := cmp.Diff(afs, tt.wantAF); diff != "" {
 				t.Errorf("validatePrefixes() diff=%s", diff)
 			}
 		})
@@ -691,7 +692,7 @@ func Test_validatePrefixesAndAddressFamilies(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validatePrefixesAndAddressFamilies(tt.prefixes, tt.prefixesAfs, tt.destPrefixesAfs, tt.defaultChildPrefixLength, tt.privateSuper)
+			err := validatePrefixesAndAddressFamilies(tt.prefixes, tt.destPrefixesAfs, tt.defaultChildPrefixLength, tt.privateSuper)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validatePrefixesAndAddressFamilies() error = %v, wantErr %v", err, tt.wantErr)
 			}
