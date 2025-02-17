@@ -38,8 +38,6 @@ require (
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
 
-require github.com/lopezator/migrator v0.3.1 // indirect
-
 // Newer versions do not export base entities which are used to composite other entities.
 // This breaks metalctl and friends
 replace github.com/emicklei/go-restful-openapi/v2 => github.com/emicklei/go-restful-openapi/v2 v2.9.1
@@ -112,6 +110,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.1.3 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/lib/pq v1.10.9 // indirect
+	github.com/lopezator/migrator v0.3.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 // indirect
 	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect

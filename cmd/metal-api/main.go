@@ -923,15 +923,16 @@ func createAuditingClient(log *slog.Logger) (auditing.Auditing, error) {
 	}
 
 	c := auditing.Config{
-		Component:        "metal-api",
+		Component: "metal-api",
+		Log:       log, //FIXME
+	}
+	return auditing.NewMeilisearch(c, auditing.MeilisearchConfig{
 		URL:              viper.GetString("auditing-url"),
 		APIKey:           viper.GetString("auditing-api-key"),
 		IndexPrefix:      viper.GetString("auditing-index-prefix"),
 		RotationInterval: auditing.Interval(viper.GetString("auditing-index-interval")),
 		Keep:             viper.GetInt64("auditing-keep"),
-		Log:              log, //FIXME
-	}
-	return auditing.New(c)
+	})
 }
 
 func run() error {
