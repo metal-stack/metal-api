@@ -20,8 +20,8 @@ require (
 	github.com/looplab/fsm v1.0.2
 	github.com/metal-stack/go-ipam v1.14.8
 	github.com/metal-stack/masterdata-api v0.11.5
-	github.com/metal-stack/metal-lib v0.19.1-0.20250203130132-879b43f148f1
-	github.com/metal-stack/security v0.9.1
+	github.com/metal-stack/metal-lib v0.20.1
+	github.com/metal-stack/security v0.9.3
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/prometheus/client_golang v1.20.5
@@ -37,6 +37,8 @@ require (
 	google.golang.org/protobuf v1.36.3
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
+
+require github.com/lopezator/migrator v0.3.1 // indirect
 
 // Newer versions do not export base entities which are used to composite other entities.
 // This breaks metalctl and friends
