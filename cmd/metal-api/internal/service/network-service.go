@@ -622,6 +622,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	}
 
 	// Allow configurable prefix length per AF
+	// TODO validate that only admins can specify above a certain minimum
 	length := superNetwork.DefaultChildPrefixLength
 	if len(requestPayload.Length) > 0 {
 		for af, l := range requestPayload.Length {
@@ -642,7 +643,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		}
 		bits, ok := length[addressfamily]
 		if !ok {
-			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamiliy %s specified, but no childprefixlength for this addressfamily", *requestPayload.AddressFamily)))
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("addressfamily %s specified, but no childprefixlength for this addressfamily", *requestPayload.AddressFamily)))
 			return
 		}
 		length = metal.ChildPrefixLength{
@@ -842,13 +843,6 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		destPrefixAfs = destPrefixes.AddressFamilies()
 	}
 
-	prefixes, err := metal.NewPrefixesFromCIDRs(newNetwork.Prefixes.String())
-	if err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
-		return
-	}
-	newNetwork.Prefixes = prefixes
-
 	err = validatePrefixesAndAddressFamilies(newNetwork.Prefixes, destPrefixAfs, oldNetwork.DefaultChildPrefixLength, oldNetwork.PrivateSuper)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
@@ -888,13 +882,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-	newNetwork.AdditionalAnnouncableCIDRs = requestPayload.AdditionalAnnouncableCIDRs
 
-	err = validateAdditionalAnnouncableCIDRs(requestPayload.AdditionalAnnouncableCIDRs, oldNetwork.PrivateSuper)
-	if err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
-		return
-	}
 	for _, oldcidr := range oldNetwork.AdditionalAnnouncableCIDRs {
 		if !force && !slices.Contains(requestPayload.AdditionalAnnouncableCIDRs, oldcidr) {
 			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("you cannot remove %q from additionalannouncablecidrs without force flag set", oldcidr)))

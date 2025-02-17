@@ -104,6 +104,10 @@ func NewNetworkResponse(network *metal.Network, consumption *NetworkConsumption)
 		labels = make(map[string]string)
 	}
 
+	if consumption == nil {
+		consumption = &NetworkConsumption{}
+	}
+
 	response := &NetworkResponse{
 		Common: Common{
 			Identifiable: Identifiable{
