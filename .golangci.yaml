@@ -1,6 +1,5 @@
 run:
   concurrency: 4
-  deadline: 10m
 linters:
   disable:
     - musttag
@@ -11,4 +10,4 @@ linters:
   presets:
     - bugs
     - unused
-fast: true
+  fast: true
