@@ -922,11 +922,10 @@ func createAuditingClient(log *slog.Logger) (auditing.Auditing, error) {
 		return nil, nil
 	}
 
-	c := auditing.Config{
+	return auditing.NewMeilisearch(auditing.Config{
 		Component: "metal-api",
-		Log:       log, //FIXME
-	}
-	return auditing.NewMeilisearch(c, auditing.MeilisearchConfig{
+		Log:       log,
+	}, auditing.MeilisearchConfig{
 		URL:              viper.GetString("auditing-url"),
 		APIKey:           viper.GetString("auditing-api-key"),
 		IndexPrefix:      viper.GetString("auditing-index-prefix"),
