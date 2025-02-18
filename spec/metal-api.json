@@ -483,6 +483,9 @@
         "phase": {
           "type": "string"
         },
+        "project": {
+          "type": "string"
+        },
         "remote_addr": {
           "type": "string"
         },

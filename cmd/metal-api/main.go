@@ -791,7 +791,14 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	}
 
 	if audit != nil {
-		httpFilter, err := auditing.HttpFilter(audit, logger.WithGroup("audit-middleware"))
+		filterOpt := auditing.NewHttpFilterErrorCallback(func(err error, response *restful.Response) {
+			httperr := httperrors.InternalServerError(err)
+			if err := response.WriteHeaderAndEntity(httperr.StatusCode, httperr); err != nil {
+				logger.Error("failed to send response", "error", err)
+			}
+		})
+
+		httpFilter, err := auditing.HttpFilter(audit, logger.WithGroup("audit-middleware"), filterOpt)
 		if err != nil {
 			log.Fatalf("unable to create http filter for auditing: %s", err)
 		}
@@ -915,16 +922,16 @@ func createAuditingClient(log *slog.Logger) (auditing.Auditing, error) {
 		return nil, nil
 	}
 
-	c := auditing.Config{
-		Component:        "metal-api",
+	return auditing.NewMeilisearch(auditing.Config{
+		Component: "metal-api",
+		Log:       log,
+	}, auditing.MeilisearchConfig{
 		URL:              viper.GetString("auditing-url"),
 		APIKey:           viper.GetString("auditing-api-key"),
 		IndexPrefix:      viper.GetString("auditing-index-prefix"),
 		RotationInterval: auditing.Interval(viper.GetString("auditing-index-interval")),
 		Keep:             viper.GetInt64("auditing-keep"),
-		Log:              log, //FIXME
-	}
-	return auditing.New(c)
+	})
 }
 
 func run() error {
