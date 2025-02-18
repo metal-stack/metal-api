@@ -73,6 +73,7 @@ func (r *auditResource) find(request *restful.Request, response *restful.Respons
 		Type:         auditing.EntryType(requestPayload.Type),
 		User:         requestPayload.User,
 		Tenant:       requestPayload.Tenant,
+		Project:      requestPayload.Project,
 		Detail:       auditing.EntryDetail(requestPayload.Detail),
 		Phase:        auditing.EntryPhase(requestPayload.Phase),
 		Path:         requestPayload.Path,

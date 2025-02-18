@@ -803,10 +803,18 @@ func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []a
 	}
 
 	for _, backend := range allAuditBackends {
-		httpFilter, err := auditing.HttpFilter(backend, logger.WithGroup("audit-middleware"))
+		filterOpt := auditing.NewHttpFilterErrorCallback(func(err error, response *restful.Response) {
+			httperr := httperrors.InternalServerError(err)
+			if err := response.WriteHeaderAndEntity(httperr.StatusCode, httperr); err != nil {
+				logger.Error("failed to send response", "error", err)
+			}
+		})
+
+		httpFilter, err := auditing.HttpFilter(backend, logger.WithGroup("audit-middleware"), filterOpt)
 		if err != nil {
 			log.Fatalf("unable to create http filter for auditing: %s", err)
 		}
+
 		restful.DefaultContainer.Filter(httpFilter) // FIXME
 	}
 
