@@ -3725,7 +3725,7 @@
           "additionalProperties": {
             "type": "integer"
           },
-          "description": "the bit length of the prefix to allocate, defaults to the default child prefix lengths of the parent network",
+          "description": "the bit lengths of the prefix to allocate, defaults to the default child prefix lengths of the parent network",
           "type": "object"
         },
         "name": {
