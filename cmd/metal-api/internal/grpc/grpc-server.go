@@ -52,7 +52,7 @@ type ServerConfig struct {
 	ResponseInterval         time.Duration
 	CheckInterval            time.Duration
 	BMCSuperUserPasswordFile string
-	Auditing                 auditing.Auditing
+	Auditing                 []auditing.Auditing
 	IPMISuperUser            metal.MachineIPMISuperUser
 }
 
@@ -121,7 +121,7 @@ func Run(cfg *ServerConfig) error {
 		logging.UnaryServerInterceptor(interceptorLogger(log)),
 		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(grpcPanicRecoveryHandler)),
 	}
-	if cfg.Auditing != nil {
+	if len(cfg.Auditing) > 0 {
 		shouldAudit := func(fullMethod string) bool {
 			switch fullMethod {
 			case "/api.v1.BootService/Register":
@@ -130,16 +130,19 @@ func Run(cfg *ServerConfig) error {
 				return false
 			}
 		}
-		auditStreamInterceptor, err := auditing.StreamServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit)
-		if err != nil {
-			return err
+
+		for _, backend := range cfg.Auditing {
+			auditStreamInterceptor, err := auditing.StreamServerInterceptor(backend, log.WithGroup("auditing-grpc"), shouldAudit)
+			if err != nil {
+				return err
+			}
+			auditUnaryInterceptor, err := auditing.UnaryServerInterceptor(backend, log.WithGroup("auditing-grpc"), shouldAudit)
+			if err != nil {
+				return err
+			}
+			streamInterceptors = append(streamInterceptors, auditStreamInterceptor)
+			unaryInterceptors = append(unaryInterceptors, auditUnaryInterceptor)
 		}
-		auditUnaryInterceptor, err := auditing.UnaryServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit)
-		if err != nil {
-			return err
-		}
-		streamInterceptors = append(streamInterceptors, auditStreamInterceptor)
-		unaryInterceptors = append(unaryInterceptors, auditUnaryInterceptor)
 	}
 
 	unaryInterceptors = append(unaryInterceptors, metrics.GrpcMetrics, recovery.UnaryServerInterceptor(recoveryOpt))

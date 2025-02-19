@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -52,13 +53,15 @@ func TestGetIPs(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
-	require.Len(t, result, 3)
+	require.Len(t, result, 4)
 	require.Equal(t, testdata.IP1.IPAddress, result[0].IPAddress)
 	require.Equal(t, testdata.IP1.Name, *result[0].Name)
 	require.Equal(t, testdata.IP2.IPAddress, result[1].IPAddress)
 	require.Equal(t, testdata.IP2.Name, *result[1].Name)
 	require.Equal(t, testdata.IP3.IPAddress, result[2].IPAddress)
 	require.Equal(t, testdata.IP3.Name, *result[2].Name)
+	require.Equal(t, testdata.IP4.IPAddress, result[3].IPAddress)
+	require.Equal(t, testdata.IP4.Name, *result[3].Name)
 }
 
 func TestGetIP(t *testing.T) {
@@ -83,6 +86,31 @@ func TestGetIP(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testdata.IP1.IPAddress, result.IPAddress)
 	require.Equal(t, testdata.IP1.Name, *result.Name)
+}
+
+func TestGetIPv6(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+
+	logger := slog.Default()
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
+	require.NoError(t, err)
+	container := restful.NewContainer().Add(ipservice)
+	req := httptest.NewRequest("GET", "/v1/ip/2001:0db8:85a3::1", nil)
+	container = injectViewer(logger, container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.IPResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, testdata.IP4.IPAddress, result.IPAddress)
+	require.Equal(t, testdata.IP4.Name, *result.Name)
 }
 
 func TestGetIPNotFound(t *testing.T) {
@@ -258,6 +286,49 @@ func TestAllocateIP(t *testing.T) {
 			wantedStatus: http.StatusUnprocessableEntity,
 			wantErr:      errors.New("specific ip not contained in any of the defined prefixes"),
 		},
+		{
+			name: "allocate an IPv4 address",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+					Type:      metal.Ephemeral,
+				},
+				AddressFamily: pointer.Pointer(metal.IPv4AddressFamily),
+			},
+			wantedIP:     "10.0.0.3",
+			wantedType:   metal.Ephemeral,
+			wantedStatus: http.StatusCreated,
+		},
+		{
+			name: "allocate an IPv6 address",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+					Type:      metal.Ephemeral,
+				},
+				AddressFamily: pointer.Pointer(metal.IPv6AddressFamily),
+			},
+			wantedStatus: http.StatusBadRequest,
+			wantErr:      errors.New("there is no prefix for the given addressfamily:IPv6 present in network:4"),
+		},
+		{
+			name: "allocate a random IPv6 (no addressfamily specified) address from an IPv6 only network",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.Partition2PrivateSuperNetworkV6.ID,
+					Type:      metal.Ephemeral,
+				},
+			},
+			wantedIP:     "2001::1",
+			wantedType:   metal.Ephemeral,
+			wantedStatus: http.StatusCreated,
+		},
 	}
 	for i := range tests {
 		tt := tests[i]
@@ -286,6 +357,8 @@ func TestAllocateIP(t *testing.T) {
 				err = json.NewDecoder(resp.Body).Decode(&result)
 
 				require.NoError(t, err)
+				require.NotNil(t, result.IPAddress)
+				require.NotNil(t, result.AllocationUUID)
 				require.Equal(t, tt.wantedType, result.Type)
 				require.Equal(t, tt.wantedIP, result.IPAddress)
 				require.Equal(t, tt.name, *result.Name)

@@ -18,8 +18,9 @@ type AuditFindRequest struct {
 	RequestId string `json:"rqid" optional:"true"`
 	Type      string `json:"type" optional:"true"`
 
-	User   string `json:"user" optional:"true"`
-	Tenant string `json:"tenant" optional:"true"`
+	User    string `json:"user" optional:"true"`
+	Tenant  string `json:"tenant" optional:"true"`
+	Project string `json:"project" optional:"true"`
 
 	Detail string `json:"detail" optional:"true"`
 	Phase  string `json:"phase" optional:"true"`

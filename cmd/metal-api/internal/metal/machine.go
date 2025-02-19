@@ -14,8 +14,9 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/dustin/go-humanize"
-	mn "github.com/metal-stack/metal-lib/pkg/net"
 	"github.com/samber/lo"
+
+	mn "github.com/metal-stack/metal-lib/pkg/net"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -215,18 +216,18 @@ func (r EgressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid protocol: %s", r.Protocol)
+		return fmt.Errorf("egress rule has invalid protocol: %s", r.Protocol)
 	}
 
 	if err := validateComment(r.Comment); err != nil {
-		return err
+		return fmt.Errorf("egress rule with error:%w", err)
 	}
 	if err := validatePorts(r.Ports); err != nil {
-		return err
+		return fmt.Errorf("egress rule with error:%w", err)
 	}
 
 	if err := validateCIDRs(r.To); err != nil {
-		return err
+		return fmt.Errorf("egress rule with error:%w", err)
 	}
 
 	return nil
@@ -237,23 +238,23 @@ func (r IngressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid protocol: %s", r.Protocol)
+		return fmt.Errorf("ingress rule has invalid protocol: %s", r.Protocol)
 	}
 	if err := validateComment(r.Comment); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 
 	if err := validatePorts(r.Ports); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 	if err := validateCIDRs(r.To); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 	if err := validateCIDRs(r.From); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 	if err := validateCIDRs(slices.Concat(r.From, r.To)); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 
 	return nil
@@ -287,17 +288,17 @@ func validatePorts(ports []int) error {
 }
 
 func validateCIDRs(cidrs []string) error {
-	af := ""
+	var af AddressFamily
 	for _, cidr := range cidrs {
 		p, err := netip.ParsePrefix(cidr)
 		if err != nil {
 			return fmt.Errorf("invalid cidr: %w", err)
 		}
-		var newaf string
+		var newaf AddressFamily
 		if p.Addr().Is4() {
-			newaf = "ipv4"
-		} else {
-			newaf = "ipv6"
+			newaf = IPv4AddressFamily
+		} else if p.Addr().Is6() {
+			newaf = IPv6AddressFamily
 		}
 		if af != "" && af != newaf {
 			return fmt.Errorf("mixed address family in one rule is not supported:%v", cidrs)
@@ -758,8 +759,8 @@ func (n NTPServers) Validate() error {
 		return nil
 	}
 
-	if len(n) < 3 || len(n) > 5 {
-		return errors.New("please specify a minimum of 3 and a maximum of 5 ntp servers")
+	if len(n) > 5 {
+		return errors.New("please specify a maximum of five ntp servers")
 	}
 
 	for _, ntpserver := range n {

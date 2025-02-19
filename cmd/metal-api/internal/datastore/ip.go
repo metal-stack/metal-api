@@ -20,10 +20,11 @@ type IPSearchQuery struct {
 	ProjectID        *string  `json:"projectid" description:"the project this ip address belongs to, empty if not strong coupled" optional:"true"`
 	Type             *string  `json:"type" description:"the type of the ip address, ephemeral or static" optional:"true"`
 	MachineID        *string  `json:"machineid" description:"the machine an ip address is associated to" optional:"true"`
+	AddressFamily    *string  `json:"addressfamily" optional:"true" enum:"IPv4|IPv6"`
 }
 
 // GenerateTerm generates the project search query term.
-func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
+func (p *IPSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 	q := *rs.ipTable()
 
 	if p.IPAddress != nil {
@@ -58,7 +59,7 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 
 	if p.ParentPrefixCidr != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networkprefix").Eq(*p.ParentPrefixCidr)
+			return row.Field("prefix").Eq(*p.ParentPrefixCidr)
 		})
 	}
 
@@ -79,7 +80,27 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		})
 	}
 
-	return &q
+	if p.AddressFamily != nil {
+		var separator string
+		af, err := metal.ToAddressFamily(*p.AddressFamily)
+		if err != nil {
+			return nil, err
+		}
+		switch af {
+		case metal.IPv4AddressFamily:
+			separator = "\\."
+		case metal.IPv6AddressFamily:
+			separator = ":"
+		case metal.InvalidAddressFamily:
+			return nil, fmt.Errorf("given addressfamily is invalid:%s", af)
+		}
+
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("id").Match(separator)
+		})
+	}
+
+	return &q, nil
 }
 
 // FindIPByID returns an ip of a given id.
@@ -94,7 +115,11 @@ func (rs *RethinkStore) FindIPByID(id string) (*metal.IP, error) {
 
 // SearchIPs returns the result of the ips search request query.
 func (rs *RethinkStore) SearchIPs(q *IPSearchQuery, ips *metal.IPs) error {
-	return rs.searchEntities(q.generateTerm(rs), ips)
+	term, err := q.generateTerm(rs)
+	if err != nil {
+		return err
+	}
+	return rs.searchEntities(term, ips)
 }
 
 // ListIPs returns all ips.

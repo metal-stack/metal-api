@@ -3,7 +3,10 @@ package metal
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestNics_ByIdentifier(t *testing.T) {
@@ -331,6 +334,159 @@ func TestNicState_SetState(t *testing.T) {
 			}
 			if got1 != tt.changed {
 				t.Errorf("NicState.SetState() got1 = %v, want %v", got1, tt.changed)
+			}
+		})
+	}
+}
+
+func TestPrefixes_OfFamily(t *testing.T) {
+	tests := []struct {
+		name string
+		af   AddressFamily
+		p    Prefixes
+		want Prefixes
+	}{
+		{
+			name: "no prefixes filtered by ipv4",
+			af:   IPv4AddressFamily,
+			p:    Prefixes{},
+			want: nil,
+		},
+		{
+			name: "prefixes filtered by ipv4",
+			af:   IPv4AddressFamily,
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "64"},
+			},
+			want: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+			},
+		},
+		{
+			name: "prefixes filtered by ipv6",
+			af:   IPv6AddressFamily,
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "64"},
+			},
+			want: Prefixes{
+				{IP: "fe80::", Length: "64"},
+			},
+		},
+		{
+			name: "malformed prefixes are skipped",
+			af:   IPv6AddressFamily,
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "metal-stack-rulez"},
+			},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.p.OfFamily(tt.af)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("diff = %s", diff)
+			}
+		})
+	}
+}
+
+func TestPrefixes_AddressFamilies(t *testing.T) {
+	tests := []struct {
+		name string
+		p    Prefixes
+		want AddressFamilies
+	}{
+		{
+			name: "only ipv4",
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+			},
+			want: AddressFamilies{IPv4AddressFamily},
+		},
+		{
+			name: "only ipv6",
+			p: Prefixes{
+				{IP: "fe80::", Length: "64"},
+			},
+			want: AddressFamilies{IPv6AddressFamily},
+		},
+		{
+			name: "both afs",
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "64"},
+			},
+			want: AddressFamilies{IPv4AddressFamily, IPv6AddressFamily},
+		},
+		{
+			name: "nil prefixes",
+			p:    nil,
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.p.AddressFamilies(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Prefixes.AddressFamilies() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_NewPrefixesFromCidrs(t *testing.T) {
+	tests := []struct {
+		name         string
+		prefixes     []string
+		wantPrefixes Prefixes
+		wantAF       AddressFamilies
+		wantErr      bool
+	}{
+		{
+			name:         "simple all ipv4",
+			prefixes:     []string{"10.0.0.0/8", "11.0.0.0/24"},
+			wantPrefixes: Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "11.0.0.0", Length: "24"}},
+			wantAF:       AddressFamilies{IPv4AddressFamily},
+		},
+		{
+			name:         "simple all ipv6",
+			prefixes:     []string{"2001::/64", "fbaa::/48"},
+			wantPrefixes: Prefixes{{IP: "2001::", Length: "64"}, {IP: "fbaa::", Length: "48"}},
+			wantAF:       AddressFamilies{IPv6AddressFamily},
+		},
+		{
+			name:         "mixed af",
+			prefixes:     []string{"10.0.0.0/8", "2001::/64"},
+			wantPrefixes: Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "2001::", Length: "64"}},
+			wantAF:       AddressFamilies{IPv4AddressFamily, IPv6AddressFamily},
+		},
+		{
+			name:         "wrong ipv6 pfx",
+			prefixes:     []string{"10.0.0.0/8", "2001:/64"},
+			wantPrefixes: nil,
+			wantAF:       nil,
+			wantErr:      true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewPrefixesFromCIDRs(tt.prefixes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePrefixes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got, tt.wantPrefixes); diff != "" {
+				t.Errorf("validatePrefixes() diff=%s", diff)
+			}
+
+			afs := got.AddressFamilies()
+			slices.Sort(afs)
+			slices.Sort(tt.wantAF)
+			if diff := cmp.Diff(afs, tt.wantAF); diff != "" {
+				t.Errorf("validatePrefixes() diff=%s", diff)
 			}
 		})
 	}
