@@ -3736,10 +3736,6 @@
           "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
         },
-        "parentnetworkid": {
-          "description": "the parent network from which this network should be allocated",
-          "type": "string"
-        },
         "partitionid": {
           "description": "the partition this network belongs to",
           "type": "string"
@@ -3752,10 +3748,7 @@
           "description": "marks a network as shareable.",
           "type": "boolean"
         }
-      },
-      "required": [
-        "parentnetworkid"
-      ]
+      }
     },
     "v1.NetworkBase": {
       "properties": {

@@ -590,9 +590,8 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	)
 
 	err = r.ds.FindNetwork(&datastore.NetworkSearchQuery{
-		PartitionID:     &partition.ID,
-		PrivateSuper:    pointer.Pointer(true),
-		ParentNetworkID: requestPayload.ParentNetworkID,
+		PartitionID:  &partition.ID,
+		PrivateSuper: pointer.Pointer(true),
 	}, &superNetwork)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))

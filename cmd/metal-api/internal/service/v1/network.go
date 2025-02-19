@@ -55,7 +55,6 @@ type NetworkAllocateRequest struct {
 	DestinationPrefixes []string                `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
 	Nat                 *bool                   `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip" optional:"true"`
 	Length              metal.ChildPrefixLength `json:"length,omitempty" description:"the bit lengths of the prefix to allocate, defaults to the default child prefix lengths of the parent network" optional:"true"`
-	ParentNetworkID     *string                 `json:"parentnetworkid" description:"the parent network from which this network should be allocated"`
 	AddressFamily       *metal.AddressFamily    `json:"addressfamily,omitempty" description:"the addressfamily to allocate a child network. If not specified, the child network inherits the addressfamilies from the parent." enum:"IPv4|IPv6" optional:"true"`
 }
 
