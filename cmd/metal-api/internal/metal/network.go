@@ -1,9 +1,12 @@
 package metal
 
 import (
+	"fmt"
 	"net"
 	"net/netip"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/samber/lo"
 )
@@ -183,17 +186,31 @@ type Prefix struct {
 type Prefixes []Prefix
 
 // NewPrefixFromCIDR returns a new prefix from a given cidr.
-func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
+func NewPrefixFromCIDR(cidr string) (*Prefix, *netip.Prefix, error) {
 	prefix, err := netip.ParsePrefix(cidr)
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("given cidr %s is not a valid ip with mask: %w", cidr, err)
 	}
 	ip := prefix.Addr().String()
 	length := strconv.Itoa(prefix.Bits())
 	return &Prefix{
 		IP:     ip,
 		Length: length,
-	}, nil
+	}, &prefix, nil
+}
+
+func NewPrefixesFromCIDRs(cidrs []string) (Prefixes, error) {
+	var (
+		result Prefixes
+	)
+	for _, p := range cidrs {
+		prefix, _, err := NewPrefixFromCIDR(p)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, *prefix)
+	}
+	return result, nil
 }
 
 // String implements the Stringer interface
@@ -209,6 +226,56 @@ func (p Prefixes) String() []string {
 	return result
 }
 
+// OfFamily returns the prefixes of the given address family.
+// be aware that malformed prefixes are just skipped, so do not use this for validation or something.
+func (p Prefixes) OfFamily(af AddressFamily) Prefixes {
+	var res Prefixes
+
+	for _, prefix := range p {
+		pfx, err := netip.ParsePrefix(prefix.String())
+		if err != nil {
+			continue
+		}
+
+		if pfx.Addr().Is4() && af == IPv6AddressFamily {
+			continue
+		}
+		if pfx.Addr().Is6() && af == IPv4AddressFamily {
+			continue
+		}
+
+		res = append(res, prefix)
+	}
+
+	return res
+}
+
+// AddressFamilies returns the addressfamilies of given prefixes.
+// be aware that malformed prefixes are just skipped, so do not use this for validation or something.
+func (p Prefixes) AddressFamilies() AddressFamilies {
+	var afs AddressFamilies
+
+	for _, prefix := range p {
+		pfx, err := netip.ParsePrefix(prefix.String())
+		if err != nil {
+			continue
+		}
+
+		var af AddressFamily
+		if pfx.Addr().Is4() {
+			af = IPv4AddressFamily
+		}
+		if pfx.Addr().Is6() {
+			af = IPv6AddressFamily
+		}
+		if !slices.Contains(afs, af) {
+			afs = append(afs, af)
+		}
+	}
+
+	return afs
+}
+
 // equals returns true when prefixes have the same cidr.
 func (p *Prefix) equals(other *Prefix) bool {
 	return p.String() == other.String()
@@ -218,18 +285,46 @@ func (p *Prefix) equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes                   Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
-	DestinationPrefixes        Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-	PartitionID                string            `rethinkdb:"partitionid" json:"partitionid"`
-	ProjectID                  string            `rethinkdb:"projectid" json:"projectid"`
-	ParentNetworkID            string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
-	Vrf                        uint              `rethinkdb:"vrf" json:"vrf"`
-	PrivateSuper               bool              `rethinkdb:"privatesuper" json:"privatesuper"`
-	Nat                        bool              `rethinkdb:"nat" json:"nat"`
-	Underlay                   bool              `rethinkdb:"underlay" json:"underlay"`
-	Shared                     bool              `rethinkdb:"shared" json:"shared"`
-	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
-	AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks"`
+	Prefixes                 Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
+	DestinationPrefixes      Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+	DefaultChildPrefixLength ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
+	PartitionID              string            `rethinkdb:"partitionid" json:"partitionid"`
+	ProjectID                string            `rethinkdb:"projectid" json:"projectid"`
+	ParentNetworkID          string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
+	Vrf                      uint              `rethinkdb:"vrf" json:"vrf"`
+	PrivateSuper             bool              `rethinkdb:"privatesuper" json:"privatesuper"`
+	Nat                      bool              `rethinkdb:"nat" json:"nat"`
+	Underlay                 bool              `rethinkdb:"underlay" json:"underlay"`
+	Shared                   bool              `rethinkdb:"shared" json:"shared"`
+	Labels                   map[string]string `rethinkdb:"labels" json:"labels"`
+	// AddressFamilies            AddressFamilies   `rethinkdb:"addressfamilies" json:"addressfamilies"`
+	AdditionalAnnouncableCIDRs []string `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
+}
+
+type ChildPrefixLength map[AddressFamily]uint8
+
+// AddressFamily identifies IPv4/IPv6
+type AddressFamily string
+type AddressFamilies []AddressFamily
+
+const (
+	// InvalidAddressFamily identifies a invalid Addressfamily
+	InvalidAddressFamily = AddressFamily("invalid")
+	// IPv4AddressFamily identifies IPv4
+	IPv4AddressFamily = AddressFamily("IPv4")
+	// IPv6AddressFamily identifies IPv6
+	IPv6AddressFamily = AddressFamily("IPv6")
+)
+
+// ToAddressFamily will convert a string af to a AddressFamily
+func ToAddressFamily(af string) (AddressFamily, error) {
+	switch strings.ToLower(af) {
+	case "ipv4":
+		return IPv4AddressFamily, nil
+	case "ipv6":
+		return IPv6AddressFamily, nil
+	}
+	return InvalidAddressFamily, fmt.Errorf("given addressfamily:%q is invalid", af)
 }
 
 // Networks is a list of networks.

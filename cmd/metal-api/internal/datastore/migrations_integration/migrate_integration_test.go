@@ -31,7 +31,7 @@ func Test_Migration(t *testing.T) {
 		_ = container.Terminate(context.Background())
 	}()
 
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
@@ -190,4 +190,143 @@ func Test_Migration(t *testing.T) {
 	assert.Equal(t, ec.LastEventTime.Unix(), lastEventTime.Unix())
 	assert.Equal(t, ec.Events[0].Time.Unix(), lastEventTime.Unix())
 	assert.Equal(t, ec.Events[1].Time.Unix(), now.Unix())
+}
+
+func Test_MigrationChildPrefixLength(t *testing.T) {
+	type tmpPartition struct {
+		ID                         string `rethinkdb:"id"`
+		PrivateNetworkPrefixLength uint8  `rethinkdb:"privatenetworkprefixlength"`
+	}
+
+	container, c, err := test.StartRethink(t)
+	require.NoError(t, err)
+	defer func() {
+		_ = container.Terminate(context.Background())
+	}()
+
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	// limit poolsize to speed up initialization
+	rs.VRFPoolRangeMin = 10000
+	rs.VRFPoolRangeMax = 10010
+	rs.ASNPoolRangeMin = 10000
+	rs.ASNPoolRangeMax = 10010
+
+	err = rs.Connect()
+	require.NoError(t, err)
+	err = rs.Initialize()
+	require.NoError(t, err)
+
+	var (
+		p1 = &tmpPartition{
+			ID:                         "p1",
+			PrivateNetworkPrefixLength: 22,
+		}
+		p2 = &tmpPartition{
+			ID:                         "p2",
+			PrivateNetworkPrefixLength: 24,
+		}
+		p3 = &tmpPartition{
+			ID: "p3",
+		}
+		n1 = &metal.Network{
+			Base: metal.Base{
+				ID: "n1",
+			},
+			PartitionID: "p1",
+			Prefixes: metal.Prefixes{
+				{IP: "10.0.0.0", Length: "8"},
+			},
+			PrivateSuper: true,
+		}
+		n2 = &metal.Network{
+			Base: metal.Base{
+				ID: "n2",
+			},
+			Prefixes: metal.Prefixes{
+				{IP: "2001::", Length: "64"},
+			},
+			PartitionID:  "p2",
+			PrivateSuper: true,
+		}
+		n3 = &metal.Network{
+			Base: metal.Base{
+				ID: "n3",
+			},
+			Prefixes: metal.Prefixes{
+				{IP: "100.1.0.0", Length: "22"},
+			},
+			PartitionID:  "p2",
+			PrivateSuper: false,
+		}
+		n4 = &metal.Network{
+			Base: metal.Base{
+				ID: "n4",
+			},
+			Prefixes: metal.Prefixes{
+				{IP: "100.1.0.0", Length: "22"},
+			},
+			PartitionID:  "p3",
+			PrivateSuper: true,
+		}
+		n5 = &metal.Network{
+			Base: metal.Base{
+				ID: "n5",
+			},
+			Prefixes: metal.Prefixes{
+				{IP: "9.0.0.0", Length: "8"},
+			},
+			PrivateSuper: true,
+		}
+	)
+	_, err = r.DB("metal").Table("partition").Insert(p1).RunWrite(rs.Session())
+	require.NoError(t, err)
+	_, err = r.DB("metal").Table("partition").Insert(p2).RunWrite(rs.Session())
+	require.NoError(t, err)
+	_, err = r.DB("metal").Table("partition").Insert(p3).RunWrite(rs.Session())
+	require.NoError(t, err)
+
+	err = rs.CreateNetwork(n1)
+	require.NoError(t, err)
+	err = rs.CreateNetwork(n2)
+	require.NoError(t, err)
+	err = rs.CreateNetwork(n3)
+	require.NoError(t, err)
+	err = rs.CreateNetwork(n4)
+	require.NoError(t, err)
+	err = rs.CreateNetwork(n5)
+	require.NoError(t, err)
+
+	err = rs.Migrate(nil, false)
+	require.NoError(t, err)
+
+	p, err := rs.FindPartition(p1.ID)
+	require.NoError(t, err)
+	require.NotNil(t, p)
+	p, err = rs.FindPartition(p2.ID)
+	require.NoError(t, err)
+	require.NotNil(t, p)
+
+	n1fetched, err := rs.FindNetworkByID(n1.ID)
+	require.NoError(t, err)
+	require.NotNil(t, n1fetched)
+	require.Equal(t, p1.PrivateNetworkPrefixLength, n1fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily], "childprefixlength:%v", n1fetched.DefaultChildPrefixLength)
+
+	n2fetched, err := rs.FindNetworkByID(n2.ID)
+	require.NoError(t, err)
+	require.NotNil(t, n2fetched)
+	require.Equal(t, p2.PrivateNetworkPrefixLength, n2fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily], "childprefixlength:%v", n2fetched.DefaultChildPrefixLength)
+	require.Equal(t, metal.ChildPrefixLength{metal.IPv4AddressFamily: 24, metal.IPv6AddressFamily: 64}, n2fetched.DefaultChildPrefixLength)
+
+	n3fetched, err := rs.FindNetworkByID(n3.ID)
+	require.NoError(t, err)
+	require.NotNil(t, n3fetched)
+	require.Nil(t, n3fetched.DefaultChildPrefixLength)
+
+	n4fetched, err := rs.FindNetworkByID(n4.ID)
+	require.NoError(t, err)
+	require.NotNil(t, n4fetched)
+	require.NotNil(t, n4fetched.DefaultChildPrefixLength)
+	require.Equal(t, uint8(22), n4fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily])
 }
