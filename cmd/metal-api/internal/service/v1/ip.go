@@ -21,7 +21,7 @@ type IPAllocateRequest struct {
 	Describable
 	IPBase
 	MachineID     *string              `json:"machineid" description:"the machine id this ip should be associated with" optional:"true"`
-	AddressFamily *metal.AddressFamily `json:"addressfamily" description:"the addressfamily to allocate a ip address from the given network, defaults to IPv4" enum:"IPv4|IPv6"`
+	AddressFamily *metal.AddressFamily `json:"addressfamily,omitempty" description:"the addressfamily to allocate a ip address from the given network, defaults to IPv4" enum:"IPv4|IPv6" optional:"true"`
 }
 
 type IPUpdateRequest struct {
