@@ -284,14 +284,17 @@ func createTestEnvironment(t *testing.T, log *slog.Logger, ds *datastore.Rethink
 			PartitionID: &partition.ID,
 		},
 		NetworkImmutable: v1.NetworkImmutable{
-			Prefixes:     []string{testPrivateSuperCidr},
-			PrivateSuper: true,
+			Prefixes:                 []string{testPrivateSuperCidr},
+			PrivateSuper:             true,
+			DefaultChildPrefixLength: map[metal.AddressFamily]uint8{metal.IPv4AddressFamily: 22},
 		},
 	}
+	log.Info("try to create a network", "request", ncr)
 	status = te.networkCreate(t, ncr, &createdNetwork)
 	require.Equal(t, http.StatusCreated, status)
 	require.NotNil(t, createdNetwork)
 	require.Equal(t, *ncr.ID, createdNetwork.ID)
+	log.Info("created a network", "nw", createdNetwork)
 
 	te.privateSuperNetwork = &createdNetwork
 

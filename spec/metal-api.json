@@ -4,6 +4,13 @@
     "datastore.IPSearchQuery": {
       "description": "an ip address that can be attached to a machine",
       "properties": {
+        "addressfamily": {
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "allocationuuid": {
           "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
           "type": "string"
@@ -255,6 +262,13 @@
     },
     "datastore.NetworkSearchQuery": {
       "properties": {
+        "addressfamily": {
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "destinationprefixes": {
           "items": {
             "type": "string"
@@ -1552,6 +1566,14 @@
     },
     "v1.IPAllocateRequest": {
       "properties": {
+        "addressfamily": {
+          "description": "the addressfamily to allocate a ip address from the given network, defaults to IPv4",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -1589,6 +1611,7 @@
         }
       },
       "required": [
+        "addressfamily",
         "networkid",
         "projectid",
         "type"
@@ -1628,6 +1651,13 @@
     },
     "v1.IPFindRequest": {
       "properties": {
+        "addressfamily": {
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "allocationuuid": {
           "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
           "type": "string"
@@ -3666,6 +3696,14 @@
     },
     "v1.NetworkAllocateRequest": {
       "properties": {
+        "addressfamily": {
+          "description": "the addressfamily to allocate a child network defaults. If not specified, the child network inherits the addressfamilies from the parent.",
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3684,6 +3722,13 @@
           "description": "free labels that you associate with this network.",
           "type": "object"
         },
+        "length": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "the bitlen of the prefix to allocate, defaults to defaultchildprefixlength of super prefix",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -3691,6 +3736,10 @@
         "nat": {
           "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
+        },
+        "parentnetworkid": {
+          "description": "the parent network from which this network should be allocated",
+          "type": "string"
         },
         "partitionid": {
           "description": "the partition this network belongs to",
@@ -3704,7 +3753,12 @@
           "description": "marks a network as shareable.",
           "type": "boolean"
         }
-      }
+      },
+      "required": [
+        "addressfamily",
+        "length",
+        "parentnetworkid"
+      ]
     },
     "v1.NetworkBase": {
       "properties": {
@@ -3729,6 +3783,18 @@
         }
       }
     },
+    "v1.NetworkConsumption": {
+      "properties": {
+        "ipv4": {
+          "$ref": "#/definitions/v1.NetworkUsage",
+          "description": "ip and prefix consumption in the ipv4 addressfamily"
+        },
+        "ipv6": {
+          "$ref": "#/definitions/v1.NetworkUsage",
+          "description": "ip and prefix consumption in the ipv6 addressfamily"
+        }
+      }
+    },
     "v1.NetworkCreateRequest": {
       "properties": {
         "additionalAnnouncableCIDRs": {
@@ -3737,6 +3803,13 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "defaultchildprefixlength": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
         },
         "description": {
           "description": "a description for this entity",
@@ -3765,7 +3838,7 @@
           "type": "string"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
+          "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "parentnetworkid": {
@@ -3820,6 +3893,13 @@
     },
     "v1.NetworkFindRequest": {
       "properties": {
+        "addressfamily": {
+          "enum": [
+            "IPv4",
+            "IPv6"
+          ],
+          "type": "string"
+        },
         "destinationprefixes": {
           "items": {
             "type": "string"
@@ -3878,6 +3958,13 @@
           },
           "type": "array"
         },
+        "defaultchildprefixlength": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
+        },
         "destinationprefixes": {
           "description": "the destination prefixes of this network",
           "items": {
@@ -3886,7 +3973,7 @@
           "type": "array"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
+          "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "parentnetworkid": {
@@ -3941,11 +4028,22 @@
           "readOnly": true,
           "type": "string"
         },
+        "consumption": {
+          "$ref": "#/definitions/v1.NetworkConsumption",
+          "description": "consumption of ips and prefixes in this network"
+        },
         "created": {
           "description": "the creation time of this entity",
           "format": "date-time",
           "readOnly": true,
           "type": "string"
+        },
+        "defaultchildprefixlength": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
         },
         "description": {
           "description": "a description for this entity",
@@ -3974,7 +4072,7 @@
           "type": "string"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
+          "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "parentnetworkid": {
@@ -4010,7 +4108,7 @@
         },
         "usage": {
           "$ref": "#/definitions/v1.NetworkUsage",
-          "description": "usage of ips and prefixes in this network"
+          "description": "usage of IPv4 ips and prefixes in this network"
         },
         "vrf": {
           "description": "the vrf this network is associated with",
@@ -4023,6 +4121,7 @@
         }
       },
       "required": [
+        "consumption",
         "destinationprefixes",
         "id",
         "nat",
@@ -4040,6 +4139,13 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "defaultchildprefixlength": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil",
+          "type": "object"
         },
         "description": {
           "description": "a description for this entity",
@@ -4151,13 +4257,6 @@
             "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       }
     },
@@ -4266,13 +4365,6 @@
             "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [
@@ -4334,13 +4426,6 @@
             "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [

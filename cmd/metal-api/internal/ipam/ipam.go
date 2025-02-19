@@ -51,10 +51,10 @@ func (i *ipam) AllocateChildPrefix(ctx context.Context, parentPrefix metal.Prefi
 		Length: uint32(childLength),
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("error creating new prefix in ipam: %w", err)
+		return nil, fmt.Errorf("error creating new prefix from:%s in ipam: %w", parentPrefix.String(), err)
 	}
 
-	prefix, err := metal.NewPrefixFromCIDR(ipamPrefix.Msg.Prefix.Cidr)
+	prefix, _, err := metal.NewPrefixFromCIDR(ipamPrefix.Msg.Prefix.Cidr)
 	if err != nil {
 		return nil, fmt.Errorf("error creating prefix from ipam prefix: %w", err)
 	}

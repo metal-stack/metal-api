@@ -3,12 +3,11 @@ package metal
 // A Partition represents a location.
 type Partition struct {
 	Base
-	BootConfiguration          BootConfiguration `rethinkdb:"bootconfig" json:"bootconfig"`
-	MgmtServiceAddress         string            `rethinkdb:"mgmtserviceaddr" json:"mgmtserviceaddr"`
-	PrivateNetworkPrefixLength uint8             `rethinkdb:"privatenetworkprefixlength" json:"privatenetworkprefixlength"`
-	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
-	DNSServers                 DNSServers        `rethinkdb:"dns_servers" json:"dns_servers"`
-	NTPServers                 NTPServers        `rethinkdb:"ntp_servers" json:"ntp_servers"`
+	BootConfiguration  BootConfiguration `rethinkdb:"bootconfig" json:"bootconfig"`
+	MgmtServiceAddress string            `rethinkdb:"mgmtserviceaddr" json:"mgmtserviceaddr"`
+	Labels             map[string]string `rethinkdb:"labels" json:"labels"`
+	DNSServers         DNSServers        `rethinkdb:"dns_servers" json:"dns_servers"`
+	NTPServers         NTPServers        `rethinkdb:"ntp_servers" json:"ntp_servers"`
 }
 
 // BootConfiguration defines the metal-hammer initrd, kernel and commandline
