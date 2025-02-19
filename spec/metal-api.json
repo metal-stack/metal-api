@@ -1611,7 +1611,6 @@
         }
       },
       "required": [
-        "addressfamily",
         "networkid",
         "projectid",
         "type"
@@ -3697,7 +3696,7 @@
     "v1.NetworkAllocateRequest": {
       "properties": {
         "addressfamily": {
-          "description": "the addressfamily to allocate a child network defaults. If not specified, the child network inherits the addressfamilies from the parent.",
+          "description": "the addressfamily to allocate a child network. If not specified, the child network inherits the addressfamilies from the parent.",
           "enum": [
             "IPv4",
             "IPv6"
@@ -3726,7 +3725,7 @@
           "additionalProperties": {
             "type": "integer"
           },
-          "description": "the bitlen of the prefix to allocate, defaults to defaultchildprefixlength of super prefix",
+          "description": "the bit lengths of the prefix to allocate, defaults to the default child prefix lengths of the parent network",
           "type": "object"
         },
         "name": {
@@ -3755,8 +3754,6 @@
         }
       },
       "required": [
-        "addressfamily",
-        "length",
         "parentnetworkid"
       ]
     },
