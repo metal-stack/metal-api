@@ -74,14 +74,21 @@ func (h *HeadscaleClient) GetControlPlaneAddress() string {
 }
 
 func (h *HeadscaleClient) UserExists(ctx context.Context, name string) bool {
-	req := &headscalev1.GetUserRequest{
+	req := &headscalev1.ListUsersRequest{
 		Name: name,
 	}
-	if _, err := h.client.GetUser(ctx, req); err != nil {
+	resp, err := h.client.ListUsers(ctx, req)
+	if err != nil {
 		return false
 	}
+	// Should only return one user.
+	for _, user := range resp.Users {
+		if user.Name == name {
+			return true
+		}
+	}
 
-	return true
+	return false
 }
 
 func (h *HeadscaleClient) CreateUser(ctx context.Context, name string) error {
