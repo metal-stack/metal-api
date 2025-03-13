@@ -15,7 +15,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
-	github.com/juanfont/headscale v0.25.0
+	github.com/juanfont/headscale v0.25.1
 	github.com/klauspost/connect-compress/v2 v2.0.0
 	github.com/looplab/fsm v1.0.2
 	github.com/metal-stack/go-ipam v1.14.8
