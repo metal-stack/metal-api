@@ -78,7 +78,7 @@ func NewAuditResponse(e auditing.Entry) *AuditResponse {
 	}
 	err := ""
 	if e.Error != nil {
-		err = e.Error.Error()
+		err = *e.Error
 	}
 
 	return &AuditResponse{
