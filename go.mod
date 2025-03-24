@@ -42,7 +42,7 @@ require (
 // This breaks metalctl and friends
 replace github.com/emicklei/go-restful-openapi/v2 => github.com/emicklei/go-restful-openapi/v2 v2.9.1
 
-replace github.com/metal-stack/metal-lib => github.com/metal-stack/metal-lib v0.20.2-0.20250324123029-710e75944ece
+replace github.com/metal-stack/metal-lib => github.com/metal-stack/metal-lib v0.20.2-0.20250324131301-e2092e1ec235
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
