@@ -115,32 +115,21 @@ func (c ConnectionMap) ByNicName() (map[string]Connection, error) {
 	return res, nil
 }
 
-// ConnectMachine iterates over all switch nics and machine nic neighbor
-// to find existing wire connections.
-// Implementation is very inefficient, will also find all connections,
-// which should not happen in a real environment.
-func (s *Switch) ConnectMachine(machine *Machine) int {
-	// first remove all existing connections to this machine.
-	delete(s.MachineConnections, machine.ID)
+// ConnectMachine checks if a machine is physically connected to the switch and updates the switch's connections if necessary
+func (s *Switch) ConnectMachine(machine *Machine) (int, error) {
+	connectionIsKnown := s.machineConnectionIsKnown(machine)
+	physicalConnections := s.getPhysicalMachineConnections(machine)
 
-	// calculate the connections for this machine
-	for _, switchNic := range s.Nics {
-		for _, machineNic := range machine.Hardware.Nics {
-			var has bool
-
-			neighMap := machineNic.Neighbors.FilterByHostname(s.Name).ByIdentifier()
-
-			_, has = neighMap[switchNic.GetIdentifier()]
-			if has {
-				conn := Connection{
-					Nic:       switchNic,
-					MachineID: machine.ID,
-				}
-				s.MachineConnections[machine.ID] = append(s.MachineConnections[machine.ID], conn)
-			}
+	if len(physicalConnections) < 1 {
+		if connectionIsKnown {
+			return 0, fmt.Errorf("machine connection between machine %s and switch %s exists in the database but not physically; if you are attempting migrate the machine from one rack to another delete it first", machine.ID, s.ID)
 		}
+		return 0, nil
 	}
-	return len(s.MachineConnections[machine.ID])
+
+	delete(s.MachineConnections, machine.ID)
+	s.MachineConnections[machine.ID] = append(s.MachineConnections[machine.ID], physicalConnections...)
+	return len(physicalConnections), nil
 }
 
 // SetVrfOfMachine set port on switch where machine is connected to given vrf
@@ -233,6 +222,28 @@ func (s *Switch) MapPortNames(targetOS SwitchOSVendor) (map[string]string, error
 	}
 
 	return portNamesMap, nil
+}
+
+func (s *Switch) getPhysicalMachineConnections(machine *Machine) Connections {
+	connections := make(Connections, 0)
+	for _, machineNic := range machine.Hardware.Nics {
+		neighMap := machineNic.Neighbors.FilterByHostname(s.Name).ByIdentifier()
+
+		for _, switchNic := range s.Nics {
+			if _, has := neighMap[switchNic.GetIdentifier()]; has {
+				connections = append(connections, Connection{
+					Nic:       switchNic,
+					MachineID: machine.ID,
+				})
+			}
+		}
+	}
+	return connections
+}
+
+func (s *Switch) machineConnectionIsKnown(machine *Machine) bool {
+	_, exists := s.MachineConnections[machine.ID]
+	return exists
 }
 
 func mapPortName(port string, sourceOS, targetOS SwitchOSVendor, allLines []int) (string, error) {
