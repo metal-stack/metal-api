@@ -151,7 +151,11 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 	newSwitches := metal.Switches{}
 	for _, sw := range switches {
 		oldSwitch := sw
-		if cons := sw.ConnectMachine(m); cons > 0 {
+		cons, err := sw.ConnectMachine(m)
+		if err != nil {
+			return err
+		}
+		if cons > 0 {
 			oldSwitches = append(oldSwitches, oldSwitch)
 			newSwitches = append(newSwitches, sw)
 		}
