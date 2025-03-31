@@ -117,11 +117,11 @@ func (c ConnectionMap) ByNicName() (map[string]Connection, error) {
 
 // ConnectMachine checks if a machine is physically connected to the switch and updates the switch's connections if necessary
 func (s *Switch) ConnectMachine(machine *Machine) (int, error) {
-	connectionIsKnown := s.machineConnectionIsKnown(machine)
+	_, connectionExists := s.MachineConnections[machine.ID]
 	physicalConnections := s.getPhysicalMachineConnections(machine)
 
 	if len(physicalConnections) < 1 {
-		if connectionIsKnown {
+		if connectionExists {
 			return 0, fmt.Errorf("machine connection between machine %s and switch %s exists in the database but not physically; if you are attempting migrate the machine from one rack to another delete it first", machine.ID, s.ID)
 		}
 		return 0, nil
@@ -239,11 +239,6 @@ func (s *Switch) getPhysicalMachineConnections(machine *Machine) Connections {
 		}
 	}
 	return connections
-}
-
-func (s *Switch) machineConnectionIsKnown(machine *Machine) bool {
-	_, exists := s.MachineConnections[machine.ID]
-	return exists
 }
 
 func mapPortName(port string, sourceOS, targetOS SwitchOSVendor, allLines []int) (string, error) {
