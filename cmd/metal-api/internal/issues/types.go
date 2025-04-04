@@ -21,6 +21,7 @@ func AllIssueTypes() []Type {
 		TypeASNUniqueness,
 		TypeNonDistinctBMCIP,
 		TypeNoEventContainer,
+		TypePowerSupplyFailure,
 	}
 }
 
@@ -52,6 +53,8 @@ func NewIssueFromType(t Type) (issue, error) {
 		return &issueNonDistinctBMCIP{}, nil
 	case TypeNoEventContainer:
 		return &issueNoEventContainer{}, nil
+	case TypePowerSupplyFailure:
+		return &issuePowerSupplyFailure{}, nil
 	default:
 		return nil, fmt.Errorf("unknown issue type: %s", t)
 	}
