@@ -1,13 +1,33 @@
+version: "2"
 run:
   concurrency: 4
 linters:
+  enable:
+    - asciicheck
+    - bidichk
+    - gocheckcompilerdirectives
+    - testifylint
   disable:
+    - errcheck
+    - govet
     - musttag
     - protogetter
-  enable:
-    - testifylint
-    - unused
-  presets:
-    - bugs
-    - unused
-  fast: true
+    - staticcheck
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

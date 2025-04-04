@@ -75,7 +75,7 @@ func TestGetSize(t *testing.T) {
 	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
-	require.Equal(t, len(testdata.Sz1.Constraints), len(result.SizeConstraints))
+	require.Len(t, testdata.Sz1.Constraints, len(result.SizeConstraints))
 }
 
 func TestSuggest(t *testing.T) {
