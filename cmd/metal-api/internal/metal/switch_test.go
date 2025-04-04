@@ -47,7 +47,8 @@ var (
 	}
 )
 
-func TestSwitch_ConnectMachine(t *testing.T) {
+// TODO: is this really necessary?
+func TestSwitch_ConnectMachine_ForTestData(t *testing.T) {
 	type args struct {
 		*Machine
 	}
@@ -56,7 +57,6 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 		s    *Switch
 		args args
 	}{
-		// Test-Data List / Test Cases:
 		{
 			name: "Test 1",
 			s:    &switch1,
@@ -100,184 +100,218 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 	}
 }
 
-// Gerrit and me implemented that monster in a one shot which worked.
-
-func TestSwitch_ConnectMachine2(t *testing.T) {
-	type fields struct {
-		ID                 string
-		Nics               []Nic
-		MachineConnections ConnectionMap
-		PartitionID        string
-		RackID             string
-	}
-
-	switchName1 := "switch-1"
-	switchName2 := "switch-2"
+func TestSwitch_ConnectMachine(t *testing.T) {
 	tests := []struct {
-		name    string
-		fields  fields
-		machine *Machine
+		name            string
+		s               *Switch
+		machine         *Machine
+		want            int
+		wantConnections ConnectionMap
+		wantErr         bool
 	}{
 		{
-			name: "simple connection",
-			fields: fields{
-				ID: switchName1,
-				Nics: []Nic{
+			name: "switch and machine are not connected",
+			s: &Switch{
+				Base: Base{
+					ID: "sw1",
+				},
+				Nics: Nics{
 					{
-						Name:       "eth0",
-						MacAddress: "00:11:11",
-					},
-					{
-						Name:       "swp1",
-						MacAddress: "11:11:11",
-					},
-					{
-						Name:       "swp2",
-						MacAddress: "22:11:11",
+						MacAddress: "aa:aa:aa:aa:aa:aa",
+						Name:       "Ethernet12",
+						Hostname:   "sw1",
 					},
 				},
-				PartitionID: "nbg1",
-				RackID:      "rack1",
 				MachineConnections: ConnectionMap{
-					"machine-1": []Connection{
+					"m2": {
 						{
 							Nic: Nic{
-								Name:       "swp1",
-								MacAddress: "11:11:11",
+								MacAddress: "aa:aa:aa:aa:aa:aa",
+								Name:       "Ethernet12",
 							},
-							MachineID: "machine-1",
-						},
-						{
-							Nic: Nic{
-								Name:       "swp2",
-								MacAddress: "22:11:11",
-							},
-							MachineID: "machine-1",
+							MachineID: "m2",
 						},
 					},
 				},
 			},
 			machine: &Machine{
 				Base: Base{
-					ID: "machine-1",
+					ID: "m1",
 				},
 				Hardware: MachineHardware{
-					Nics: []Nic{
+					Nics: Nics{
 						{
-							Name: "eth0",
-							Neighbors: []Nic{
+							Neighbors: Nics{
 								{
-									MacAddress: "11:11:11",
-									Hostname:   switchName1,
-								},
-								{
-									MacAddress: "11:11:12",
-									Hostname:   switchName1,
-								},
-							},
-						},
-						{
-							Name: "eth1",
-							Neighbors: []Nic{
-								{
-									MacAddress: "22:11:11",
-									Hostname:   switchName1,
-								},
-								{
-									MacAddress: "11:11:13",
-									Hostname:   switchName1,
+									MacAddress: "ee:ee:ee:ee:ee:ee",
+									Name:       "Ethernet12",
+									Hostname:   "sw2",
 								},
 							},
 						},
 					},
 				},
 			},
+			want: 0,
+			wantConnections: ConnectionMap{
+				"m2": {
+					{
+						Nic: Nic{
+							MacAddress: "aa:aa:aa:aa:aa:aa",
+							Name:       "Ethernet12",
+						},
+						MachineID: "m2",
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
-			name: "multiple switch connection",
-			fields: fields{
-				ID: switchName1,
-				Nics: []Nic{
+			name: "error when machine connection for the switch exists in the database but not physically",
+			s: &Switch{
+				Base: Base{
+					ID: "sw1",
+				},
+				Nics: Nics{
 					{
-						Name:       "eth0",
-						MacAddress: "00:11:11",
-					},
-					{
-						Name:       "swp1",
-						MacAddress: "11:11:11",
-					},
-					{
-						Name:       "swp2",
-						MacAddress: "22:11:11",
+						MacAddress: "aa:aa:aa:aa:aa:aa",
+						Name:       "Ethernet12",
+						Hostname:   "sw1",
 					},
 				},
-				PartitionID: "nbg1",
-				RackID:      "rack1",
 				MachineConnections: ConnectionMap{
-					"machine-1": []Connection{
+					"m1": {
 						{
 							Nic: Nic{
-								Name:       "swp1",
-								MacAddress: "11:11:11",
+								MacAddress: "aa:aa:aa:aa:aa:aa",
+								Name:       "Ethernet12",
 							},
-							MachineID: "machine-1",
+							MachineID: "m1",
 						},
 					},
 				},
 			},
 			machine: &Machine{
 				Base: Base{
-					ID: "machine-1",
+					ID: "m1",
 				},
 				Hardware: MachineHardware{
-					Nics: []Nic{
+					Nics: Nics{
 						{
-							Name: "eth0",
-							Neighbors: []Nic{
+							Neighbors: Nics{
 								{
-									MacAddress: "11:11:11",
-									Hostname:   switchName1,
-								},
-								{
-									MacAddress: "11:11:12",
-									Hostname:   switchName1,
-								},
-							},
-						},
-						{
-							Name: "eth1",
-							Neighbors: []Nic{
-								{
-									MacAddress: "22:11:11",
-									Hostname:   switchName2,
-								},
-								{
-									MacAddress: "11:11:13",
-									Hostname:   switchName2,
+									Hostname: "sw2",
 								},
 							},
 						},
 					},
 				},
 			},
+			want: 0,
+			wantConnections: ConnectionMap{
+				"m1": {
+					{
+						Nic: Nic{
+							MacAddress: "aa:aa:aa:aa:aa:aa",
+							Name:       "Ethernet12",
+						},
+						MachineID: "m1",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "new connection replaces old ones for the same switch",
+			s: &Switch{
+				Base: Base{
+					ID: "sw1",
+				},
+				Nics: Nics{
+					{
+						MacAddress: "bb:bb:bb:bb:bb:bb",
+						Name:       "Ethernet16",
+					},
+				},
+				MachineConnections: ConnectionMap{
+					"m1": {
+						{
+							Nic: Nic{
+								MacAddress: "aa:aa:aa:aa:aa:aa",
+								Name:       "Ethernet12",
+							},
+							MachineID: "",
+						},
+					},
+					"m2": {
+						{
+							Nic: Nic{
+								MacAddress: "cc:cc:cc:cc:cc:cc",
+								Name:       "Ethernet20",
+							},
+							MachineID: "m2",
+						},
+					},
+				},
+			},
+			machine: &Machine{
+				Base: Base{
+					ID: "m1",
+				},
+				Hardware: MachineHardware{
+					Nics: Nics{
+						{
+							Neighbors: Nics{
+								{
+									MacAddress: "bb:bb:bb:bb:bb:bb",
+									Name:       "Ethernet16",
+									Hostname:   "sw1",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: 1,
+			wantConnections: ConnectionMap{
+				"m1": {
+					{
+						Nic: Nic{
+							MacAddress: "bb:bb:bb:bb:bb:bb",
+							Name:       "Ethernet16",
+						},
+						MachineID: "m1",
+					},
+				},
+				"m2": {
+					{
+						Nic: Nic{
+							MacAddress: "cc:cc:cc:cc:cc:cc",
+							Name:       "Ethernet20",
+						},
+						MachineID: "m2",
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			s := Switch{
-				Base: Base{
-					ID:   tt.fields.ID,
-					Name: tt.fields.ID,
-				},
-				RackID:             tt.fields.RackID,
-				Nics:               tt.fields.Nics,
-				PartitionID:        tt.fields.PartitionID,
-				MachineConnections: ConnectionMap{},
+			got, err := tt.s.ConnectMachine(tt.machine)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Switch.ConnectMachine() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-			s.ConnectMachine(tt.machine)
-			if !reflect.DeepEqual(s.MachineConnections, tt.fields.MachineConnections) {
-				t.Errorf("expected:%v, got:%v", s.MachineConnections, tt.fields.MachineConnections)
+
+			if got != tt.want {
+				t.Errorf("Switch.ConnectMachine() = %v, want %v", got, tt.want)
+				return
+			}
+
+			if diff := cmp.Diff(tt.wantConnections, tt.s.MachineConnections); diff != "" {
+				t.Errorf("Switch.ConnectMachine() diff = %v", diff)
 			}
 		})
 	}
@@ -832,6 +866,99 @@ func TestConnectionMap_ByNicName(t *testing.T) {
 
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("ConnectionMap.ByNicName() diff: %s", diff)
+			}
+		})
+	}
+}
+
+func TestSwitch_getPhysicalMachineConnection(t *testing.T) {
+	tests := []struct {
+		name    string
+		s       *Switch
+		machine *Machine
+		want    Connections
+	}{
+		{
+			name: "machine is connected",
+			s: &Switch{
+				Base: Base{
+					Name: "leaf01",
+				},
+				Nics: Nics{
+					{
+						MacAddress: "aa:aa:aa:aa:aa:aa",
+						Name:       "Ethernet12",
+						Hostname:   "leaf01",
+					},
+				},
+			},
+			machine: &Machine{
+				Base: Base{
+					ID: "m1",
+				},
+				Hardware: MachineHardware{
+					Nics: Nics{
+						{
+							Neighbors: Nics{
+								{
+									MacAddress: "aa:aa:aa:aa:aa:aa",
+									Hostname:   "leaf01",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: Connections{
+				{
+					Nic: Nic{
+						MacAddress: "aa:aa:aa:aa:aa:aa",
+						Name:       "Ethernet12",
+						Hostname:   "leaf01",
+					},
+					MachineID: "m1",
+				},
+			},
+		},
+		{
+			name: "machine is not connected",
+			s: &Switch{
+				Base: Base{
+					Name: "leaf02",
+				},
+				Nics: Nics{
+					{
+						MacAddress: "aa:aa:aa:aa:aa:aa",
+						Name:       "Ethernet12",
+						Hostname:   "leaf02",
+					},
+				},
+			},
+			machine: &Machine{
+				Base: Base{
+					ID: "m1",
+				},
+				Hardware: MachineHardware{
+					Nics: Nics{
+						{
+							Neighbors: Nics{
+								{
+									MacAddress: "bb:bb:bb:bb:bb:bb",
+									Hostname:   "leaf01",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: Connections{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.s.getPhysicalMachineConnections(tt.machine)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("Switch.getPhysicalMachineConnection() diff = %v", diff)
 			}
 		})
 	}
