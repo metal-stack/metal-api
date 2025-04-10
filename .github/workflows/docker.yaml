@@ -38,9 +38,9 @@ jobs:
         cache: false
 
     - name: Lint
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v7
       with:
-        args: --build-tags integration -p bugs -p unused -D protogetter --timeout=5m
+        args: --build-tags integration -D protogetter --timeout=5m
 
     - name: Make tag
       run: |

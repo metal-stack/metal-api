@@ -101,52 +101,6 @@ func StartPostgres() (container testcontainers.Container, c *ConnectionDetails, 
 	return pgContainer, c, err
 }
 
-func StartMeilisearch(t testing.TB) (container testcontainers.Container, c *ConnectionDetails, err error) {
-	meilisearchMasterKey := "meili"
-
-	ctx := context.Background()
-	var log testcontainers.Logging
-	if t != nil {
-		log = testcontainers.TestLogger(t)
-	}
-
-	meiliContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "getmeili/meilisearch:v1.3.4",
-			ExposedPorts: []string{"7700/tcp"},
-			Env: map[string]string{
-				"MEILI_MASTER_KEY":   meilisearchMasterKey,
-				"MEILI_NO_ANALYTICS": "true",
-			},
-			WaitingFor: wait.ForAll(
-				wait.ForListeningPort("7700/tcp"),
-			),
-		},
-		Started: true,
-		Logger:  log,
-	})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	host, err := meiliContainer.Host(ctx)
-	if err != nil {
-		return meiliContainer, nil, err
-	}
-	port, err := meiliContainer.MappedPort(ctx, "7700")
-	if err != nil {
-		return meiliContainer, nil, err
-	}
-
-	conn := &ConnectionDetails{
-		IP:       host,
-		Port:     port.Port(),
-		Password: meilisearchMasterKey,
-	}
-
-	return meiliContainer, conn, err
-}
-
 func StartNsqd(t *testing.T, log *slog.Logger) (testcontainers.Container, bus.Publisher, *bus.Consumer) {
 	ctx := context.Background()
 
