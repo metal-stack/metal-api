@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package api.v1;
+
+option go_package = "./v1";
+
+service VersionService {
+  rpc Get(GetVersionRequest) returns (GetVersionResponse);
+}
+
+message GetVersionRequest {}
+
+message GetVersionResponse {
+  string version = 1;
+  string revision = 2;
+  string git_sha1 = 3;
+  string build_date = 4;
+}

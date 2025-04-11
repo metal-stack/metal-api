@@ -159,6 +159,7 @@ func Run(cfg *ServerConfig) error {
 
 	eventService := NewEventService(cfg)
 	bootService := NewBootService(cfg, eventService)
+	versionService := NewVersionService()
 
 	err := bootService.initWaitEndpoint()
 	if err != nil {
@@ -167,6 +168,7 @@ func Run(cfg *ServerConfig) error {
 
 	v1.RegisterEventServiceServer(grpcServer, eventService)
 	v1.RegisterBootServiceServer(grpcServer, bootService)
+	v1.RegisterVersionServiceServer(grpcServer, versionService)
 
 	listener := cfg.Listener
 
