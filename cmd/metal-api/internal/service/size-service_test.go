@@ -226,7 +226,7 @@ func TestCreateSize(t *testing.T) {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "a"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil, nil)
 
 	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
@@ -284,7 +284,7 @@ func TestUpdateSize(t *testing.T) {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "p1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil, nil)
 
 	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
@@ -398,7 +398,7 @@ func Test_ListSizeReservationsUsage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
 				projectMock = mdmv1mock.NewProjectServiceClient(t)
-				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				m           = mdm.NewMock(projectMock, nil, nil, nil, nil)
 				ds, dbMock  = datastore.InitMockDB(t)
 				ws          = NewSize(slog.Default(), ds, m)
 			)
@@ -460,7 +460,7 @@ func Test_ListSizeReservations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
 				projectMock = mdmv1mock.NewProjectServiceClient(t)
-				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				m           = mdm.NewMock(projectMock, nil, nil, nil, nil)
 				ds, dbMock  = datastore.InitMockDB(t)
 				ws          = NewSize(slog.Default(), ds, m)
 			)
@@ -533,7 +533,7 @@ func Test_FindSizeReservationsUsage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
 				projectMock = mdmv1mock.NewProjectServiceClient(t)
-				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				m           = mdm.NewMock(projectMock, nil, nil, nil, nil)
 				ds, dbMock  = datastore.InitMockDB(t)
 				ws          = NewSize(slog.Default(), ds, m)
 			)
@@ -598,7 +598,7 @@ func Test_GetSizeReservationsUsage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
 				projectMock = mdmv1mock.NewProjectServiceClient(t)
-				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				m           = mdm.NewMock(projectMock, nil, nil, nil, nil)
 				ds, dbMock  = datastore.InitMockDB(t)
 				ws          = NewSize(slog.Default(), ds, m)
 			)
@@ -665,7 +665,7 @@ func Test_DeleteSizeReservationsUsage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
 				projectMock = mdmv1mock.NewProjectServiceClient(t)
-				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				m           = mdm.NewMock(projectMock, nil, nil, nil, nil)
 				ds, dbMock  = datastore.InitMockDB(t)
 				ws          = NewSize(slog.Default(), ds, m)
 			)
@@ -746,7 +746,7 @@ func Test_CreateSizeReservationsUsage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
 				projectMock = mdmv1mock.NewProjectServiceClient(t)
-				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				m           = mdm.NewMock(projectMock, nil, nil, nil, nil)
 				ds, dbMock  = datastore.InitMockDB(t)
 				ws          = NewSize(slog.Default(), ds, m)
 			)
@@ -820,7 +820,7 @@ func Test_UpdateSizeReservationsUsage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
 				projectMock = mdmv1mock.NewProjectServiceClient(t)
-				m           = mdm.NewMock(projectMock, nil, nil, nil)
+				m           = mdm.NewMock(projectMock, nil, nil, nil, nil)
 				ds, dbMock  = datastore.InitMockDB(t)
 				ws          = NewSize(slog.Default(), ds, m)
 			)

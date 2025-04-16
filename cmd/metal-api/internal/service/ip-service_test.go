@@ -209,7 +209,7 @@ func TestAllocateIP(t *testing.T) {
 	)
 	tsc := mdmock.TenantServiceClient{}
 
-	mdc := mdm.NewMock(&psc, &tsc, nil, nil)
+	mdc := mdm.NewMock(&psc, &tsc, nil, nil, nil)
 
 	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(t, err)
