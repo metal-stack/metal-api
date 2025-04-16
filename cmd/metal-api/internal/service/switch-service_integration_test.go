@@ -469,7 +469,7 @@ func createTestService(t *testing.T) testService {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, nil, nil, nil)
+	mdc := mdm.NewMock(psc, nil, nil, nil, nil)
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
