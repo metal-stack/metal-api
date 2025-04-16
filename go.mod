@@ -19,7 +19,7 @@ require (
 	github.com/klauspost/connect-compress/v2 v2.0.0
 	github.com/looplab/fsm v1.0.2
 	github.com/metal-stack/go-ipam v1.14.10
-	github.com/metal-stack/masterdata-api v0.11.8
+	github.com/metal-stack/masterdata-api v0.11.10-0.20250415140211-68c1b2149ee5
 	github.com/metal-stack/metal-lib v0.21.0
 	github.com/metal-stack/security v0.9.3
 	github.com/metal-stack/v v1.0.3

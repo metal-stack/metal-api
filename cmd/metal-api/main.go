@@ -21,6 +21,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/avast/retry-go/v4"
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/masterdata"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -747,7 +748,8 @@ func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []a
 		log.Fatal(err)
 	}
 
-	healthService, err := rest.NewHealth(logger, service.BasePath, ds, ipamer)
+	mdhc := masterdata.NewMasterdataHealthClient(mdc)
+	healthService, err := rest.NewHealth(logger, service.BasePath, ds, ipamer, mdhc)
 	if err != nil {
 		log.Fatal(err)
 	}
