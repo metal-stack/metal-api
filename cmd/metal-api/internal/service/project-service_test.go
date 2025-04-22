@@ -45,7 +45,7 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 	if projectServiceMock != nil {
 		projectServiceMock(psc)
 	}
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil, nil)
 	ds, mock := datastore.InitMockDB(t)
 	if dsmock != nil {
 		dsmock(mock)
