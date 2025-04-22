@@ -19,7 +19,7 @@ require (
 	github.com/klauspost/connect-compress/v2 v2.0.0
 	github.com/looplab/fsm v1.0.2
 	github.com/metal-stack/go-ipam v1.14.10
-	github.com/metal-stack/masterdata-api v0.11.10-0.20250415140211-68c1b2149ee5
+	github.com/metal-stack/masterdata-api v0.11.11
 	github.com/metal-stack/metal-lib v0.21.0
 	github.com/metal-stack/security v0.9.3
 	github.com/metal-stack/v v1.0.3
@@ -177,7 +177,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
