@@ -2362,46 +2362,6 @@ func (r *machineResource) machineCmd(ctx context.Context, cmd metal.MachineComma
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func machineHasIssues(m *v1.MachineResponse) bool {
-	if m.Partition == nil {
-		return true
-	}
-	if metal.MachineLivelinessAlive == metal.MachineLiveliness(m.Liveliness) {
-		return true
-	}
-	if m.Allocation == nil && len(m.RecentProvisioningEvents.Events) > 0 && metal.ProvisioningEventPhonedHome == metal.ProvisioningEventType(m.RecentProvisioningEvents.Events[0].Event) {
-		// not allocated, but phones home
-		return true
-	}
-	if m.RecentProvisioningEvents.CrashLoop || m.RecentProvisioningEvents.FailedMachineReclaim {
-		// Machines in crash loop but in "Waiting" state are considered available
-		if len(m.RecentProvisioningEvents.Events) > 0 && metal.ProvisioningEventWaiting != metal.ProvisioningEventType(m.RecentProvisioningEvents.Events[0].Event) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func publishMachineCmd(logger *slog.Logger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
-	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
-		Cmd: &metal.MachineExecCommand{
-			Command:         cmd,
-			TargetMachineID: m.ID,
-			IPMI:            &m.IPMI,
-		},
-	}
-
-	logger.Info("publish event", "event", evt, "command", *evt.Cmd)
-	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore) (*v1.MachineResponse, error) {
 	s, p, i, ec, err := findMachineReferencedEntities(m, ds)
 	if err != nil {
