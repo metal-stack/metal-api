@@ -1,21 +1,21 @@
 package scaler
 
 import (
+	"log/slog"
 	"math"
 	"math/rand"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap"
 )
 
 type (
 	PoolScaler struct {
-		log       *zap.SugaredLogger
+		log       *slog.Logger
 		manager   MachineManager
 		partition metal.Partition
 	}
 	PoolScalerConfig struct {
-		Log       *zap.SugaredLogger
+		Log       *slog.Logger
 		Manager   MachineManager
 		Partition metal.Partition
 	}
@@ -62,7 +62,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
 	}
 
 	if poolSizeExcess > 0 {
-		p.log.Infow("shut down spare machines", "number", poolSizeExcess)
+		p.log.Info("shut down spare machines", "number", poolSizeExcess)
 		err := p.shutdownMachines(waitingMachines, poolSizeExcess)
 		if err != nil {
 			return err
@@ -75,7 +75,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
 
 		poolSizeExcess = int(math.Abs(float64(poolSizeExcess)))
 		if len(shutdownMachines) < poolSizeExcess {
-			p.log.Infow("not enough machines to meet waiting pool size; power on all remaining", "number", len(shutdownMachines))
+			p.log.Info("not enough machines to meet waiting pool size; power on all remaining", "number", len(shutdownMachines))
 			err = p.powerOnMachines(shutdownMachines, len(shutdownMachines))
 			if err != nil {
 				return err
@@ -83,7 +83,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
 			return nil
 		}
 
-		p.log.Infow("power on missing machines", "number", poolSizeExcess)
+		p.log.Info("power on missing machines", "number", poolSizeExcess)
 		err = p.powerOnMachines(shutdownMachines, poolSizeExcess)
 		if err != nil {
 			return err
@@ -106,7 +106,7 @@ func (p *PoolScaler) calculatePoolSizeExcess(current int, scalerRange metal.Scal
 	max := scalerRange.Max(len(allMachines))
 	average := (float64(max) + float64(min)) / 2
 
-	p.log.Infow("checking pool size condition", "minimum pool size", min, "maximum pool size", max, "current pool size", current)
+	p.log.Info("checking pool size condition", "minimum pool size", min, "maximum pool size", max, "current pool size", current)
 
 	if current >= min && current <= max {
 		return 0

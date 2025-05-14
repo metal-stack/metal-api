@@ -1,6 +1,8 @@
 package states
 
 import (
+	"context"
+
 	"github.com/looplab/fsm"
 )
 
@@ -14,22 +16,22 @@ func newWaiting(c *StateConfig) *WaitingState {
 	}
 }
 
-func (p *WaitingState) OnEnter(e *fsm.Event) {
+func (p *WaitingState) OnEnter(ctx context.Context, e *fsm.Event) {
 	appendEventToContainer(p.config.Event, p.config.Container)
 
 	if p.config.Scaler != nil {
 		err := p.config.Scaler.AdjustNumberOfWaitingMachines()
 		if err != nil {
-			p.config.Log.Errorw("received error from pool scaler", "error", err)
+			p.config.Log.Error("received error from pool scaler", "error", err)
 		}
 	}
 }
 
-func (p *WaitingState) OnLeave(e *fsm.Event) {
+func (p *WaitingState) OnLeave(ctx context.Context, e *fsm.Event) {
 	if p.config.Scaler != nil && e.Dst != Alive.String() {
 		err := p.config.Scaler.AdjustNumberOfWaitingMachines()
 		if err != nil {
-			p.config.Log.Errorw("received error from pool scaler", "error", err)
+			p.config.Log.Error("received error from pool scaler", "error", err)
 		}
 	}
 }

@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"testing"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -16,7 +17,6 @@ import (
 	"github.com/metal-stack/security"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -45,12 +45,12 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 	if projectServiceMock != nil {
 		projectServiceMock(psc)
 	}
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil, nil)
 	ds, mock := datastore.InitMockDB(t)
 	if dsmock != nil {
 		dsmock(mock)
 	}
-	ws := NewProject(zaptest.NewLogger(t).Sugar(), ds, mdc)
+	ws := NewProject(slog.Default(), ds, mdc)
 	return &MockedProjectService{
 		t:  t,
 		ws: ws,
@@ -245,6 +245,7 @@ func Test_projectResource_deleteProject(t *testing.T) {
 				mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Networks{}, nil)
 				mock.On(r.DB("mockdb").Table("ip").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.IPs{}, nil)
 				mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{}, nil)
+				mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.SizeReservation{}, nil)
 			},
 			want:       &v1.ProjectResponse{},
 			wantStatus: 200,

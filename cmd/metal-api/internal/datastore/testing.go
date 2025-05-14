@@ -1,9 +1,10 @@
 package datastore
 
 import (
+	"log/slog"
+	"os"
 	"testing"
 
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -20,7 +21,7 @@ Return Values:
 */
 func InitMockDB(t *testing.T) (*RethinkStore, *r.Mock) {
 	rs := New(
-		zaptest.NewLogger(t).Sugar(),
+		slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})),
 		"db-addr",
 		"mockdb",
 		"db-user",

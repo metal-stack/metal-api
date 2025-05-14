@@ -1,12 +1,14 @@
 package datastore
 
 import (
+	"context"
+	"log/slog"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm/states"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	s "github.com/metal-stack/metal-api/cmd/metal-api/internal/scaler"
 	"github.com/metal-stack/metal-lib/bus"
-	"go.uber.org/zap"
 )
 
 // ListProvisioningEventContainers returns all machine provisioning event containers.
@@ -41,7 +43,7 @@ func (rs *RethinkStore) UpsertProvisioningEventContainer(ec *metal.ProvisioningE
 	return rs.upsertEntity(rs.eventTable(), ec)
 }
 
-func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, publisher bus.Publisher, event *metal.ProvisioningEvent, machine *metal.Machine) (*metal.ProvisioningEventContainer, error) {
+func (rs *RethinkStore) ProvisioningEventForMachine(ctx context.Context, log *slog.Logger, publisher bus.Publisher, event *metal.ProvisioningEvent, machine *metal.Machine) (*metal.ProvisioningEventContainer, error) {
 	ec, err := rs.FindProvisioningEventContainer(machine.ID)
 	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
@@ -60,7 +62,7 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, publ
 	if machine.PartitionID != "" && machine.SizeID != "" {
 		// in the early lifecycle, when the pxe booting event is submitted
 		// a machine does not have a partition or size , so the pool scaler
-		// can not work at this stage
+		// cannot work at this stage
 
 		p, err := rs.FindPartition(machine.PartitionID)
 		if err != nil {
@@ -68,7 +70,7 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, publ
 		}
 
 		scaler = s.NewPoolScaler(&s.PoolScalerConfig{
-			Log: log.Named("pool-scaler"),
+			Log: log.With("pool-scaler", machine.PartitionID),
 			Manager: &manager{
 				rs:          rs,
 				publisher:   publisher,
@@ -80,7 +82,8 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, publ
 	}
 
 	config := states.StateConfig{
-		Log:       log.Named("fsm"),
+		Log:       log.With("fsm", machine.ID),
+		Context:   ctx,
 		Container: ec,
 		Event:     event,
 		Scaler:    scaler,

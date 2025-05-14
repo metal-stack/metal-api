@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"reflect"
 	"testing"
 
@@ -10,19 +12,18 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest"
 )
 
 func TestEventService_Send(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
 		name    string
 		req     *v1.EventServiceSendRequest
 		ds      *datastore.RethinkStore
-		log     *zap.SugaredLogger
+		log     *slog.Logger
 		want    *v1.EventServiceSendResponse
 		wantErr bool
 	}{
@@ -37,7 +38,7 @@ func TestEventService_Send(t *testing.T) {
 				},
 			},
 			ds:  ds,
-			log: zaptest.NewLogger(t).Sugar(),
+			log: log,
 			want: &v1.EventServiceSendResponse{
 				Events: uint64(1),
 				Failed: []string{},

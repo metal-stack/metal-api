@@ -1,13 +1,15 @@
 package fsm
 
 import (
+	"context"
+	"log/slog"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm/states"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap/zaptest"
 )
 
 func TestHandleProvisioningEvent(t *testing.T) {
@@ -230,7 +232,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "valid transition from crashing to pxe booting, maintaing crash loop",
+			name: "valid transition from crashing to pxe booting, maintaining crash loop",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -628,10 +630,12 @@ func TestHandleProvisioningEvent(t *testing.T) {
 		},
 	}
 	for i := range tests {
+		ctx := context.Background()
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			params := states.StateConfig{
-				Log:       zaptest.NewLogger(t).Sugar(),
+				Log:       slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+				Context:   ctx,
 				Container: tt.container,
 				Event:     tt.event,
 			}
@@ -653,11 +657,13 @@ func TestHandleProvisioningEvent(t *testing.T) {
 }
 
 func TestReactionToAllIncomingEvents(t *testing.T) {
+	ctx := context.Background()
 	// this test ensures that for every incoming event we have a proper transition
 	for e1 := range metal.AllProvisioningEventTypes {
 		for e2 := range metal.AllProvisioningEventTypes {
 			params := states.StateConfig{
-				Log: zaptest.NewLogger(t).Sugar(),
+				Log:     slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+				Context: ctx,
 				Container: &metal.ProvisioningEventContainer{
 					Events: metal.ProvisioningEvents{
 						{

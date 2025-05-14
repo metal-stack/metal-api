@@ -17,7 +17,7 @@ const (
 
 func (b *BootService) Wait(req *v1.BootServiceWaitRequest, srv v1.BootService_WaitServer) error {
 	machineID := req.MachineId
-	b.log.Infow("wait for allocation called by", "machineID", machineID)
+	b.log.Info("wait for allocation called by", "machineID", machineID)
 
 	m, err := b.ds.FindMachineByID(machineID)
 	if err != nil {
@@ -39,7 +39,7 @@ func (b *BootService) Wait(req *v1.BootServiceWaitRequest, srv v1.BootService_Wa
 		}
 		err := b.updateWaitingFlag(machineID, false)
 		if err != nil {
-			b.log.Errorw("unable to remove waiting flag from machine", "machineID", machineID, "error", err)
+			b.log.Error("unable to remove waiting flag from machine", "machineID", machineID, "error", err)
 		}
 	}()
 
@@ -94,15 +94,12 @@ func (b *BootService) Wait(req *v1.BootServiceWaitRequest, srv v1.BootService_Wa
 }
 
 func (b *BootService) initWaitEndpoint() error {
-	if b.publisher == nil || b.consumer == nil {
-		return nil
-	}
 	channel := fmt.Sprintf("alloc-%s#ephemeral", uuid.NewString())
 	return b.consumer.With(bus.LogLevel(bus.Warning)).
 		MustRegister(metal.TopicAllocation.Name, channel).
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {
 			evt := message.(*metal.AllocationEvent)
-			b.log.Debugw("got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
+			b.log.Debug("got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
 			b.handleAllocation(evt.MachineID)
 			return nil
 		}, 5, bus.Timeout(receiverHandlerTimeout, b.timeoutHandler), bus.TTL(allocationTopicTTL))

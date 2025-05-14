@@ -1,6 +1,8 @@
 package states
 
 import (
+	"context"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
@@ -18,7 +20,7 @@ func newCrash(c *StateConfig) *CrashState {
 	}
 }
 
-func (p *CrashState) OnEnter(e *fsm.Event) {
+func (p *CrashState) OnEnter(ctx context.Context, e *fsm.Event) {
 	p.container.CrashLoop = true
 	p.container.LastErrorEvent = p.event
 	appendEventToContainer(p.event, p.container)

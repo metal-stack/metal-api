@@ -1,6 +1,8 @@
 package states
 
 import (
+	"context"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
@@ -18,7 +20,7 @@ func newPreparing(c *StateConfig) *PreparingState {
 	}
 }
 
-func (p *PreparingState) OnEnter(e *fsm.Event) {
+func (p *PreparingState) OnEnter(ctx context.Context, e *fsm.Event) {
 	p.container.FailedMachineReclaim = false
 
 	appendEventToContainer(p.event, p.container)

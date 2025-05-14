@@ -2,21 +2,21 @@ package eventbus
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/bus"
-	"go.uber.org/zap"
 )
 
 // nsqdRetryDelay represents the delay that is used for retries in blocking calls.
 const nsqdRetryDelay = 3 * time.Second
 
-type PublisherProvider func(*zap.Logger, *bus.PublisherConfig) (bus.Publisher, error)
+type PublisherProvider func(*slog.Logger, *bus.PublisherConfig) (bus.Publisher, error)
 
 // NSQClient is a type to request NSQ related tasks such as creation of topics.
 type NSQClient struct {
-	logger            *zap.Logger
+	logger            *slog.Logger
 	config            *bus.PublisherConfig
 	publisherProvider PublisherProvider
 	Publisher         bus.Publisher
@@ -24,7 +24,7 @@ type NSQClient struct {
 }
 
 // NewNSQ create a new NSQClient.
-func NewNSQ(publisherConfig *bus.PublisherConfig, logger *zap.Logger, publisherProvider PublisherProvider) NSQClient {
+func NewNSQ(publisherConfig *bus.PublisherConfig, logger *slog.Logger, publisherProvider PublisherProvider) NSQClient {
 	return NSQClient{
 		config:            publisherConfig,
 		logger:            logger,
@@ -37,11 +37,11 @@ func (n *NSQClient) WaitForPublisher() {
 	for {
 		publisher, err := n.publisherProvider(n.logger, n.config)
 		if err != nil {
-			n.logger.Sugar().Errorw("cannot create nsq publisher", "error", err)
+			n.logger.Error("cannot create nsq publisher", "error", err)
 			n.delay()
 			continue
 		}
-		n.logger.Sugar().Infow("nsq connected", "nsqd", fmt.Sprintf("%+v", n.config))
+		n.logger.Info("nsq connected", "nsqd", fmt.Sprintf("%+v", n.config))
 		n.Publisher = publisher
 		break
 	}
@@ -59,10 +59,10 @@ func (n *NSQClient) CreateEndpoints(lookupds ...string) error {
 }
 
 // WaitForTopicsCreated blocks until the topices are created within the given partitions.
-func (n NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []metal.NSQTopic) {
+func (n *NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []metal.NSQTopic) {
 	for {
 		if err := n.createTopics(partitions, topics); err != nil {
-			n.logger.Sugar().Errorw("cannot create topics", "error", err)
+			n.logger.Error("cannot create topics", "error", err)
 			n.delay()
 			continue
 		}
@@ -71,22 +71,22 @@ func (n NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []me
 }
 
 // CreateTopic creates a topic with given name.
-func (n NSQClient) CreateTopic(name string) error {
+func (n *NSQClient) CreateTopic(name string) error {
 	if err := n.Publisher.CreateTopic(name); err != nil {
-		n.logger.Sugar().Errorw("cannot create topic", "topic", name)
+		n.logger.Error("cannot create topic", "topic", name)
 		return err
 	}
-	n.logger.Sugar().Infow("topic created", "topic", name)
+	n.logger.Info("topic created", "topic", name)
 	return nil
 }
 
-func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQTopic) error {
+func (n *NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQTopic) error {
 	for _, topic := range topics {
 		if topic.PartitionAgnostic {
 			continue
 		}
 		if err := n.CreateTopic(topic.Name); err != nil {
-			n.logger.Sugar().Errorw("cannot create topic", "topic", topic.Name)
+			n.logger.Error("cannot create topic", "topic", topic.Name)
 			return err
 		}
 	}
@@ -98,7 +98,7 @@ func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQT
 			}
 			topicFQN := topic.GetFQN(partition.GetID())
 			if err := n.CreateTopic(topicFQN); err != nil {
-				n.logger.Sugar().Errorw("cannot create topic", "topic", topicFQN, "partition", partition.GetID())
+				n.logger.Error("cannot create topic", "topic", topicFQN, "partition", partition.GetID())
 				return err
 			}
 		}
@@ -106,11 +106,11 @@ func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQT
 	return nil
 }
 
-func (n NSQClient) delay() {
+func (n *NSQClient) delay() {
 	time.Sleep(nsqdRetryDelay)
 }
 
-func PublishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
+func PublishMachineCmd(logger *slog.Logger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
@@ -120,7 +120,7 @@ func PublishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bu
 		},
 	}
 
-	logger.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	logger.Info("publish event", "event", evt, "command", *evt.Cmd)
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	if err != nil {
 		return err

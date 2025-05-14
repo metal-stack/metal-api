@@ -1,11 +1,15 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/netip"
+	"slices"
 
+	"connectrpc.com/connect"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
@@ -17,11 +21,8 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/tags"
 	"github.com/metal-stack/metal-lib/auditing"
-	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-
-	goipam "github.com/metal-stack/go-ipam"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -36,7 +37,7 @@ type ipResource struct {
 }
 
 // NewIP returns a webservice for ip specific endpoints.
-func NewIP(log *zap.SugaredLogger, ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) (*restful.WebService, error) {
+func NewIP(log *slog.Logger, ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) (*restful.WebService, error) {
 	ir := ipResource{
 		webResource: webResource{
 			log: log,
@@ -283,6 +284,31 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
+	if len(nw.Prefixes) == 0 {
+		r.sendError(request, response, httperrors.UnprocessableEntity(fmt.Errorf("network %s does not have prefixes configured", nw.Prefixes)))
+		return
+	}
+
+	if requestPayload.AddressFamily != nil {
+		af, err := metal.ToAddressFamily(string(*requestPayload.AddressFamily))
+		if err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+		if !slices.Contains(nw.Prefixes.AddressFamilies(), af) {
+			r.sendError(request, response, httperrors.BadRequest(
+				fmt.Errorf("there is no prefix for the given addressfamily:%s present in network:%s", string(*requestPayload.AddressFamily), requestPayload.NetworkID)),
+			)
+			return
+		}
+		if specificIP != "" {
+			r.sendError(request, response, httperrors.BadRequest(
+				fmt.Errorf("it is not possible to specify specificIP and addressfamily"),
+			))
+			return
+		}
+	}
+
 	p, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -315,26 +341,28 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		ipParentCidr string
 	)
 
+	ctx := request.Request.Context()
+
 	if specificIP == "" {
-		ipAddress, ipParentCidr, err = allocateRandomIP(nw, r.ipamer)
+		ipAddress, ipParentCidr, err = allocateRandomIP(ctx, nw, r.ipamer, requestPayload.AddressFamily)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
 		}
 	} else {
-		ipAddress, ipParentCidr, err = allocateSpecificIP(nw, specificIP, r.ipamer)
+		ipAddress, ipParentCidr, err = allocateSpecificIP(ctx, nw, specificIP, r.ipamer)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
 		}
 	}
 
-	r.logger(request).Debugw("allocated ip in ipam", "ip", ipAddress, "network", nw.ID)
-
 	ipType := metal.Ephemeral
 	if requestPayload.Type == metal.Static {
 		ipType = metal.Static
 	}
+
+	r.logger(request).Info("allocated ip in ipam", "ip", ipAddress, "network", nw.ID, "type", ipType)
 
 	ip := &metal.IP{
 		IPAddress:        ipAddress,
@@ -400,13 +428,18 @@ func (r *ipResource) updateIP(request *restful.Request, response *restful.Respon
 	r.send(request, response, http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
-func allocateSpecificIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (ipAddress, parentPrefixCidr string, err error) {
+func allocateSpecificIP(ctx context.Context, parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (ipAddress, parentPrefixCidr string, err error) {
 	parsedIP, err := netip.ParseAddr(specificIP)
 	if err != nil {
 		return "", "", fmt.Errorf("unable to parse specific ip: %w", err)
 	}
 
-	for _, prefix := range parent.Prefixes {
+	af := metal.IPv4AddressFamily
+	if parsedIP.Is6() {
+		af = metal.IPv6AddressFamily
+	}
+
+	for _, prefix := range parent.Prefixes.OfFamily(af) {
 		pfx, err := netip.ParsePrefix(prefix.String())
 		if err != nil {
 			return "", "", fmt.Errorf("unable to parse prefix: %w", err)
@@ -416,9 +449,12 @@ func allocateSpecificIP(parent *metal.Network, specificIP string, ipamer ipam.IP
 			continue
 		}
 
-		ipAddress, err = ipamer.AllocateSpecificIP(prefix, specificIP)
-		if err != nil && errors.Is(err, goipam.ErrAlreadyAllocated) {
-			return "", "", metal.Conflict("ip already allocated")
+		ipAddress, err = ipamer.AllocateSpecificIP(ctx, prefix, specificIP)
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) {
+			if connectErr.Code() == connect.CodeAlreadyExists {
+				return "", "", metal.Conflict("ip already allocated")
+			}
 		}
 		if err != nil {
 			return "", "", err
@@ -430,13 +466,23 @@ func allocateSpecificIP(parent *metal.Network, specificIP string, ipamer ipam.IP
 	return "", "", fmt.Errorf("specific ip not contained in any of the defined prefixes")
 }
 
-func allocateRandomIP(parent *metal.Network, ipamer ipam.IPAMer) (ipAddress, parentPrefixCidr string, err error) {
-	for _, prefix := range parent.Prefixes {
-		ipAddress, err = ipamer.AllocateIP(prefix)
-		if err != nil && errors.Is(err, goipam.ErrNoIPAvailable) {
-			continue
-		}
+func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IPAMer, af *metal.AddressFamily) (ipAddress, parentPrefixCidr string, err error) {
+	var addressfamily = metal.IPv4AddressFamily
+	if af != nil {
+		addressfamily = *af
+	} else if len(parent.Prefixes.AddressFamilies()) == 1 {
+		addressfamily = parent.Prefixes.AddressFamilies()[0]
+	}
+
+	for _, prefix := range parent.Prefixes.OfFamily(addressfamily) {
+		ipAddress, err = ipamer.AllocateIP(ctx, prefix)
 		if err != nil {
+			var connectErr *connect.Error
+			if errors.As(err, &connectErr) {
+				if connectErr.Code() == connect.CodeNotFound {
+					continue
+				}
+			}
 			return "", "", err
 		}
 

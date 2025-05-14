@@ -24,8 +24,14 @@ func TestMachine_HasMAC(t *testing.T) {
 				SizeID:      "1",
 				Allocation:  nil,
 				Hardware: MachineHardware{
-					Memory:   100,
-					CPUCores: 1,
+					Memory: 100,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
 					Nics: Nics{
 						Nic{
 							MacAddress: "11:11:11:11:11:11",
@@ -220,7 +226,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
 			Comment:    "allow apt update",
 			wantErr:    true,
-			wantErrmsg: "invalid procotol: sctp",
+			wantErrmsg: "egress rule has invalid protocol: sctp",
 		},
 		{
 			name:       "wrong port",
@@ -229,7 +235,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
 			Comment:    "allow apt update",
 			wantErr:    true,
-			wantErrmsg: "port is out of range",
+			wantErrmsg: "egress rule with error:port is out of range",
 		},
 		{
 			name:       "wrong cidr",
@@ -238,7 +244,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			To:         []string{"1.2.3.0/24", "2.3.4.5/33"},
 			Comment:    "allow apt update",
 			wantErr:    true,
-			wantErrmsg: "invalid cidr: netip.ParsePrefix(\"2.3.4.5/33\"): prefix length out of range",
+			wantErrmsg: "egress rule with error:invalid cidr: netip.ParsePrefix(\"2.3.4.5/33\"): prefix length out of range",
 		},
 		{
 			name:       "wrong comment",
@@ -247,7 +253,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
 			Comment:    "allow apt update\n",
 			wantErr:    true,
-			wantErrmsg: "illegal character in comment found, only: \"abcdefghijklmnopqrstuvwxyz_- \" allowed",
+			wantErrmsg: "egress rule with error:illegal character in comment found, only: \"abcdefghijklmnopqrstuvwxyz_- \" allowed",
 		},
 		{
 			name:       "too long comment",
@@ -256,7 +262,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
 			Comment:    "much too long comment aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			wantErr:    true,
-			wantErrmsg: "comments can not exceed 100 characters",
+			wantErrmsg: "egress rule with error:comments can not exceed 100 characters",
 		},
 		{
 			name:       "mixed address family in cidrs",
@@ -265,7 +271,16 @@ func TestEgressRule_Validate(t *testing.T) {
 			To:         []string{"1.2.3.0/24", "2.3.4.5/32", "2001:db8::/32"},
 			Comment:    "mixed address family",
 			wantErr:    true,
-			wantErrmsg: "mixed address family in one rule is not supported:[1.2.3.0/24 2.3.4.5/32 2001:db8::/32]",
+			wantErrmsg: "egress rule with error:mixed address family in one rule is not supported:[1.2.3.0/24 2.3.4.5/32 2001:db8::/32]",
+		},
+		{
+			name:       "malformed cidr",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"2001:db8::1"},
+			Comment:    "malformed cidr",
+			wantErr:    true,
+			wantErrmsg: "egress rule with error:invalid cidr: netip.ParsePrefix(\"2001:db8::1\"): no '/'",
 		},
 	}
 	for _, tt := range tests {
@@ -281,7 +296,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			}
 			if err := r.Validate(); err != nil {
 				if tt.wantErrmsg != err.Error() {
-					t.Errorf("IngressRule.Validate() error = %v, wantErrmsg %v", err.Error(), tt.wantErrmsg)
+					t.Errorf("EgressRule.Validate() error = %v, wantErrmsg %v", err.Error(), tt.wantErrmsg)
 				}
 			}
 		})
@@ -321,7 +336,17 @@ func TestIngressRule_Validate(t *testing.T) {
 			To:         []string{"100.2.3.0/24", "2001:db8::/32"},
 			Comment:    "allow apt update",
 			wantErr:    true,
-			wantErrmsg: "mixed address family in one rule is not supported:[100.2.3.0/24 2001:db8::/32]",
+			wantErrmsg: "ingress rule with error:mixed address family in one rule is not supported:[100.2.3.0/24 2001:db8::/32]",
+		},
+		{
+			name:       "invalid ingress rule, mixed address families in to and from",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			From:       []string{"2.3.4.5/32"},
+			To:         []string{"2001:db8::/32"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "ingress rule with error:mixed address family in one rule is not supported:[2.3.4.5/32 2001:db8::/32]",
 		},
 	}
 	for _, tt := range tests {

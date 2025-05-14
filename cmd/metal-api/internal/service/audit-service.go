@@ -1,11 +1,11 @@
 package service
 
 import (
+	"log/slog"
 	"net/http"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
-	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -17,7 +17,7 @@ type auditResource struct {
 	a auditing.Auditing
 }
 
-func NewAudit(log *zap.SugaredLogger, a auditing.Auditing) *restful.WebService {
+func NewAudit(log *slog.Logger, a auditing.Auditing) *restful.WebService {
 	ir := auditResource{
 		webResource: webResource{
 			log: log,
@@ -28,7 +28,7 @@ func NewAudit(log *zap.SugaredLogger, a auditing.Auditing) *restful.WebService {
 	return ir.webService()
 }
 
-func (r auditResource) webService() *restful.WebService {
+func (r *auditResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/audit").
@@ -64,7 +64,7 @@ func (r *auditResource) find(request *restful.Request, response *restful.Respons
 		return
 	}
 
-	backendResult, err := r.a.Search(auditing.EntryFilter{
+	backendResult, err := r.a.Search(request.Request.Context(), auditing.EntryFilter{
 		Limit:        requestPayload.Limit,
 		From:         requestPayload.From,
 		To:           requestPayload.To,
@@ -73,6 +73,7 @@ func (r *auditResource) find(request *restful.Request, response *restful.Respons
 		Type:         auditing.EntryType(requestPayload.Type),
 		User:         requestPayload.User,
 		Tenant:       requestPayload.Tenant,
+		Project:      requestPayload.Project,
 		Detail:       auditing.EntryDetail(requestPayload.Detail),
 		Phase:        auditing.EntryPhase(requestPayload.Phase),
 		Path:         requestPayload.Path,

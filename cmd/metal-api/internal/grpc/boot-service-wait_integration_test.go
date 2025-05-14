@@ -5,339 +5,345 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
-	"math/rand/v2"
+	"log/slog"
+	"net"
+	"os"
+	"slices"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	v1grpc "github.com/metal-stack/metal-api/pkg/grpc"
+	"github.com/metal-stack/metal-lib/bus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
-	"github.com/undefinedlabs/go-mpatch"
-
-	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
+	integrationtest "github.com/metal-stack/metal-api/test"
 )
 
-type testCase int
+type (
+	test struct {
+		log *slog.Logger
 
-const (
-	happyPath testCase = iota
-	serverFailure
-	clientFailure
+		ss []*server
+		cc []*client
+
+		t *testing.T
+
+		ds        *datastore.RethinkStore
+		publisher bus.Publisher
+		consumer  *bus.Consumer
+
+		numberApiInstances     int
+		numberMachineInstances int
+		numberAllocations      int
+	}
+
+	client struct {
+		machineID string
+		conn      *grpc.ClientConn
+		c         v1.BootServiceClient
+		cancel    func()
+	}
+
+	server struct {
+		cfg      *ServerConfig
+		cancel   context.CancelFunc
+		allocate chan string
+	}
 )
-
-type client struct {
-	*grpc.ClientConn
-	cancel func()
-}
-
-type server struct {
-	cancel   context.CancelFunc
-	allocate chan string
-}
-
-type test struct {
-	*testing.T
-	ss []*server
-	cc []*client
-
-	numberApiInstances     int
-	numberMachineInstances int
-	numberAllocations      int
-	testCase               testCase
-
-	notReadyMachines    *sync.WaitGroup
-	unallocatedMachines *sync.WaitGroup
-	mtx                 *sync.Mutex
-	allocations         map[string]bool
-}
 
 func TestWaitServer(t *testing.T) {
-	var tt []*test
-	aa := []int{1, 10}
-	mm := [][]int{{10, 7}}
-	for _, a := range aa {
-		for _, m := range mm {
-			require.Greater(t, a, 0)
-			require.Greater(t, m[0], 0)
-			require.Greater(t, m[1], 0)
-			require.GreaterOrEqual(t, m[0], m[1])
-			tt = append(tt, &test{
-				numberApiInstances:     a,
-				numberMachineInstances: m[0],
-				numberAllocations:      m[1],
+	var (
+		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+		ctx = context.Background()
+	)
+
+	// starting a rethinkdb rethinkContainer
+	rethinkContainer, c, err := integrationtest.StartRethink(t)
+	require.NoError(t, err)
+	defer func() {
+		_ = rethinkContainer.Terminate(ctx)
+	}()
+
+	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	ds.VRFPoolRangeMax = 1000
+	ds.ASNPoolRangeMax = 1000
+
+	err = ds.Connect()
+	require.NoError(t, err)
+	err = ds.Initialize()
+	require.NoError(t, err)
+
+	// starting nsqd container
+	nsqContainer, publisher, consumer := integrationtest.StartNsqd(t, slog.Default())
+	require.NoError(t, err)
+	defer func() {
+		_ = nsqContainer.Terminate(ctx)
+	}()
+
+	te := &test{
+		log:                    log,
+		t:                      t,
+		ds:                     ds,
+		publisher:              publisher,
+		consumer:               consumer,
+		numberApiInstances:     3,
+		numberMachineInstances: 10,
+		numberAllocations:      7,
+	}
+
+	te.run(ctx)
+}
+
+func (te *test) run(ctx context.Context) {
+	defer te.shutdown()
+
+	var (
+		allocations = make(chan string)
+		machines    []string
+	)
+
+	te.startApiInstances(ctx)
+	te.startMachineInstances(ctx, allocations)
+
+	for i := range te.numberAllocations {
+		client := te.cc[i%len(te.cc)]
+		te.t.Logf("sending nsq allocation event for machine %s", client.machineID)
+
+		err := te.publisher.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: client.machineID})
+		require.NoError(te.t, err)
+
+		machines = append(machines, client.machineID)
+	}
+
+	waitCtx, waitCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer waitCancel()
+
+	for {
+		select {
+		case <-waitCtx.Done():
+			te.t.Errorf("not all machines left wait for allocation loop in time")
+		case machineID := <-allocations:
+			require.Contains(te.t, machines, machineID, "unexpected machine left wait loop")
+
+			te.t.Logf("machine %q left wait for allocation loop", machineID)
+
+			machines = slices.DeleteFunc(machines, func(id string) bool {
+				return id == machineID
 			})
 		}
-	}
-	for _, test := range tt {
-		test.T = t
-		test.testCase = happyPath
-		test.run()
-		test.testCase = serverFailure
-		test.run()
-		test.testCase = clientFailure
-		test.run()
 
-	}
-}
-
-func (t *test) run() {
-	defer t.shutdown()
-
-	time.Sleep(20 * time.Millisecond)
-
-	t.notReadyMachines = new(sync.WaitGroup)
-	t.notReadyMachines.Add(t.numberMachineInstances)
-	t.unallocatedMachines = new(sync.WaitGroup)
-	t.unallocatedMachines.Add(t.numberAllocations)
-	t.mtx = new(sync.Mutex)
-	t.allocations = make(map[string]bool)
-
-	now := time.Now()
-	_, _ = mpatch.PatchMethod(time.Now, func() time.Time {
-		return now
-	})
-
-	wait := make(map[string]bool)
-
-	insertMock := func(w bool, id string) r.Term {
-		return r.DB("mockdb").Table("machine").Get(id).Replace(func(row r.Term) r.Term {
-			return r.Branch(row.Field("changed").Eq(r.MockAnything()), metal.Machine{
-				Base:    metal.Base{ID: id, Changed: now},
-				Waiting: w,
-			}, r.MockAnything())
-		})
-	}
-	returnMock := func(w bool, id string) func() []interface{} {
-		return func() []interface{} {
-			t.mtx.Lock()
-			defer t.mtx.Unlock()
-			wait[id] = w
-			return []interface{}{r.WriteResponse{}}
+		if len(machines) == 0 {
+			te.t.Logf("all expected machines left wait for allocation loop")
+			break
 		}
 	}
 
-	ds, mock := datastore.InitMockDB(t.T)
-	for i := range t.numberMachineInstances {
-		machineID := strconv.Itoa(i)
-		mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(metal.Machine{Base: metal.Base{ID: machineID}}, nil)
-		mock.On(insertMock(true, machineID)).Return(returnMock(true, machineID), nil)
-		mock.On(insertMock(false, machineID)).Return(returnMock(false, machineID), nil)
-	}
+	ms, err := te.ds.ListMachines()
+	require.NoError(te.t, err)
 
-	t.startApiInstances(ds)
-	t.startMachineInstances()
-	t.notReadyMachines.Wait()
-
-	require.Len(t, wait, t.numberMachineInstances)
-	for _, wait := range wait {
-		require.True(t, wait)
-	}
-
-	switch t.testCase {
-	case happyPath:
-	case serverFailure:
-		t.notReadyMachines.Add(t.numberMachineInstances)
-		t.stopApiInstances()
-		t.startApiInstances(ds)
-		t.notReadyMachines.Wait()
-	case clientFailure:
-		t.notReadyMachines.Add(t.numberMachineInstances)
-		t.stopMachineInstances()
-		t.startMachineInstances()
-		t.notReadyMachines.Wait()
-	}
-
-	require.Len(t, wait, t.numberMachineInstances)
-	for _, wait := range wait {
-		require.True(t, wait)
-	}
-
-	t.allocateMachines()
-
-	t.unallocatedMachines.Wait()
-
-	require.Len(t, t.allocations, t.numberAllocations)
-	for _, allocated := range t.allocations {
-		require.True(t, allocated)
-	}
-
-	require.Len(t, wait, t.numberMachineInstances)
-	for key, wait := range wait {
-		require.Equal(t, !containsKey(t.allocations, key), wait)
-	}
-}
-
-func containsKey(m map[string]bool, key string) bool {
-	for k := range m {
-		if k == key {
-			return true
+	waiting := 0
+	for _, m := range ms {
+		if m.Waiting {
+			waiting++
 		}
 	}
-	return false
+
+	assert.Equal(te.t, te.numberMachineInstances-te.numberAllocations, waiting)
+	assert.Len(te.t, ms, te.numberMachineInstances)
+
+	// TODO: we could use the remaining clients which are waiting for testing an "outage scenario",
+	// i.e. shutting down the grpc-servers, check that the clients do not give up and reconnect after
+	// bringing the servers back up (and vice versa).
 }
 
-func (t *test) shutdown() {
-	t.stopMachineInstances()
-	t.stopApiInstances()
-}
+func (te *test) startApiInstances(ctx context.Context) {
+	var (
+		timeoutCtx, cancel = context.WithTimeout(ctx, 5*time.Second)
+		g, gCtx            = errgroup.WithContext(timeoutCtx)
+	)
 
-func (t *test) stopApiInstances() {
-	defer func() {
-		t.ss = t.ss[:0]
-	}()
-	for _, s := range t.ss {
-		s.cancel()
-		time.Sleep(50 * time.Millisecond)
-	}
-}
+	defer cancel()
 
-func (t *test) stopMachineInstances() {
-	defer func() {
-		t.cc = t.cc[:0]
-	}()
-	for _, c := range t.cc {
-		c.cancel()
-		_ = c.Close()
-	}
-}
-
-func (t *test) startApiInstances(ds *datastore.RethinkStore) {
-	for i := range t.numberApiInstances {
-		ctx, cancel := context.WithCancel(context.Background())
+	for range te.numberApiInstances {
+		instanceCtx, cancel := context.WithCancel(ctx)
 		allocate := make(chan string)
 
-		cfg := &ServerConfig{
-			Context:          ctx,
-			Store:            ds,
-			Logger:           zap.NewNop().Sugar(),
-			GrpcPort:         50005 + i,
-			TlsEnabled:       false,
-			ResponseInterval: 2 * time.Millisecond,
-			CheckInterval:    1 * time.Hour,
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		require.NoError(te.t, err)
 
-			integrationTestAllocator: allocate,
-		}
-
-		t.ss = append(t.ss, &server{
+		server := &server{
 			cancel:   cancel,
 			allocate: allocate,
-		})
+			cfg: &ServerConfig{
+				Context:    instanceCtx,
+				Store:      te.ds,
+				Logger:     te.log.WithGroup("grpc-server"),
+				Listener:   listener,
+				Publisher:  te.publisher,
+				Consumer:   te.consumer,
+				TlsEnabled: false,
+			},
+		}
+
+		te.ss = append(te.ss, server)
+
 		go func() {
-			err := Run(cfg)
-			require.NoError(t, err)
+			addr := server.cfg.Listener.Addr().String()
+
+			te.t.Logf("running grpc server on %s", addr)
+
+			if err := Run(server.cfg); err != nil {
+				te.t.Logf("error running grpc server: %s", err)
+			} else {
+				te.t.Logf("grpc server on %s stopped successfully", addr)
+			}
 		}()
+
+		g.Go(func() error {
+			conn, err := server.newClient()
+			if err != nil {
+				return err
+			}
+
+			conn.Connect()
+			defer conn.Close()
+
+			return retry.Do(func() error {
+				state := conn.GetState()
+				if state == connectivity.Ready {
+					te.t.Logf("grpc server on %s is accepting client connections", server.cfg.Listener.Addr().String())
+					return nil
+				}
+				return fmt.Errorf("client cannot connect, still in state %s", state)
+			}, retry.Context(gCtx))
+		})
 	}
+
+	if err := g.Wait(); err != nil {
+		te.t.Errorf("grpc servers did not come up: %s", err)
+	}
+
+	te.t.Logf("all %d grpc servers started successfully", len(te.ss))
 }
 
-func (t *test) startMachineInstances() {
+func (te *test) startMachineInstances(ctx context.Context, allocations chan string) {
+	var (
+		timeoutCtx, cancel = context.WithTimeout(ctx, 5*time.Second)
+		g, gCtx            = errgroup.WithContext(timeoutCtx)
+	)
+
+	defer cancel()
+
+	for i := range te.numberMachineInstances {
+		var (
+			machineID   = strconv.Itoa(i)
+			server      = te.ss[i%len(te.ss)]
+			ctx, cancel = context.WithCancel(ctx)
+		)
+
+		conn, err := server.newClient()
+		require.NoError(te.t, err)
+
+		client := &client{
+			machineID: machineID,
+			conn:      conn,
+			c:         v1.NewBootServiceClient(conn),
+			cancel:    cancel,
+		}
+
+		te.cc = append(te.cc, client)
+
+		err = te.ds.CreateMachine(&metal.Machine{
+			Base: metal.Base{
+				ID: client.machineID,
+			},
+		})
+		require.NoError(te.t, err)
+
+		te.t.Logf("created machine %q in rethinkdb store", client.machineID)
+
+		go func() {
+			client.conn.Connect()
+
+			err := v1grpc.WaitForAllocation(ctx, te.log.WithGroup("grpc-client").With("machine-id", client.machineID), client.c, client.machineID, 2*time.Second)
+			if err != nil {
+				return
+			}
+
+			allocations <- machineID
+		}()
+
+		g.Go(func() error {
+			return retry.Do(func() error {
+				m, err := te.ds.FindMachineByID(client.machineID)
+				require.NoError(te.t, err)
+
+				if m.Waiting {
+					return nil
+				}
+
+				return fmt.Errorf("machine %s is not yet waiting", m.ID)
+			}, retry.Context(gCtx))
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		te.t.Errorf("grpc clients did not come up: %s", err)
+	}
+
+	te.t.Logf("all %d grpc clients are now waiting", len(te.cc))
+}
+
+func (te *test) shutdown() {
+	te.stopMachineInstances()
+	te.stopApiInstances()
+}
+
+func (te *test) stopApiInstances() {
+	for _, s := range te.ss {
+		te.t.Logf("stopping grpc server on %s", s.cfg.Listener.Addr().String())
+		s.cancel()
+	}
+	te.ss = nil
+}
+
+func (te *test) stopMachineInstances() {
+	for _, c := range te.cc {
+		te.t.Logf("stopping grpc client for machine %s", c.machineID)
+		c.cancel()
+		err := c.conn.Close()
+		require.NoError(te.t, err, "unable to shutdown grpc client conn")
+	}
+	te.cc = nil
+}
+
+func (s *server) newClient() (*grpc.ClientConn, error) {
 	kacp := keepalive.ClientParameters{
-		Time:                5 * time.Millisecond,
-		Timeout:             20 * time.Millisecond,
+		Time:                1 * time.Second,
+		Timeout:             500 * time.Millisecond,
 		PermitWithoutStream: true,
 	}
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(kacp),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	}
-	for i := range t.numberMachineInstances {
-		machineID := strconv.Itoa(i)
-		port := 50005 + rand.N(t.numberApiInstances)
-		ctx, cancel := context.WithCancel(context.Background())
-		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
-		require.NoError(t, err)
-		t.cc = append(t.cc, &client{
-			ClientConn: conn,
-			cancel:     cancel,
-		})
-		go func() {
-			waitClient := v1.NewBootServiceClient(conn)
-			err := t.waitForAllocation(machineID, waitClient, ctx)
-			if err != nil {
-				return
-			}
-			t.mtx.Lock()
-			t.allocations[machineID] = true
-			t.mtx.Unlock()
-			t.unallocatedMachines.Done()
-		}()
-	}
-}
-
-func (t *test) waitForAllocation(machineID string, c v1.BootServiceClient, ctx context.Context) error {
-	req := &v1.BootServiceWaitRequest{
-		MachineId: machineID,
 	}
 
-	for {
-		stream, err := c.Wait(ctx, req)
-		time.Sleep(5 * time.Millisecond)
-		if err != nil {
-			continue
-		}
-
-		receivedResponse := false
-
-		for {
-			_, err := stream.Recv()
-			if errors.Is(err, io.EOF) {
-				if !receivedResponse {
-					break
-				}
-				return nil
-			}
-			if err != nil {
-				if !receivedResponse {
-					break
-				}
-				if t.testCase == clientFailure {
-					return err
-				}
-				break
-			}
-			if !receivedResponse {
-				receivedResponse = true
-				t.notReadyMachines.Done()
-			}
-		}
+	conn, err := grpc.NewClient(s.cfg.Listener.Addr().String(), opts...)
+	if err != nil {
+		return nil, err
 	}
-}
 
-func (t *test) allocateMachines() {
-	var alreadyAllocated []string
-	for range t.numberAllocations {
-		machineID := t.selectMachine(alreadyAllocated)
-		alreadyAllocated = append(alreadyAllocated, machineID)
-		t.mtx.Lock()
-		t.allocations[machineID] = false
-		t.mtx.Unlock()
-		t.simulateNsqNotifyAllocated(machineID)
-	}
-}
-
-func (t *test) selectMachine(except []string) string {
-	machineID := strconv.Itoa(rand.N(t.numberMachineInstances))
-	for _, id := range except {
-		if id == machineID {
-			return t.selectMachine(except)
-		}
-	}
-	return machineID
-}
-
-func (t *test) simulateNsqNotifyAllocated(machineID string) {
-	for _, s := range t.ss {
-		s.allocate <- machineID
-	}
+	return conn, nil
 }

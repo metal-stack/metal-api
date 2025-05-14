@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -16,11 +17,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
-	"github.com/testcontainers/testcontainers-go"
-	"go.uber.org/zap/zaptest"
-
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/security"
 
@@ -52,29 +49,14 @@ type testEnv struct {
 	ds                         *datastore.RethinkStore
 	privateSuperNetwork        *v1.NetworkResponse
 	privateNetwork             *v1.NetworkResponse
-	rethinkContainer           testcontainers.Container
 	ctx                        context.Context
-	cancel                     context.CancelFunc
+	listener                   net.Listener
 }
 
-func (te *testEnv) teardown() {
-	ctx, cancel := context.WithTimeout(te.ctx, 3*time.Second)
-	defer cancel()
-	_ = te.rethinkContainer.Terminate(ctx)
-	te.cancel()
-}
-
-//nolint:deadcode
-func createTestEnvironment(t *testing.T) testEnv {
+func createTestEnvironment(t *testing.T, log *slog.Logger, ds *datastore.RethinkStore, publisher bus.Publisher, consumer *bus.Consumer) testEnv {
 	ipamer := ipam.InitTestIpam(t)
-	rethinkContainer, c, err := test.StartRethink(t)
-	require.NoError(t, err)
 
-	ds := datastore.New(zaptest.NewLogger(t).Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
-	ds.VRFPoolRangeMax = 1000
-	ds.ASNPoolRangeMax = 1000
-
-	err = ds.Connect()
+	err := ds.Connect()
 	require.NoError(t, err)
 	err = ds.Initialize()
 	require.NoError(t, err)
@@ -88,30 +70,32 @@ func createTestEnvironment(t *testing.T) testEnv {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, nil)
+	mdc := mdm.NewMock(psc, nil, nil, nil, nil)
 
-	log := zaptest.NewLogger(t).Sugar()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
 
 	go func() {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{ //nolint
 			Context:          ctx,
 			Store:            ds,
-			Publisher:        NopPublisher{},
+			Publisher:        publisher,
+			Consumer:         consumer,
 			Logger:           log,
-			GrpcPort:         50005,
+			Listener:         listener,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
 		})
 		if err != nil {
-			t.Fail()
+			t.Errorf("grpc server stopped unexpectedly: %s", err)
 		}
 	}()
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
+	machineService, err := NewMachine(log, ds, publisher, bus.NewEndpoints(consumer, publisher), ipamer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	imageService := NewImage(log, ds)
 	switchService := NewSwitch(log, ds)
@@ -119,7 +103,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	sizeImageConstraintService := NewSizeImageConstraint(log, ds)
 	networkService := NewNetwork(log, ds, ipamer, mdc)
 	partitionService := NewPartition(log, ds, &emptyPublisher{})
-	ipService, err := NewIP(log, ds, bus.DirectEndpoints(), ipamer, mdc)
+	ipService, err := NewIP(log, ds, bus.NewEndpoints(consumer, publisher), ipamer, mdc)
 	require.NoError(t, err)
 
 	te := testEnv{
@@ -132,9 +116,8 @@ func createTestEnvironment(t *testing.T) testEnv {
 		machineService:             machineService,
 		ipService:                  ipService,
 		ds:                         ds,
-		rethinkContainer:           rethinkContainer,
 		ctx:                        ctx,
-		cancel:                     cancel,
+		listener:                   listener,
 	}
 
 	imageID := "test-image-1.0.0"
@@ -239,6 +222,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 		},
 		SwitchBase: v1.SwitchBase{
 			RackID: "test-rack",
+			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		},
 		Nics: v1.SwitchNics{
 			{
@@ -267,6 +251,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 		},
 		SwitchBase: v1.SwitchBase{
 			RackID: "test-rack",
+			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		},
 		Nics: v1.SwitchNics{
 			{
@@ -300,14 +285,17 @@ func createTestEnvironment(t *testing.T) testEnv {
 			PartitionID: &partition.ID,
 		},
 		NetworkImmutable: v1.NetworkImmutable{
-			Prefixes:     []string{testPrivateSuperCidr},
-			PrivateSuper: true,
+			Prefixes:                 []string{testPrivateSuperCidr},
+			PrivateSuper:             true,
+			DefaultChildPrefixLength: map[metal.AddressFamily]uint8{metal.IPv4AddressFamily: 22},
 		},
 	}
+	log.Info("try to create a network", "request", ncr)
 	status = te.networkCreate(t, ncr, &createdNetwork)
 	require.Equal(t, http.StatusCreated, status)
 	require.NotNil(t, createdNetwork)
 	require.Equal(t, *ncr.ID, createdNetwork.ID)
+	log.Info("created a network", "nw", createdNetwork)
 
 	te.privateSuperNetwork = &createdNetwork
 
@@ -345,10 +333,10 @@ func createTestEnvironment(t *testing.T) testEnv {
 		},
 	}
 
-	var createdSizeImageContraint v1.SizeImageConstraintResponse
-	te.sizeImageConstraintCreate(t, sic, &createdSizeImageContraint)
+	var createdSizeImageConstraint v1.SizeImageConstraintResponse
+	te.sizeImageConstraintCreate(t, sic, &createdSizeImageConstraint)
 	require.Equal(t, http.StatusCreated, status)
-	require.NotNil(t, createdSizeImageContraint)
+	require.NotNil(t, createdSizeImageConstraint)
 	require.Equal(t, "n1-medium", sic.ID)
 	require.Len(t, sic.Images, 1)
 
@@ -387,6 +375,11 @@ func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, r
 	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nar, "/v1/network/allocate", response)
 }
 
+//nolint:unused
+func (te *testEnv) networkFind(t *testing.T, nfr v1.NetworkFindRequest, response interface{}) int {
+	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nfr, "/v1/network/find", response)
+}
+
 func (te *testEnv) machineAllocate(t *testing.T, mar v1.MachineAllocateRequest, response interface{}) int {
 	return webRequestPost(t, te.machineService, &testUserDirectory.admin, mar, "/v1/machine/allocate", response)
 }
@@ -395,7 +388,7 @@ func (te *testEnv) machineFree(t *testing.T, uuid string, response interface{}) 
 	return webRequestDelete(t, te.machineService, &testUserDirectory.admin, &emptyBody{}, "/v1/machine/"+uuid+"/free", response)
 }
 
-func (te *testEnv) machineWait(uuid string) error {
+func (te *testEnv) machineWait(listener net.Listener, uuid string) error {
 	kacp := keepalive.ClientParameters{
 		Time:                5 * time.Millisecond,
 		Timeout:             20 * time.Millisecond,
@@ -404,14 +397,14 @@ func (te *testEnv) machineWait(uuid string) error {
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(kacp),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	}
 
-	port := 50005
-	conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("localhost:%d", port), opts...)
+	conn, err := grpc.NewClient(listener.Addr().String(), opts...)
 	if err != nil {
 		return err
 	}
+
+	conn.Connect()
 
 	isWaiting := make(chan bool)
 

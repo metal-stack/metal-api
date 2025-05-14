@@ -3,7 +3,10 @@ package metal
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestNics_ByIdentifier(t *testing.T) {
@@ -23,7 +26,7 @@ func TestNics_ByIdentifier(t *testing.T) {
 		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
 	}
 
-	map1 := map[string]*Nic{}
+	map1 := NicMap{}
 	for i, n := range nicArray {
 		map1[string(n.MacAddress)] = &nicArray[i]
 	}
@@ -31,7 +34,7 @@ func TestNics_ByIdentifier(t *testing.T) {
 	tests := []struct {
 		name string
 		nics Nics
-		want map[string]*Nic
+		want NicMap
 	}{
 		{
 			name: "TestNics_ByIdentifier Test 1",
@@ -113,8 +116,377 @@ func TestPrefix_Equals(t *testing.T) {
 				IP:     tt.fields.IP,
 				Length: tt.fields.Length,
 			}
-			if got := p.Equals(tt.args.other); got != tt.want {
+			if got := p.equals(tt.args.other); got != tt.want {
 				t.Errorf("Prefix.Equals() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNicState_WantState(t *testing.T) {
+	up := SwitchPortStatusUp
+	down := SwitchPortStatusDown
+	unknown := SwitchPortStatusUnknown
+
+	tests := []struct {
+		name    string
+		nic     *NicState
+		arg     SwitchPortStatus
+		want    NicState
+		changed bool
+	}{
+		{
+			name: "up to desired down",
+			nic: &NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			arg: up,
+			want: NicState{
+				Desired: &up,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "up to up with empty desired",
+			nic: &NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			arg: up,
+			want: NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			changed: false,
+		},
+		{
+			name: "up to up with other desired",
+			nic: &NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			arg: up,
+			want: NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			changed: true,
+		},
+		{
+			name: "nil to up",
+			nic:  nil,
+			arg:  up,
+			want: NicState{
+				Desired: &up,
+				Actual:  unknown,
+			},
+			changed: true,
+		},
+		{
+			name: "different actual with same desired",
+			nic: &NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			changed: false,
+		},
+		{
+			name: "different actual with other desired",
+			nic: &NicState{
+				Desired: &up,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			changed: true,
+		},
+		{
+			name: "different actual with empty desired",
+			nic: &NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			changed: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			got, got1 := tt.nic.WantState(tt.arg)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NicState.WantState() got = %+v, want %+v", got, tt.want)
+			}
+			if got1 != tt.changed {
+				t.Errorf("NicState.WantState() got1 = %v, want %v", got1, tt.changed)
+			}
+		})
+	}
+}
+
+func TestNicState_SetState(t *testing.T) {
+	up := SwitchPortStatusUp
+	down := SwitchPortStatusDown
+	unknown := SwitchPortStatusUnknown
+
+	tests := []struct {
+		name    string
+		nic     *NicState
+		arg     SwitchPortStatus
+		want    NicState
+		changed bool
+	}{
+		{
+			name: "different actual with empty desired",
+			nic: &NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "different actual with same state in desired",
+			nic: &NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "different actual with other state in desired",
+			nic: &NicState{
+				Desired: &unknown,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &unknown,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "nil nic",
+			nic:  nil,
+			arg:  down,
+			want: NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "same state with same desired",
+			nic: &NicState{
+				Desired: &down,
+				Actual:  down,
+			},
+			arg: down,
+			want: NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "same state with other desired",
+			nic: &NicState{
+				Desired: &up,
+				Actual:  down,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &up,
+				Actual:  down,
+			},
+			changed: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := tt.nic.SetState(tt.arg)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NicState.SetState() got = %+v, want %+v", got, tt.want)
+			}
+			if got1 != tt.changed {
+				t.Errorf("NicState.SetState() got1 = %v, want %v", got1, tt.changed)
+			}
+		})
+	}
+}
+
+func TestPrefixes_OfFamily(t *testing.T) {
+	tests := []struct {
+		name string
+		af   AddressFamily
+		p    Prefixes
+		want Prefixes
+	}{
+		{
+			name: "no prefixes filtered by ipv4",
+			af:   IPv4AddressFamily,
+			p:    Prefixes{},
+			want: nil,
+		},
+		{
+			name: "prefixes filtered by ipv4",
+			af:   IPv4AddressFamily,
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "64"},
+			},
+			want: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+			},
+		},
+		{
+			name: "prefixes filtered by ipv6",
+			af:   IPv6AddressFamily,
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "64"},
+			},
+			want: Prefixes{
+				{IP: "fe80::", Length: "64"},
+			},
+		},
+		{
+			name: "malformed prefixes are skipped",
+			af:   IPv6AddressFamily,
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "metal-stack-rulez"},
+			},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.p.OfFamily(tt.af)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("diff = %s", diff)
+			}
+		})
+	}
+}
+
+func TestPrefixes_AddressFamilies(t *testing.T) {
+	tests := []struct {
+		name string
+		p    Prefixes
+		want AddressFamilies
+	}{
+		{
+			name: "only ipv4",
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+			},
+			want: AddressFamilies{IPv4AddressFamily},
+		},
+		{
+			name: "only ipv6",
+			p: Prefixes{
+				{IP: "fe80::", Length: "64"},
+			},
+			want: AddressFamilies{IPv6AddressFamily},
+		},
+		{
+			name: "both afs",
+			p: Prefixes{
+				{IP: "1.2.3.0", Length: "28"},
+				{IP: "fe80::", Length: "64"},
+			},
+			want: AddressFamilies{IPv4AddressFamily, IPv6AddressFamily},
+		},
+		{
+			name: "nil prefixes",
+			p:    nil,
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.p.AddressFamilies(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Prefixes.AddressFamilies() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_NewPrefixesFromCidrs(t *testing.T) {
+	tests := []struct {
+		name         string
+		prefixes     []string
+		wantPrefixes Prefixes
+		wantAF       AddressFamilies
+		wantErr      bool
+	}{
+		{
+			name:         "simple all ipv4",
+			prefixes:     []string{"10.0.0.0/8", "11.0.0.0/24"},
+			wantPrefixes: Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "11.0.0.0", Length: "24"}},
+			wantAF:       AddressFamilies{IPv4AddressFamily},
+		},
+		{
+			name:         "simple all ipv6",
+			prefixes:     []string{"2001::/64", "fbaa::/48"},
+			wantPrefixes: Prefixes{{IP: "2001::", Length: "64"}, {IP: "fbaa::", Length: "48"}},
+			wantAF:       AddressFamilies{IPv6AddressFamily},
+		},
+		{
+			name:         "mixed af",
+			prefixes:     []string{"10.0.0.0/8", "2001::/64"},
+			wantPrefixes: Prefixes{{IP: "10.0.0.0", Length: "8"}, {IP: "2001::", Length: "64"}},
+			wantAF:       AddressFamilies{IPv4AddressFamily, IPv6AddressFamily},
+		},
+		{
+			name:         "wrong ipv6 pfx",
+			prefixes:     []string{"10.0.0.0/8", "2001:/64"},
+			wantPrefixes: nil,
+			wantAF:       nil,
+			wantErr:      true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewPrefixesFromCIDRs(tt.prefixes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePrefixes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got, tt.wantPrefixes); diff != "" {
+				t.Errorf("validatePrefixes() diff=%s", diff)
+			}
+
+			afs := got.AddressFamilies()
+			slices.Sort(afs)
+			slices.Sort(tt.wantAF)
+			if diff := cmp.Diff(afs, tt.wantAF); diff != "" {
+				t.Errorf("validatePrefixes() diff=%s", diff)
 			}
 		})
 	}

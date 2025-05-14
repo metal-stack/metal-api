@@ -1,14 +1,15 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
-	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -18,14 +19,27 @@ const (
 )
 
 var tables = []string{
-	"image", "size", "partition", "machine", "switch", "switchstatus", "event", "network", "ip", "migration", "filesystemlayout", "sizeimageconstraint",
-	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
+	"event",
+	"filesystemlayout",
+	"image",
+	"ip",
+	"machine",
+	"migration",
+	"network",
+	"partition",
+	"sharedmutex",
+	"size",
+	"sizeimageconstraint",
+	"sizereservation",
+	"switch",
+	"switchstatus",
+	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 }
 
 // A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
-	log *zap.SugaredLogger
+	log *slog.Logger
 
 	session   r.QueryExecutor
 	dbsession *r.Session
@@ -40,10 +54,15 @@ type RethinkStore struct {
 	VRFPoolRangeMax uint
 	ASNPoolRangeMin uint
 	ASNPoolRangeMax uint
+
+	sharedMutexCtx           context.Context
+	sharedMutexCancel        context.CancelFunc
+	sharedMutex              *sharedMutex
+	sharedMutexCheckInterval time.Duration
 }
 
 // New creates a new rethink store.
-func New(log *zap.SugaredLogger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
+func New(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
 	return &RethinkStore{
 		log:    log,
 		dbhost: dbhost,
@@ -55,7 +74,14 @@ func New(log *zap.SugaredLogger, dbhost string, dbname string, dbuser string, db
 		VRFPoolRangeMax: DefaultVRFPoolRangeMax,
 		ASNPoolRangeMin: DefaultASNPoolRangeMin,
 		ASNPoolRangeMax: DefaultASNPoolRangeMax,
+
+		sharedMutexCheckInterval: defaultSharedMutexCheckInterval,
 	}
+}
+
+// Session exported for migration unit test
+func (rs *RethinkStore) Session() r.QueryExecutor {
+	return rs.session
 }
 
 func multi(session r.QueryExecutor, tt ...r.Term) error {
@@ -117,6 +143,10 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	}
 	rs.log.Info("ensuring demoted user can read and write")
 	_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": true}).RunWrite(rs.session)
+	if err != nil {
+		return err
+	}
+	_, err = r.DB("rethinkdb").Grant(DemotedUser, map[string]interface{}{"read": true}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
@@ -190,6 +220,11 @@ func (rs *RethinkStore) sizeImageConstraintTable() *r.Term {
 	return &res
 }
 
+func (rs *RethinkStore) sizeReservationTable() *r.Term {
+	res := r.DB(rs.dbname).Table("sizereservation")
+	return &res
+}
+
 func (rs *RethinkStore) asnTable() *r.Term {
 	res := r.DB(rs.dbname).Table(ASNIntegerPool.String())
 	return &res
@@ -241,7 +276,13 @@ func (rs *RethinkStore) Close() error {
 			return err
 		}
 	}
+
+	if rs.sharedMutexCancel != nil {
+		rs.sharedMutexCancel()
+	}
+
 	rs.log.Info("Rethinkstore disconnected")
+
 	return nil
 }
 
@@ -251,6 +292,13 @@ func (rs *RethinkStore) Connect() error {
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.log.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
+	rs.sharedMutexCtx, rs.sharedMutexCancel = context.WithCancel(context.Background())
+	var err error
+	rs.sharedMutex, err = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, newMutexOptCheckInterval(rs.sharedMutexCheckInterval))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -262,8 +310,14 @@ func (rs *RethinkStore) Demote() error {
 	if err != nil {
 		return err
 	}
+
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
+	rs.sharedMutexCtx, rs.sharedMutexCancel = context.WithCancel(context.Background())
+	rs.sharedMutex, err = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, newMutexOptCheckInterval(rs.sharedMutexCheckInterval))
+	if err != nil {
+		return err
+	}
 
 	rs.log.Info("rethinkstore connected with demoted user")
 	return nil
@@ -296,11 +350,11 @@ func connect(hosts []string, dbname, user, pwd string) (*r.Session, error) {
 // retryConnect infinitely tries to establish a database connection.
 // in case a connection could not be established, the function will
 // wait for a short period of time and try again.
-func retryConnect(log *zap.SugaredLogger, hosts []string, dbname, user, pwd string) *r.Session {
+func retryConnect(log *slog.Logger, hosts []string, dbname, user, pwd string) *r.Session {
 tryAgain:
 	s, err := connect(hosts, dbname, user, pwd)
 	if err != nil {
-		log.Errorw("db connection error", "db", dbname, "hosts", hosts, "error", err)
+		log.Error("db connection error", "db", dbname, "hosts", hosts, "error", err)
 		time.Sleep(3 * time.Second)
 		goto tryAgain
 	}
@@ -330,7 +384,7 @@ func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return metal.NotFound("no %v with found", getEntityName(entity))
+		return metal.NotFound("no %v found", getEntityName(entity))
 	}
 
 	hasResult := res.Next(entity)

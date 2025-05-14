@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"reflect"
 	"sync"
 	"testing"
@@ -12,7 +14,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -33,11 +34,13 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 
 func (p *emptyPublisher) Stop() {}
 func TestBootService_Register(t *testing.T) {
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
 	tests := []struct {
 		name                 string
 		uuid                 string
 		numcores             int
-		memory               int
+		memory               uint64
 		dbsizes              []metal.Size
 		dbmachines           metal.Machines
 		neighbormac1         metal.MacAddress
@@ -116,10 +119,22 @@ func TestBootService_Register(t *testing.T) {
 			testdata.InitMockDBData(mock)
 
 			req := &v1.BootServiceRegisterRequest{
-				Uuid: tt.uuid,
+				Uuid:        tt.uuid,
+				PartitionId: "1",
 				Hardware: &v1.MachineHardware{
-					Memory:   uint64(tt.memory),
-					CpuCores: uint32(tt.numcores),
+					Memory: tt.memory,
+					Disks: []*v1.MachineBlockDevice{
+						{
+							Size: 1000000000000,
+						},
+					},
+					Cpus: []*v1.MachineCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   uint32(tt.numcores), // nolint:gosec
+							Threads: uint32(tt.numcores), // nolint:gosec
+						},
+					},
 					Nics: []*v1.MachineNic{
 						{
 							Mac: "aa", Neighbors: []*v1.MachineNic{{Mac: string(tt.neighbormac1)}},
@@ -151,7 +166,7 @@ func TestBootService_Register(t *testing.T) {
 			}
 
 			bootService := &BootService{
-				log:              zaptest.NewLogger(t).Sugar(),
+				log:              log,
 				ds:               ds,
 				ipmiSuperUser:    metal.DisabledIPMISuperUser(),
 				publisher:        &emptyPublisher{},
@@ -182,6 +197,8 @@ func TestBootService_Register(t *testing.T) {
 }
 
 func TestBootService_Report(t *testing.T) {
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
 	tests := []struct {
 		name    string
 		req     *v1.BootServiceReportRequest
@@ -217,7 +234,7 @@ func TestBootService_Report(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			b := &BootService{
-				log:              zaptest.NewLogger(t).Sugar(),
+				log:              log,
 				ds:               ds,
 				ipmiSuperUser:    metal.DisabledIPMISuperUser(),
 				publisher:        &emptyPublisher{},

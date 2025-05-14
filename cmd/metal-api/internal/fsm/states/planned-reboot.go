@@ -1,6 +1,8 @@
 package states
 
 import (
+	"context"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
@@ -18,7 +20,7 @@ func newPlannedReboot(c *StateConfig) *PlannedRebootState {
 	}
 }
 
-func (p *PlannedRebootState) OnEnter(e *fsm.Event) {
+func (p *PlannedRebootState) OnEnter(ctx context.Context, e *fsm.Event) {
 	p.container.CrashLoop = false
 	appendEventToContainer(p.event, p.container)
 }

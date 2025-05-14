@@ -1,13 +1,13 @@
 package datastore
 
 import (
+	"log/slog"
 	"time"
 
 	e "github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"go.uber.org/zap"
 )
 
 type manager struct {
@@ -99,7 +99,7 @@ func (m *manager) PowerOn(machine *metal.Machine) error {
 	return nil
 }
 
-func (rs *RethinkStore) publishCommandAndUpdate(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand, state metal.MachineState) error {
+func (rs *RethinkStore) publishCommandAndUpdate(logger *slog.Logger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand, state metal.MachineState) error {
 	newMachine := *m
 	newMachine.State = state
 	err := rs.UpdateMachine(m, &newMachine)

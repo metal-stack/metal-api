@@ -3,10 +3,12 @@ package states
 import (
 	"fmt"
 
+	"context"
+	"log/slog"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/scaler"
-	"go.uber.org/zap"
 )
 
 const (
@@ -25,8 +27,8 @@ const (
 )
 
 type FSMState interface {
-	OnEnter(e *fsm.Event)
-	OnLeave(e *fsm.Event)
+	OnEnter(ctx context.Context, e *fsm.Event)
+	OnLeave(ctx context.Context, e *fsm.Event)
 }
 
 type stateType string
@@ -36,7 +38,8 @@ func (t stateType) String() string {
 }
 
 type StateConfig struct {
-	Log       *zap.SugaredLogger
+	Log       *slog.Logger
+	Context   context.Context
 	Container *metal.ProvisioningEventContainer
 	Event     *metal.ProvisioningEvent
 	Scaler    *scaler.PoolScaler

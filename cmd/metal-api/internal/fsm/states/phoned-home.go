@@ -1,11 +1,12 @@
 package states
 
 import (
+	"context"
+	"log/slog"
 	"time"
 
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap"
 )
 
 // failedMachineReclaimThreshold is the duration after which the machine reclaim is assumed to have failed.
@@ -13,7 +14,7 @@ const failedMachineReclaimThreshold = 5 * time.Minute
 
 type PhonedHomeState struct {
 	noopState
-	log       *zap.SugaredLogger
+	log       *slog.Logger
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }
@@ -26,11 +27,11 @@ func newPhonedHome(c *StateConfig) *PhonedHomeState {
 	}
 }
 
-func (p *PhonedHomeState) OnEnter(e *fsm.Event) {
+func (p *PhonedHomeState) OnEnter(ctx context.Context, e *fsm.Event) {
 	switch e.Src {
 	case PhonedHome.String():
 		updateTimeAndLiveliness(p.event, p.container)
-		p.log.Debugw("swallowing repeated phoned home event", "id", p.container.ID)
+		p.log.Debug("swallowing repeated phoned home event", "id", p.container.ID)
 	case MachineReclaim.String():
 		// swallow on machine reclaim
 		if p.container.LastEventTime != nil && p.event.Time.Sub(*p.container.LastEventTime) > failedMachineReclaimThreshold {

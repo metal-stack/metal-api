@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,9 +11,8 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/metal-lib/auditing"
-	"go.uber.org/zap"
+	metalcommon "github.com/metal-stack/metal-lib/pkg/metal"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -24,7 +24,7 @@ type imageResource struct {
 }
 
 // NewImage returns a webservice for image specific endpoints.
-func NewImage(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
+func NewImage(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	ir := imageResource{
 		webResource: webResource{
 			log: log,
@@ -35,7 +35,7 @@ func NewImage(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebSe
 	return ir.webService()
 }
 
-func (ir imageResource) webService() *restful.WebService {
+func (ir *imageResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/image").
@@ -297,7 +297,7 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 		features[ft] = true
 	}
 
-	os, v, err := utils.GetOsAndSemverFromImage(requestPayload.ID)
+	os, v, err := metalcommon.GetOsAndSemverFromImage(requestPayload.ID)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return

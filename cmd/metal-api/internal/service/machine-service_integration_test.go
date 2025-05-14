@@ -5,9 +5,10 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -20,7 +21,6 @@ import (
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -29,20 +29,40 @@ import (
 )
 
 func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
-	te := createTestEnvironment(t)
-	defer te.teardown()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+	rethinkContainer, cd, err := test.StartRethink(t)
+	require.NoError(t, err)
+	nsqContainer, publisher, consumer := test.StartNsqd(t, log)
+
+	defer func() {
+		_ = rethinkContainer.Terminate(context.Background())
+		_ = nsqContainer.Terminate(context.Background())
+	}()
+
+	ds := datastore.New(log, cd.IP+":"+cd.Port, cd.DB, cd.User, cd.Password)
+	ds.VRFPoolRangeMax = 1000
+	ds.ASNPoolRangeMax = 1000
+
+	te := createTestEnvironment(t, log, ds, publisher, consumer)
 
 	// Register a machine
 	mrr := &grpcv1.BootServiceRegisterRequest{
-		Uuid: "test-uuid",
+		Uuid:        "test-uuid",
+		PartitionId: "test-partition",
 		Bios: &grpcv1.MachineBIOS{
 			Version: "a",
 			Vendor:  "metal",
 			Date:    "1970",
 		},
 		Hardware: &grpcv1.MachineHardware{
-			CpuCores: 8,
-			Memory:   1500,
+			Cpus: []*grpcv1.MachineCPU{
+				{
+					Model:   "Intel Xeon Silver",
+					Cores:   8,
+					Threads: 8,
+				},
+			}, Memory: 1500,
 			Disks: []*grpcv1.MachineBlockDevice{
 				{
 					Name: "sda",
@@ -81,9 +101,10 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	port := 50005
-	conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
+	conn, err := grpc.NewClient(te.listener.Addr().String(), opts...)
 	require.NoError(t, err)
+
+	conn.Connect()
 
 	c := grpcv1.NewBootServiceClient(conn)
 
@@ -92,7 +113,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	require.NotNil(t, registeredMachine)
 	assert.Len(t, mrr.Hardware.Nics, 2)
 
-	err = te.machineWait("test-uuid")
+	err = te.machineWait(te.listener, "test-uuid")
 	require.NoError(t, err)
 
 	// DB contains at least a machine which is allocatable
@@ -132,7 +153,9 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	status = te.machineFree(t, "test-uuid", &v1.MachineResponse{})
 	require.Equal(t, http.StatusOK, status)
 
-	err = te.machineWait("test-uuid")
+	time.Sleep(1 * time.Second)
+
+	err = te.machineWait(te.listener, "test-uuid")
 	require.NoError(t, err)
 
 	// DB contains at least a machine which is allocatable
@@ -189,6 +212,8 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	status = te.machineFree(t, "test-uuid", &v1.MachineResponse{})
 	require.Equal(t, http.StatusOK, status)
 
+	time.Sleep(1 * time.Second)
+
 	// Check on the switch that connections still exists, but filters are nil,
 	// this ensures that the freeMachine call executed and reset the machine<->switch configuration items.
 	status = te.switchGet(t, "test-switch01", &foundSwitch)
@@ -214,7 +239,7 @@ func BenchmarkMachineList(b *testing.B) {
 	}()
 
 	now := time.Now()
-	log := zaptest.NewLogger(b).Sugar()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000
@@ -297,9 +322,22 @@ func BenchmarkMachineList(b *testing.B) {
 }
 
 func TestMachineLivelinessEvaluation(t *testing.T) {
-	te := createTestEnvironment(t)
-	defer te.teardown()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
+	rethinkContainer, cd, err := test.StartRethink(t)
+	require.NoError(t, err)
+	nsqContainer, publisher, consumer := test.StartNsqd(t, log)
+
+	defer func() {
+		_ = rethinkContainer.Terminate(context.Background())
+		_ = nsqContainer.Terminate(context.Background())
+	}()
+
+	ds := datastore.New(log, cd.IP+":"+cd.Port, cd.DB, cd.User, cd.Password)
+	ds.VRFPoolRangeMax = 1000
+	ds.ASNPoolRangeMax = 1000
+
+	te := createTestEnvironment(t, log, ds, publisher, consumer)
 	now := time.Now()
 
 	machinesWithECs := []struct {
@@ -399,7 +437,7 @@ func TestMachineLivelinessEvaluation(t *testing.T) {
 		}
 	}
 
-	err := MachineLiveliness(te.ds, zaptest.NewLogger(t).Sugar())
+	err = MachineLiveliness(te.ds, slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})))
 	require.NoError(t, err)
 
 	for i := range machinesWithECs {

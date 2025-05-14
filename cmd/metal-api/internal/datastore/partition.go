@@ -26,7 +26,7 @@ func (rs *RethinkStore) CreatePartition(p *metal.Partition) error {
 	return rs.createEntity(rs.partitionTable(), p)
 }
 
-// DeletePartition delets a partition.
+// DeletePartition deletes a partition.
 func (rs *RethinkStore) DeletePartition(p *metal.Partition) error {
 	return rs.deleteEntity(rs.partitionTable(), p)
 }

@@ -4,17 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
-	"go.uber.org/zap"
 )
 
 type EventService struct {
-	log       *zap.SugaredLogger
+	log       *slog.Logger
 	ds        *datastore.RethinkStore
 	publisher bus.Publisher
 }
@@ -22,12 +22,12 @@ type EventService struct {
 func NewEventService(cfg *ServerConfig) *EventService {
 	return &EventService{
 		ds:        cfg.Store,
-		log:       cfg.Logger.Named("event-service"),
+		log:       cfg.Logger.WithGroup("event-service"),
 		publisher: cfg.Publisher,
 	}
 }
 func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest) (*v1.EventServiceSendResponse, error) {
-	e.log.Debugw("send", "event", req)
+	e.log.Debug("send", "event", req)
 	if req == nil {
 		return nil, fmt.Errorf("no event send")
 	}
@@ -73,7 +73,7 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 			Message: event.Message,
 		}
 
-		_, err = e.ds.ProvisioningEventForMachine(e.log, e.publisher, &ev, m)
+		_, err = e.ds.ProvisioningEventForMachine(ctx, e.log, e.publisher, &ev, m)
 		if err != nil {
 			processErrs = append(processErrs, err)
 			failed = append(failed, machineID)

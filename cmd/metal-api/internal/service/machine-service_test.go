@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/emicklei/go-restful/v3"
-	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -18,7 +19,6 @@ import (
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	"golang.org/x/crypto/ssh"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -55,9 +55,9 @@ func (m mockUserGetter) User(rq *http.Request) (*security.User, error) {
 func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
@@ -83,7 +83,7 @@ func TestGetMachines(t *testing.T) {
 func TestMachineIPMIReport(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	tests := []struct {
 		name           string
@@ -104,7 +104,7 @@ func TestMachineIPMIReport(t *testing.T) {
 			wantStatusCode: http.StatusOK,
 		},
 		{
-			name: "don't update machine with unkown mac",
+			name: "don't update machine with unknown mac",
 			input: v1.MachineIpmiReports{
 				PartitionID: testdata.M1.PartitionID,
 				Reports:     map[string]v1.MachineIpmiReport{"xyz": {BMCIp: "192.167.0.1"}},
@@ -120,7 +120,7 @@ func TestMachineIPMIReport(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			js, err := json.Marshal(tt.input)
@@ -145,7 +145,7 @@ func TestMachineIPMIReport(t *testing.T) {
 }
 
 func TestMachineFindIPMI(t *testing.T) {
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	tests := []struct {
 		name           string
@@ -171,7 +171,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*tt.machine}, nil)
 			testdata.InitMockDBData(mock)
 
-			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
@@ -220,14 +220,14 @@ func TestMachineFindIPMI(t *testing.T) {
 func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	userGetter := mockUserGetter{&security.User{
 		EMail: "anonymous@metal-stack.io",
 		Name:  "anonymous",
 	}}
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, userGetter, 0, nil, metal.DisabledIPMISuperUser())
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, userGetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -261,14 +261,14 @@ func TestSetMachineState(t *testing.T) {
 func TestSetMachineStateIssuerResetWhenAvailable(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	userGetter := mockUserGetter{&security.User{
 		EMail: "anonymous@metal-stack.io",
 		Name:  "anonymous",
 	}}
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, userGetter, 0, nil, metal.DisabledIPMISuperUser())
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, userGetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -295,16 +295,16 @@ func TestSetMachineStateIssuerResetWhenAvailable(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "1", result.ID)
 	require.Equal(t, string(metal.AvailableState), result.State.Value)
-	require.Equal(t, "", result.State.Description)
-	require.Equal(t, "", result.State.Issuer)
+	require.Empty(t, result.State.Description)
+	require.Empty(t, result.State.Issuer)
 }
 
 func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -330,9 +330,9 @@ func TestGetMachine(t *testing.T) {
 func TestGetMachineNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -353,7 +353,7 @@ func TestFreeMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{testdata.Switch1}, nil)
 
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	pub := &emptyPublisher{}
 	events := []string{"1-machine", "1-machine", "releaseMachineNetworks", "1-switch"}
@@ -368,7 +368,7 @@ func TestFreeMachine(t *testing.T) {
 		return nil
 	}
 
-	machineservice, err := NewMachine(log, ds, pub, bus.NewEndpoints(nil, pub), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
+	machineservice, err := NewMachine(log, ds, pub, bus.NewEndpoints(nil, pub), ipam.InitTestIpam(t), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -393,9 +393,9 @@ func TestSearchMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -423,7 +423,7 @@ func TestSearchMachine(t *testing.T) {
 }
 
 func TestOnMachine(t *testing.T) {
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
 		cmd      metal.MachineCommand
@@ -487,7 +487,7 @@ func TestOnMachine(t *testing.T) {
 				return nil
 			}
 
-			machineservice, err := NewMachine(log, ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
+			machineservice, err := NewMachine(log, ds, pub, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 			require.NoError(t, err)
 
 			js, err := json.Marshal([]string{tt.param})
@@ -645,8 +645,19 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Role:       metal.RoleMachine,
 			},
 			isError:  true,
-			expected: `invalid public SSH key: 42`,
+			expected: `invalid public SSH key: 42 error:ssh: no key found`,
 			name:     "invalid ssh",
+		},
+		{
+			spec: machineAllocationSpec{
+				UUID:       "43",
+				Creator:    testEmail,
+				ProjectID:  "123",
+				SSHPubKeys: []string{"ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBH9uyBvRBTUJFFAOKB/ZH/5Mm/MrqEDhkB4wTPWbJaJ5zHirBrLS1qk2Ut0yEL4vZvfnafnrzsed3n75/1BSmSg= test@metal-stack.io"},
+				Role:       metal.RoleMachine,
+			},
+			isError: false,
+			name:    "valid ssh",
 		},
 		{
 			spec: machineAllocationSpec{

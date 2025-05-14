@@ -5,17 +5,21 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"runtime/debug"
 	"time"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/metal-stack/masterdata-api/pkg/interceptors/grpc_internalerror"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+
+	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"go.opentelemetry.io/otel/trace"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
@@ -27,7 +31,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/bus"
-	"go.uber.org/zap"
 )
 
 const (
@@ -40,8 +43,8 @@ type ServerConfig struct {
 	Publisher                bus.Publisher
 	Consumer                 *bus.Consumer
 	Store                    *datastore.RethinkStore
-	Logger                   *zap.SugaredLogger
-	GrpcPort                 int
+	Logger                   *slog.Logger
+	Listener                 net.Listener
 	TlsEnabled               bool
 	CaCertFile               string
 	ServerCertFile           string
@@ -49,10 +52,8 @@ type ServerConfig struct {
 	ResponseInterval         time.Duration
 	CheckInterval            time.Duration
 	BMCSuperUserPasswordFile string
-	Auditing                 auditing.Auditing
+	Auditing                 []auditing.Auditing
 	IPMISuperUser            metal.MachineIPMISuperUser
-
-	integrationTestAllocator chan string
 }
 
 func Run(cfg *ServerConfig) error {
@@ -61,6 +62,9 @@ func Run(cfg *ServerConfig) error {
 	}
 	if cfg.CheckInterval <= 0 {
 		cfg.CheckInterval = defaultCheckInterval
+	}
+	if cfg.Publisher == nil || cfg.Consumer == nil {
+		return fmt.Errorf("nsq publisher and consumer must be specified")
 	}
 
 	kaep := keepalive.EnforcementPolicy{
@@ -72,56 +76,86 @@ func Run(cfg *ServerConfig) error {
 		Timeout: 1 * time.Second, // Wait 1 second for the ping ack before assuming the connection is dead
 	}
 
-	log := cfg.Logger.Named("grpc")
-	grpc_zap.ReplaceGrpcLoggerV2(log.Desugar())
+	log := cfg.Logger.WithGroup("grpc")
 
-	recoveryOpt := grpc_recovery.WithRecoveryHandlerContext(
+	recoveryOpt := recovery.WithRecoveryHandlerContext(
 		func(ctx context.Context, p any) error {
-			log.Errorf("[PANIC] %s stack:%s", p, string(debug.Stack()))
+			log.Error("[PANIC] %s stack:%s", p, string(debug.Stack()))
 			return status.Errorf(codes.Internal, "%s", p)
 		},
 	)
 
-	shouldAudit := func(fullMethod string) bool {
-		switch fullMethod {
-		case "/api.v1.BootService/Register":
-			return true
-		default:
-			return false
+	srvMetrics := grpcprom.NewServerMetrics(
+		grpcprom.WithServerHandlingTimeHistogram(
+			grpcprom.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 0.3, 0.6, 1, 3, 6, 9, 20, 30, 60, 90, 120}),
+		),
+	)
+	exemplarFromContext := func(ctx context.Context) prometheus.Labels {
+		if span := trace.SpanContextFromContext(ctx); span.IsSampled() {
+			return prometheus.Labels{"traceID": span.TraceID().String()}
+		}
+		return nil
+	}
+	// Setup metric for panic recoveries.
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(srvMetrics)
+	reg.MustRegister(collectors.NewGoCollector())
+	panicsTotal := promauto.With(reg).NewCounter(prometheus.CounterOpts{
+		Name: "grpc_req_panics_recovered_total",
+		Help: "Total number of gRPC requests recovered from internal panic.",
+	})
+	grpcPanicRecoveryHandler := func(p any) (err error) {
+		panicsTotal.Inc()
+		log.Error("recovered from panic", "panic", p, "stack", debug.Stack())
+		return status.Errorf(codes.Internal, "%s", p)
+	}
+
+	streamInterceptors := []grpc.StreamServerInterceptor{
+		srvMetrics.StreamServerInterceptor(grpcprom.WithExemplarFromContext(exemplarFromContext)),
+		logging.StreamServerInterceptor(interceptorLogger(log)),
+		recovery.StreamServerInterceptor(recovery.WithRecoveryHandler(grpcPanicRecoveryHandler)),
+	}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{
+		// Order matters e.g. tracing interceptor have to create span first for the later exemplars to work.
+		srvMetrics.UnaryServerInterceptor(),
+		logging.UnaryServerInterceptor(interceptorLogger(log)),
+		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(grpcPanicRecoveryHandler)),
+	}
+	if len(cfg.Auditing) > 0 {
+		shouldAudit := func(fullMethod string) bool {
+			switch fullMethod {
+			case "/api.v1.BootService/Register":
+				return true
+			default:
+				return false
+			}
+		}
+
+		for _, backend := range cfg.Auditing {
+			auditStreamInterceptor, err := auditing.StreamServerInterceptor(backend, log.WithGroup("auditing-grpc"), shouldAudit)
+			if err != nil {
+				return err
+			}
+			auditUnaryInterceptor, err := auditing.UnaryServerInterceptor(backend, log.WithGroup("auditing-grpc"), shouldAudit)
+			if err != nil {
+				return err
+			}
+			streamInterceptors = append(streamInterceptors, auditStreamInterceptor)
+			unaryInterceptors = append(unaryInterceptors, auditUnaryInterceptor)
 		}
 	}
 
-	streamInterceptors := []grpc.StreamServerInterceptor{}
-	unaryInterceptors := []grpc.UnaryServerInterceptor{}
-	if cfg.Auditing != nil {
-		streamInterceptors = append(streamInterceptors, auditing.StreamServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
-		unaryInterceptors = append(unaryInterceptors, auditing.UnaryServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
-	}
+	unaryInterceptors = append(unaryInterceptors, metrics.GrpcMetrics, recovery.UnaryServerInterceptor(recoveryOpt))
 
-	unaryInterceptors = append(unaryInterceptors, metrics.GrpcMetrics)
-
-	streamInterceptors = append(streamInterceptors,
-		grpc_ctxtags.StreamServerInterceptor(),
-		grpc_prometheus.StreamServerInterceptor,
-		grpc_zap.StreamServerInterceptor(log.Desugar()),
-		grpc_internalerror.StreamServerInterceptor(),
-		grpc_recovery.StreamServerInterceptor(recoveryOpt),
-	)
-	unaryInterceptors = append(unaryInterceptors,
-		grpc_ctxtags.UnaryServerInterceptor(),
-		grpc_prometheus.UnaryServerInterceptor,
-		grpc_zap.UnaryServerInterceptor(log.Desugar()),
-		grpc_internalerror.UnaryServerInterceptor(),
-		grpc_recovery.UnaryServerInterceptor(recoveryOpt),
-	)
-
-	server := grpc.NewServer(
+	opts := []grpc.ServerOption{
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
-		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptors...)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptors...)),
-	)
-	grpc_prometheus.Register(server)
+		grpc.ChainUnaryInterceptor(unaryInterceptors...),
+		grpc.ChainStreamInterceptor(streamInterceptors...),
+	}
+
+	grpcServer := grpc.NewServer(opts...)
+	srvMetrics.InitializeMetrics(grpcServer)
 
 	eventService := NewEventService(cfg)
 	bootService := NewBootService(cfg, eventService)
@@ -131,24 +165,10 @@ func Run(cfg *ServerConfig) error {
 		return err
 	}
 
-	v1.RegisterEventServiceServer(server, eventService)
-	v1.RegisterBootServiceServer(server, bootService)
+	v1.RegisterEventServiceServer(grpcServer, eventService)
+	v1.RegisterBootServiceServer(grpcServer, bootService)
 
-	// this is only for the integration test of this package
-	if cfg.integrationTestAllocator != nil {
-		go func() {
-			for {
-				machineID := <-cfg.integrationTestAllocator
-				bootService.handleAllocation(machineID)
-			}
-		}()
-	}
-
-	addr := fmt.Sprintf(":%d", cfg.GrpcPort)
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
+	listener := cfg.Listener
 
 	if cfg.TlsEnabled {
 		cert, err := os.ReadFile(cfg.ServerCertFile)
@@ -184,12 +204,31 @@ func Run(cfg *ServerConfig) error {
 	}
 
 	go func() {
-		log.Infow("serve gRPC", "address", listener.Addr())
-		err = server.Serve(listener)
+		log.Info("serve gRPC", "address", listener.Addr())
+		err = grpcServer.Serve(listener)
 	}()
 
 	<-cfg.Context.Done()
-	server.Stop()
+	grpcServer.Stop()
 
 	return err
+}
+
+// interceptorLogger adapts slog logger to interceptor logger.
+// This code is simple enough to be copied and not imported.
+func interceptorLogger(l *slog.Logger) logging.Logger {
+	return logging.LoggerFunc(func(_ context.Context, lvl logging.Level, msg string, fields ...any) {
+		switch lvl {
+		case logging.LevelDebug:
+			l.Debug(msg, fields...)
+		case logging.LevelInfo:
+			l.Info(msg, fields...)
+		case logging.LevelWarn:
+			l.Warn(msg, fields...)
+		case logging.LevelError:
+			l.Error(msg, fields...)
+		default:
+			panic(fmt.Sprintf("unknown level %v", lvl))
+		}
+	})
 }

@@ -1,10 +1,11 @@
 package scaler
 
 import (
+	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap/zaptest"
 )
 
 func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
@@ -148,7 +149,7 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 			}
 
 			p := &PoolScaler{
-				log:       zaptest.NewLogger(t).Sugar(),
+				log:       slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})),
 				manager:   manager,
 				partition: *tt.partition,
 			}

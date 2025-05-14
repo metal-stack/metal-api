@@ -28,7 +28,7 @@ func HandleProvisioningEvent(c *states.StateConfig) (*metal.ProvisioningEventCon
 		)
 	)
 
-	err := f.Event(c.Event.Event.String())
+	err := f.Event(c.Context, c.Event.Event.String())
 	if err == nil {
 		return c.Container, nil
 	}

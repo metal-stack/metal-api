@@ -7,8 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -19,7 +21,6 @@ import (
 	"github.com/metal-stack/metal-api/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 )
 
 func TestGetImagesIntegration(t *testing.T) {
@@ -29,7 +30,7 @@ func TestGetImagesIntegration(t *testing.T) {
 		_ = rethinkContainer.Terminate(context.Background())
 	}()
 
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000

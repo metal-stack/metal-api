@@ -3,15 +3,14 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
-	"go.uber.org/zap/zaptest"
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -22,7 +21,7 @@ func TestGetImages(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
+	imageservice := NewImage(slog.Default(), ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("GET", "/v1/image", nil)
 	w := httptest.NewRecorder()
@@ -48,7 +47,7 @@ func TestGetImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
+	imageservice := NewImage(slog.Default(), ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("GET", "/v1/image/image-1", nil)
 	w := httptest.NewRecorder()
@@ -69,7 +68,7 @@ func TestGetImageNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
+	imageservice := NewImage(slog.Default(), ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("GET", "/v1/image/image-999", nil)
 	w := httptest.NewRecorder()
@@ -89,7 +88,7 @@ func TestGetImageNotFound(t *testing.T) {
 func TestDeleteImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	imageservice := NewImage(log, ds)
 	container := restful.NewContainer().Add(imageservice)
@@ -112,7 +111,7 @@ func TestDeleteImage(t *testing.T) {
 func TestCreateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	createRequest := v1.ImageCreateRequest{
 		Common: v1.Common{
@@ -153,7 +152,7 @@ func TestCreateImage(t *testing.T) {
 func TestCreateImageWithBrokenURL(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	createRequest := v1.ImageCreateRequest{
 		Common: v1.Common{
@@ -183,7 +182,7 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err)
-	require.True(t, strings.Contains(result.Message, "is not accessible under"))
+	require.Contains(t, result.Message, "is not accessible under")
 
 	createRequest.URL = "http://images.metal-stack.io/this-file-does-not-exist"
 
@@ -210,7 +209,7 @@ func TestCreateImageWithClassification(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 	vc := string(testdata.Img1.Classification)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	createRequest := v1.ImageCreateRequest{
 		Common: v1.Common{
@@ -252,7 +251,7 @@ func TestCreateImageWithClassification(t *testing.T) {
 func TestUpdateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	imageservice := NewImage(log, ds)
 	container := restful.NewContainer().Add(imageservice)

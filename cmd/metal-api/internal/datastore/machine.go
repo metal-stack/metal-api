@@ -1,10 +1,12 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"golang.org/x/exp/slices"
@@ -38,8 +40,7 @@ type MachineSearchQuery struct {
 	NetworkASNs                []int64  `json:"network_asns" optional:"true"`
 
 	// hardware
-	HardwareMemory   *int64 `json:"hardware_memory" optional:"true"`
-	HardwareCPUCores *int64 `json:"hardware_cpu_cores" optional:"true"`
+	HardwareMemory *int64 `json:"hardware_memory" optional:"true"`
 
 	// nics
 	NicsMacAddresses         []string `json:"nics_mac_addresses" optional:"true"`
@@ -220,12 +221,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.HardwareMemory != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("memory").Eq(*p.HardwareMemory)
-		})
-	}
-
-	if p.HardwareCPUCores != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("cpu_cores").Eq(*p.HardwareCPUCores)
 		})
 	}
 
@@ -459,7 +454,7 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 // FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
 // TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
 // but current implementation should have a slightly better readability.
-func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size metal.Size, placementTags []string) (*metal.Machine, error) {
+func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, partitionid string, size metal.Size, placementTags []string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
@@ -471,6 +466,11 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size m
 		"waiting":      true,
 		"preallocated": false,
 	})
+
+	if err := rs.sharedMutex.lock(ctx, partitionid, 10*time.Second); err != nil {
+		return nil, fmt.Errorf("too many parallel machine allocations taking place, try again later")
+	}
+	defer rs.sharedMutex.unlock(ctx, partitionid)
 
 	var candidates metal.Machines
 	err := rs.searchEntities(&q, &candidates)
@@ -488,7 +488,7 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size m
 	for _, m := range candidates {
 		ec, ok := ecMap[m.ID]
 		if !ok {
-			rs.log.Errorw("cannot find machine provisioning event container", "machine", m, "error", err)
+			rs.log.Error("cannot find machine provisioning event container", "machine", m, "error", err)
 			// fall through, so the rest of the machines is getting evaluated
 			continue
 		}
@@ -510,7 +510,16 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size m
 		return nil, err
 	}
 
-	ok := checkSizeReservations(available, projectid, partitionid, partitionMachines.WithSize(size.ID).ByProjectID(), size)
+	var reservations metal.SizeReservations
+	err = rs.SearchSizeReservations(&SizeReservationSearchQuery{
+		Partition: &partitionid,
+		SizeID:    &size.ID,
+	}, &reservations)
+	if err != nil {
+		return nil, err
+	}
+
+	ok := checkSizeReservations(available, projectid, partitionMachines.WithSize(size.ID).ByProjectID(), reservations)
 	if !ok {
 		return nil, errors.New("no machine available")
 	}
@@ -536,20 +545,20 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size m
 
 // checkSizeReservations returns true when an allocation is possible and
 // false when size reservations prevent the allocation for the given project in the given partition
-func checkSizeReservations(available metal.Machines, projectid, partitionid string, machinesByProject map[string]metal.Machines, size metal.Size) bool {
-	if size.Reservations == nil {
+func checkSizeReservations(available metal.Machines, projectid string, machinesByProject map[string]metal.Machines, reservations metal.SizeReservations) bool {
+	if len(reservations) == 0 {
 		return true
 	}
 
 	var (
-		reservations = 0
+		amount = 0
 	)
 
-	for _, r := range size.Reservations.ForPartition(partitionid) {
+	for _, r := range reservations {
 		r := r
 
 		// sum up the amount of reservations
-		reservations += r.Amount
+		amount += r.Amount
 
 		alreadyAllocated := len(machinesByProject[r.ProjectID])
 
@@ -558,11 +567,11 @@ func checkSizeReservations(available metal.Machines, projectid, partitionid stri
 			return true
 		}
 
-		// substract already used up reservations of the project
-		reservations = max(reservations-alreadyAllocated, 0)
+		// subtract already used up reservations of the project
+		amount = max(amount-alreadyAllocated, 0)
 	}
 
-	return reservations < len(available)
+	return amount < len(available)
 }
 
 func spreadAcrossRacks(allMachines, projectMachines metal.Machines, tags []string) metal.Machines {
@@ -667,7 +676,9 @@ func randomIndex(max int) int {
 	if max <= 0 {
 		return 0
 	}
-	return rand.N(max)
+	// golangci-lint has an issue with math/rand/v2
+	// here it provides sufficient randomness though because it's not used for cryptographic purposes
+	return rand.N(max) //nolint:gosec
 }
 
 func intersect[T comparable](a, b []T) []T {

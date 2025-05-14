@@ -1,16 +1,22 @@
 package metal
 
 import (
+	"errors"
 	"fmt"
+	"log/slog"
+	"net"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/dustin/go-humanize"
+	"github.com/samber/lo"
+
 	mn "github.com/metal-stack/metal-lib/pkg/net"
-	"go.uber.org/zap"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -159,6 +165,8 @@ type MachineAllocation struct {
 	VPN              *MachineVPN       `rethinkdb:"vpn" json:"vpn"`
 	UUID             string            `rethinkdb:"uuid" json:"uuid"`
 	FirewallRules    *FirewallRules    `rethinkdb:"firewall_rules" json:"firewall_rules"`
+	DNSServers       DNSServers        `rethinkdb:"dns_servers" json:"dns_servers"`
+	NTPServers       NTPServers        `rethinkdb:"ntp_servers" json:"ntp_servers"`
 }
 
 type FirewallRules struct {
@@ -179,6 +187,18 @@ type IngressRule struct {
 	To       []string `rethinkdb:"to" json:"to"`
 	From     []string `rethinkdb:"from" json:"from"`
 	Comment  string   `rethinkdb:"comment" json:"comment"`
+}
+
+type DNSServers []DNSServer
+
+type DNSServer struct {
+	IP string `rethinkdb:"ip" json:"ip" description:"ip address of this dns server"`
+}
+
+type NTPServers []NTPServer
+
+type NTPServer struct {
+	Address string `address:"address" json:"address" description:"ip address or dns hostname of this ntp server"`
 }
 
 type Protocol string
@@ -204,18 +224,18 @@ func (r EgressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid procotol: %s", r.Protocol)
+		return fmt.Errorf("egress rule has invalid protocol: %s", r.Protocol)
 	}
 
 	if err := validateComment(r.Comment); err != nil {
-		return err
+		return fmt.Errorf("egress rule with error:%w", err)
 	}
 	if err := validatePorts(r.Ports); err != nil {
-		return err
+		return fmt.Errorf("egress rule with error:%w", err)
 	}
 
 	if err := validateCIDRs(r.To); err != nil {
-		return err
+		return fmt.Errorf("egress rule with error:%w", err)
 	}
 
 	return nil
@@ -226,23 +246,23 @@ func (r IngressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid protocol: %s", r.Protocol)
+		return fmt.Errorf("ingress rule has invalid protocol: %s", r.Protocol)
 	}
 	if err := validateComment(r.Comment); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 
 	if err := validatePorts(r.Ports); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 	if err := validateCIDRs(r.To); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 	if err := validateCIDRs(r.From); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 	if err := validateCIDRs(slices.Concat(r.From, r.To)); err != nil {
-		return err
+		return fmt.Errorf("ingress rule with error:%w", err)
 	}
 
 	return nil
@@ -276,17 +296,17 @@ func validatePorts(ports []int) error {
 }
 
 func validateCIDRs(cidrs []string) error {
-	af := ""
+	var af AddressFamily
 	for _, cidr := range cidrs {
 		p, err := netip.ParsePrefix(cidr)
 		if err != nil {
 			return fmt.Errorf("invalid cidr: %w", err)
 		}
-		var newaf string
+		var newaf AddressFamily
 		if p.Addr().Is4() {
-			newaf = "ipv4"
-		} else {
-			newaf = "ipv6"
+			newaf = IPv4AddressFamily
+		} else if p.Addr().Is6() {
+			newaf = IPv6AddressFamily
 		}
 		if af != "" && af != newaf {
 			return fmt.Errorf("mixed address family in one rule is not supported:%v", cidrs)
@@ -465,10 +485,23 @@ func (n NetworkType) String() string {
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
 type MachineHardware struct {
-	Memory   uint64        `rethinkdb:"memory" json:"memory"`
-	CPUCores int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
-	Nics     Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
-	Disks    []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
+	Memory    uint64        `rethinkdb:"memory" json:"memory"`
+	Nics      Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
+	Disks     []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
+	MetalCPUs []MetalCPU    `rethinkdb:"cpus" json:"cpus"`
+	MetalGPUs []MetalGPU    `rethinkdb:"gpus" json:"gpus"`
+}
+
+type MetalCPU struct {
+	Vendor  string `rethinkdb:"vendor" json:"vendor"`
+	Model   string `rethinkdb:"model" json:"model"`
+	Cores   uint32 `rethinkdb:"cores" json:"cores"`
+	Threads uint32 `rethinkdb:"threads" json:"threads"`
+}
+
+type MetalGPU struct {
+	Vendor string `rethinkdb:"vendor" json:"vendor"`
+	Model  string `rethinkdb:"model" json:"model"`
 }
 
 // MachineLiveliness indicates the liveliness of a machine
@@ -484,18 +517,57 @@ const (
 	MachineResurrectAfter       time.Duration     = time.Hour
 )
 
-// DiskCapacity calculates the capacity of all disks.
-func (hw *MachineHardware) DiskCapacity() uint64 {
-	var c uint64
-	for _, d := range hw.Disks {
-		c += d.Size
+func capacityOf[V any](identifier string, vs []V, countFn func(v V) (model string, count uint64)) (uint64, []V) {
+	var (
+		sum     uint64
+		matched []V
+	)
+
+	for _, v := range vs {
+		model, count := countFn(v)
+
+		if identifier != "" {
+			matches, err := filepath.Match(identifier, model)
+			if err != nil {
+				// illegal identifiers are already prevented by size validation
+				continue
+			}
+
+			if !matches {
+				continue
+			}
+		}
+
+		sum += count
+		matched = append(matched, v)
 	}
-	return c
+
+	return sum, matched
+}
+
+func exhaustiveMatch[V comparable](cs []Constraint, vs []V, countFn func(v V) (model string, count uint64)) bool {
+	unmatched := slices.Clone(vs)
+
+	for _, c := range cs {
+		capacity, matched := capacityOf(c.Identifier, vs, countFn)
+
+		match := c.inRange(capacity)
+		if !match {
+			continue
+		}
+
+		unmatched, _ = lo.Difference(unmatched, matched)
+	}
+
+	return len(unmatched) == 0
 }
 
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
-	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()))
+	diskCapacity, _ := capacityOf("*", hw.Disks, countDisk)
+	cpus, _ := capacityOf("*", hw.MetalCPUs, countCPU)
+	gpus, _ := capacityOf("*", hw.MetalGPUs, countGPU)
+	return fmt.Sprintf("CPUs: %d, Memory: %s, Storage: %s, GPUs: %d", cpus, humanize.Bytes(hw.Memory), humanize.Bytes(diskCapacity), gpus)
 }
 
 // BlockDevice information.
@@ -519,16 +591,17 @@ type Fru struct {
 // IPMI connection data
 type IPMI struct {
 	// Address is host:port of the connection to the ipmi BMC, host can be either a ip address or a hostname
-	Address     string       `rethinkdb:"address" json:"address"`
-	MacAddress  string       `rethinkdb:"mac" json:"mac"`
-	User        string       `rethinkdb:"user" json:"user"`
-	Password    string       `rethinkdb:"password" json:"password"`
-	Interface   string       `rethinkdb:"interface" json:"interface"`
-	Fru         Fru          `rethinkdb:"fru" json:"fru"`
-	BMCVersion  string       `rethinkdb:"bmcversion" json:"bmcversion"`
-	PowerState  string       `rethinkdb:"powerstate" json:"powerstate"`
-	PowerMetric *PowerMetric `rethinkdb:"powermetric" json:"powermetric"`
-	LastUpdated time.Time    `rethinkdb:"last_updated" json:"last_updated"`
+	Address       string        `rethinkdb:"address" json:"address"`
+	MacAddress    string        `rethinkdb:"mac" json:"mac"`
+	User          string        `rethinkdb:"user" json:"user"`
+	Password      string        `rethinkdb:"password" json:"password"`
+	Interface     string        `rethinkdb:"interface" json:"interface"`
+	Fru           Fru           `rethinkdb:"fru" json:"fru"`
+	BMCVersion    string        `rethinkdb:"bmcversion" json:"bmcversion"`
+	PowerState    string        `rethinkdb:"powerstate" json:"powerstate"`
+	PowerMetric   *PowerMetric  `rethinkdb:"powermetric" json:"powermetric"`
+	PowerSupplies PowerSupplies `rethinkdb:"powersupplies" json:"powersupplies"`
+	LastUpdated   time.Time     `rethinkdb:"last_updated" json:"last_updated"`
 }
 
 type PowerMetric struct {
@@ -549,6 +622,17 @@ type PowerMetric struct {
 	// minimum power level in watts that occurred within the last
 	// IntervalInMin minutes.
 	MinConsumedWatts float32 `rethinkdb:"minconsumedwatts" json:"minconsumedwatts"`
+}
+
+type PowerSupplies []PowerSupply
+type PowerSupply struct {
+	// Status shall contain any status or health properties
+	// of the resource.
+	Status PowerSupplyStatus `rethinkdb:"status" json:"status"`
+}
+type PowerSupplyStatus struct {
+	Health string `rethinkdb:"health" json:"health"`
+	State  string `rethinkdb:"state" json:"state"`
 }
 
 // BIOS contains machine bios information
@@ -626,14 +710,18 @@ type MachineIPMISuperUser struct {
 	password string
 }
 
-func NewIPMISuperUser(log *zap.SugaredLogger, path string) MachineIPMISuperUser {
+func NewIPMISuperUser(log *slog.Logger, path string) MachineIPMISuperUser {
 	password := ""
 
 	if raw, err := os.ReadFile(path); err == nil {
-		log.Infow("ipmi superuser password found, feature is enabled")
 		password = strings.TrimSpace(string(raw))
+		if password != "" {
+			log.Info("ipmi superuser password found, feature is enabled")
+		} else {
+			log.Warn("ipmi superuser password file found, but password is empty, feature is disabled")
+		}
 	} else {
-		log.Infow("ipmi superuser password could not be read, feature is disabled", "error", err)
+		log.Warn("ipmi superuser password could not be read, feature is disabled", "error", err)
 	}
 
 	return MachineIPMISuperUser{
@@ -655,4 +743,46 @@ func (i *MachineIPMISuperUser) User() string {
 
 func DisabledIPMISuperUser() MachineIPMISuperUser {
 	return MachineIPMISuperUser{}
+}
+
+func (d DNSServers) Validate() error {
+	if len(d) == 0 {
+		return nil
+	}
+
+	if len(d) > 3 {
+		return errors.New("please specify a maximum of three dns servers")
+	}
+
+	for _, dnsServer := range d {
+		_, err := netip.ParseAddr(dnsServer.IP)
+		if err != nil {
+			return fmt.Errorf("ip: %s for dns server not correct err: %w", dnsServer, err)
+		}
+	}
+	return nil
+}
+
+func (n NTPServers) Validate() error {
+	if len(n) == 0 {
+		return nil
+	}
+
+	if len(n) > 5 {
+		return errors.New("please specify a maximum of five ntp servers")
+	}
+
+	for _, ntpserver := range n {
+		if net.ParseIP(ntpserver.Address) != nil {
+			_, err := netip.ParseAddr(ntpserver.Address)
+			if err != nil {
+				return fmt.Errorf("ip: %s for ntp server not correct err: %w", ntpserver, err)
+			}
+		} else {
+			if !govalidator.IsDNSName(ntpserver.Address) {
+				return fmt.Errorf("dns name: %s for ntp server not correct", ntpserver)
+			}
+		}
+	}
+	return nil
 }
