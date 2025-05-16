@@ -441,6 +441,8 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		}
 	}
 
+	// TODO: network needs to be typed here
+
 	err = r.ds.CreateNetwork(nw)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -702,6 +704,7 @@ func (r *networkResource) createChildNetwork(ctx context.Context, nwSpec *metal.
 		Vrf:                 *vrf,
 		ParentNetworkID:     parent.ID,
 		Labels:              nwSpec.Labels,
+		NetworkType:         pointer.Pointer(metal.ChildNetworkType),
 	}
 
 	err = r.ds.CreateNetwork(nw)
