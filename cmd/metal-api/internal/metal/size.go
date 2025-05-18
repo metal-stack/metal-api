@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/samber/lo"
 )
 
@@ -244,7 +243,7 @@ func (c *Constraint) validate() error {
 }
 
 // Validate a size, returns error if a invalid size is passed
-func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
+func (s *Size) Validate(partitions PartitionMap) error {
 	var (
 		errs       []error
 		typeCounts = map[ConstraintType]uint{}

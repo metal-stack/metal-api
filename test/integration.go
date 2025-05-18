@@ -9,6 +9,7 @@ import (
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
+	testlog "github.com/testcontainers/testcontainers-go/log"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -22,10 +23,7 @@ type ConnectionDetails struct {
 
 func StartRethink(t testing.TB) (container testcontainers.Container, c *ConnectionDetails, err error) {
 	ctx := context.Background()
-	var log testcontainers.Logging
-	if t != nil {
-		log = testcontainers.TestLogger(t)
-	}
+	log := testlog.TestLogger(t)
 	req := testcontainers.ContainerRequest{
 		Image:        "rethinkdb:2.4.4-bookworm-slim",
 		ExposedPorts: []string{"8080/tcp", "28015/tcp"},
@@ -115,7 +113,7 @@ func StartNsqd(t *testing.T, log *slog.Logger) (testcontainers.Container, bus.Pu
 			Cmd: []string{"nsqd"},
 		},
 		Started: true,
-		Logger:  testcontainers.TestLogger(t),
+		Logger:  testlog.TestLogger(t),
 	})
 	require.NoError(t, err)
 
