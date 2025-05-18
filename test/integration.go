@@ -23,7 +23,10 @@ type ConnectionDetails struct {
 
 func StartRethink(t testing.TB) (container testcontainers.Container, c *ConnectionDetails, err error) {
 	ctx := context.Background()
-	log := testlog.TestLogger(t)
+	var log testlog.Logger
+	if t != nil {
+		log = testlog.TestLogger(t)
+	}
 	req := testcontainers.ContainerRequest{
 		Image:        "rethinkdb:2.4.4-bookworm-slim",
 		ExposedPorts: []string{"8080/tcp", "28015/tcp"},
