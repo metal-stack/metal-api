@@ -57,7 +57,7 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 	}
 }
 
-//nolint:golint,unused
+// nolint:unused
 func (m *MockedProjectService) list(user *security.User, resp interface{}) int {
 	return webRequestGet(m.t, m.ws, user, user, "/v1/project", resp)
 }
