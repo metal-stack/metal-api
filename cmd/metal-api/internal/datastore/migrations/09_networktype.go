@@ -49,13 +49,9 @@ func init() {
 			// now convert all networks
 			for _, old := range nws {
 				new := old
-				// if slices.Contains(sharedVrfs, old.Vrf) {
-				// 	if old.ParentNetworkID != "" {
-				// 		new.NetworkType = pointer.Pointer(metal.VrfSharedNetworkType)
-				// 	} else {
-				// 		new.NetworkType = pointer.Pointer(metal.SuperVrfSharedNetworkType)
-				// 	}
-				// }
+
+				// assume external network by default
+				new.NetworkType = pointer.Pointer(metal.ExternalNetworkType)
 
 				if old.Shared && old.ParentNetworkID != "" {
 					new.NetworkType = pointer.Pointer(metal.ChildSharedNetworkType)
@@ -66,8 +62,6 @@ func init() {
 				if !old.Shared && old.ParentNetworkID != "" && !slices.Contains(sharedVrfs, old.Vrf) {
 					new.NetworkType = pointer.Pointer(metal.ChildNetworkType)
 				}
-
-				// TODO: This is weird in the current metal-api implementation, internet is not shared ?
 				if old.ProjectID == "" && old.ParentNetworkID == "" && !slices.Contains(sharedVrfs, old.Vrf) {
 					new.NetworkType = pointer.Pointer(metal.ExternalNetworkType)
 				}

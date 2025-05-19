@@ -412,6 +412,19 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		}
 	}
 
+	nwType := metal.ExternalNetworkType
+	if privateSuper {
+		nwType = metal.SuperNetworkType
+	}
+	if underlay {
+		nwType = metal.UnderlayNetworkType
+	}
+
+	natType := metal.NoneNATType
+	if nat {
+		natType = metal.IPv4MasqueradeNATType
+	}
+
 	nw := &metal.Network{
 		Base: metal.Base{
 			ID:          id,
@@ -429,6 +442,8 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		Vrf:                        vrf,
 		Labels:                     labels,
 		AdditionalAnnouncableCIDRs: requestPayload.AdditionalAnnouncableCIDRs,
+		NetworkType:                &nwType,
+		NATType:                    &natType,
 	}
 
 	ctx := request.Request.Context()
@@ -440,8 +455,6 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 			return
 		}
 	}
-
-	// TODO: network needs to be typed here
 
 	err = r.ds.CreateNetwork(nw)
 	if err != nil {
@@ -688,6 +701,16 @@ func (r *networkResource) createChildNetwork(ctx context.Context, nwSpec *metal.
 		childPrefixes = append(childPrefixes, *childPrefix)
 	}
 
+	nwType := metal.ChildNetworkType
+	if nwSpec.Shared {
+		nwType = metal.ChildSharedNetworkType
+	}
+
+	natType := metal.NoneNATType
+	if nwSpec.Nat {
+		natType = metal.IPv4MasqueradeNATType
+	}
+
 	nw := &metal.Network{
 		Base: metal.Base{
 			Name:        nwSpec.Name,
@@ -704,7 +727,8 @@ func (r *networkResource) createChildNetwork(ctx context.Context, nwSpec *metal.
 		Vrf:                 *vrf,
 		ParentNetworkID:     parent.ID,
 		Labels:              nwSpec.Labels,
-		NetworkType:         pointer.Pointer(metal.ChildNetworkType),
+		NetworkType:         &nwType,
+		NATType:             &natType,
 	}
 
 	err = r.ds.CreateNetwork(nw)
