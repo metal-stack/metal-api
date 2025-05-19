@@ -765,7 +765,7 @@ func TestSizes_FromHardware(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			for _, s := range tt.sz {
-				if err := s.Validate(nil, nil); err != nil {
+				if err := s.Validate(nil); err != nil {
 					t.Errorf("size validation failed: %f", err)
 				}
 			}
@@ -1041,7 +1041,7 @@ func TestSizes_Overlaps(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.sz.Validate(nil, nil)
+			err := tt.sz.Validate(nil)
 			require.NoError(t, err)
 			got := tt.sz.Overlaps(&tt.sizes)
 
@@ -1205,7 +1205,7 @@ func TestSize_Validate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.size.Validate(nil, nil)
+			err := tt.size.Validate(nil)
 			if err != nil {
 				require.EqualError(t, err, *tt.wantErrMessage)
 			}
