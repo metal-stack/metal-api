@@ -4361,7 +4361,11 @@
           "description": "the minimum waiting pool size of this partition",
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
+      ]
     },
     "v1.PartitionBootConfiguration": {
       "description": "a partition has a distinct location in a data center, individual entities belong to a partition",
@@ -4487,7 +4491,9 @@
       },
       "required": [
         "bootconfig",
-        "id"
+        "id",
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
       ]
     },
     "v1.PartitionResponse": {
@@ -4563,7 +4569,9 @@
       },
       "required": [
         "bootconfig",
-        "id"
+        "id",
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
       ]
     },
     "v1.PartitionUpdateRequest": {
@@ -4621,7 +4629,9 @@
       "required": [
         "dns_servers",
         "id",
-        "ntp_servers"
+        "ntp_servers",
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
       ]
     },
     "v1.PowerMetric": {
