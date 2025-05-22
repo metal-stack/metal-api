@@ -358,13 +358,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 		return
 	}
 
-	projects, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
-	err = s.Validate(ps.ByID(), projectsByID(projects.Projects))
+	err = s.Validate(ps.ByID())
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -468,13 +462,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 		return
 	}
 
-	projects, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
-	err = newSize.Validate(ps.ByID(), projectsByID(projects.Projects))
+	err = newSize.Validate(ps.ByID())
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
