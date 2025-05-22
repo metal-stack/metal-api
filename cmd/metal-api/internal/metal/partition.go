@@ -140,8 +140,8 @@ func (r *ScalerRange) Validate() error {
 		return nil
 	}
 
-	if r.minSize < 0 || r.maxSize < 0 {
-		return errors.New("minimum and maximum waiting pool sizes must be greater or equal to 0")
+	if r.minSize <= 0 || r.maxSize <= 0 {
+		return errors.New("minimum and maximum waiting pool sizes must be greater than 0")
 	}
 
 	if r.maxSize < r.minSize {

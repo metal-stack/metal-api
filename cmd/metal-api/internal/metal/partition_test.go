@@ -82,18 +82,18 @@ func TestNewScalerRange(t *testing.T) {
 			wantErr: errors.New("could not parse maximum waiting pool size"),
 		},
 		{
-			name:    "negative value for min",
-			min:     "-15",
-			max:     "0",
-			want:    nil,
-			wantErr: errors.New("minimum and maximum waiting pool sizes must be greater or equal to 0"),
-		},
-		{
 			name:    "max less than min",
 			min:     "15",
-			max:     "0",
+			max:     "1",
 			want:    nil,
 			wantErr: errors.New("minimum waiting pool size must be less or equal to maximum pool size"),
+		},
+		{
+			name:    "0 is not allowed",
+			min:     "0",
+			max:     "0",
+			want:    nil,
+			wantErr: errors.New("minimum and maximum waiting pool sizes must be greater than 0"),
 		},
 		{
 			name:    "everything okay",
