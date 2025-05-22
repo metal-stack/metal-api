@@ -8,6 +8,7 @@ import (
 )
 
 type BootingNewKernelState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }
@@ -19,6 +20,6 @@ func newBootingNewKernel(c *StateConfig) *BootingNewKernelState {
 	}
 }
 
-func (p *BootingNewKernelState) OnTransition(ctx context.Context, e *fsm.Event) {
+func (p *BootingNewKernelState) OnEnter(ctx context.Context, e *fsm.Event) {
 	appendEventToContainer(p.event, p.container)
 }

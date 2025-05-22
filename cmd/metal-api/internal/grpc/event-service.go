@@ -10,17 +10,20 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	"github.com/metal-stack/metal-lib/bus"
 )
 
 type EventService struct {
-	log *slog.Logger
-	ds  *datastore.RethinkStore
+	log       *slog.Logger
+	ds        *datastore.RethinkStore
+	publisher bus.Publisher
 }
 
 func NewEventService(cfg *ServerConfig) *EventService {
 	return &EventService{
-		ds:  cfg.Store,
-		log: cfg.Logger.WithGroup("event-service"),
+		ds:        cfg.Store,
+		log:       cfg.Logger.WithGroup("event-service"),
+		publisher: cfg.Publisher,
 	}
 }
 func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest) (*v1.EventServiceSendResponse, error) {
@@ -70,7 +73,7 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 			Message: event.Message,
 		}
 
-		_, err = e.ds.ProvisioningEventForMachine(ctx, e.log, &ev, machineID)
+		_, err = e.ds.ProvisioningEventForMachine(ctx, e.log, e.publisher, &ev, m)
 		if err != nil {
 			processErrs = append(processErrs, err)
 			failed = append(failed, machineID)

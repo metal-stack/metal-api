@@ -23,6 +23,7 @@ type MachineSearchQuery struct {
 	Tags        []string `json:"tags" optional:"true"`
 
 	// allocation
+	NotAllocated        *bool       `json:"not_allocated" optional:"true"`
 	AllocationName      *string     `json:"allocation_name" optional:"true"`
 	AllocationProject   *string     `json:"allocation_project" optional:"true"`
 	AllocationImageID   *string     `json:"allocation_image_id" optional:"true"`
@@ -54,7 +55,10 @@ type MachineSearchQuery struct {
 	DiskSizes []int64  `json:"disk_sizes" optional:"true"`
 
 	// state
-	StateValue *string `json:"state_value" optional:"true" enum:"|RESERVED|LOCKED"`
+	HibernationEnabled *bool   `json:"hibernation_enabled" optional:"true"`
+	StateValue         *string `json:"state_value" optional:"true" enum:"|RESERVED|LOCKED"`
+	PreAllocated       *bool   `json:"preallocated" optional:"true"`
+	Waiting            *bool   `json:"waiting" optional:"true"`
 
 	// ipmi
 	IpmiAddress    *string `json:"ipmi_address" optional:"true"`
@@ -111,6 +115,16 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		tag := tag
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("tags").Contains(r.Expr(tag))
+		})
+	}
+
+	if p.NotAllocated != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			if *p.NotAllocated {
+				return row.Field("allocation").Eq(nil)
+			} else {
+				return row.Field("allocation").Ne(nil)
+			}
 		})
 	}
 
@@ -288,9 +302,27 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		})
 	}
 
+	if p.HibernationEnabled != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("state").Field("hibernation").Field("enabled").Eq(*p.HibernationEnabled)
+		})
+	}
+
 	if p.StateValue != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("state").Field("value").Eq(*p.StateValue)
+		})
+	}
+
+	if p.PreAllocated != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("preallocated").Eq(*p.PreAllocated)
+		})
+	}
+
+	if p.Waiting != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("waiting").Eq(*p.Waiting)
 		})
 	}
 

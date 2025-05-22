@@ -1,11 +1,14 @@
 package states
 
 import (
+	"fmt"
+
 	"context"
 	"log/slog"
 
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/scaler"
 )
 
 const (
@@ -24,7 +27,8 @@ const (
 )
 
 type FSMState interface {
-	OnTransition(ctx context.Context, e *fsm.Event)
+	OnEnter(ctx context.Context, e *fsm.Event)
+	OnLeave(ctx context.Context, e *fsm.Event)
 }
 
 type stateType string
@@ -35,8 +39,23 @@ func (t stateType) String() string {
 
 type StateConfig struct {
 	Log       *slog.Logger
+	Context   context.Context
 	Container *metal.ProvisioningEventContainer
 	Event     *metal.ProvisioningEvent
+	Scaler    *scaler.PoolScaler
+	Machine   *metal.Machine
+}
+
+func (c *StateConfig) Validate() error {
+	if c.Container == nil {
+		return fmt.Errorf("provisioning event container must not be nil")
+	}
+
+	if c.Event == nil {
+		return fmt.Errorf("provisioning event must not be nil")
+	}
+
+	return nil
 }
 
 func AllStates(c *StateConfig) map[string]FSMState {

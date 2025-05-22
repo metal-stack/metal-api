@@ -8,6 +8,7 @@ import (
 )
 
 type InstallingState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }
@@ -19,6 +20,6 @@ func newInstalling(c *StateConfig) *InstallingState {
 	}
 }
 
-func (p *InstallingState) OnTransition(ctx context.Context, e *fsm.Event) {
+func (p *InstallingState) OnEnter(ctx context.Context, e *fsm.Event) {
 	appendEventToContainer(p.event, p.container)
 }
