@@ -197,15 +197,10 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
-	var minSize, maxSize string
-	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
-		_, err = metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMaxSize)
-		if err != nil {
-			r.sendError(request, response, httperrors.BadRequest(err))
-			return
-		}
-		minSize = *requestPayload.PartitionWaitingPoolMinSize
-		maxSize = *requestPayload.PartitionWaitingPoolMaxSize
+	minSize, maxSize, err := getPoolsizeRange("", "", requestPayload.PartitionWaitingPoolMinSize, requestPayload.PartitionWaitingPoolMaxSize)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
 	}
 
 	var dnsServers metal.DNSServers
@@ -337,16 +332,13 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
-	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
-		_, err := metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMinSize)
-		if err != nil {
-			r.sendError(request, response, httperrors.BadRequest(err))
-			return
-		}
-
-		newPartition.WaitingPoolMinSize = *requestPayload.PartitionWaitingPoolMinSize
-		newPartition.WaitingPoolMaxSize = *requestPayload.PartitionWaitingPoolMaxSize
+	minSize, maxSize, err := getPoolsizeRange(oldPartition.WaitingPoolMinSize, oldPartition.WaitingPoolMaxSize, requestPayload.PartitionWaitingPoolMinSize, requestPayload.PartitionWaitingPoolMaxSize)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
 	}
+	newPartition.WaitingPoolMinSize = minSize
+	newPartition.WaitingPoolMaxSize = maxSize
 
 	if requestPayload.DNSServers != nil {
 		newPartition.DNSServers = metal.DNSServers{}
@@ -578,4 +570,28 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	}
 
 	return res, nil
+}
+
+func getPoolsizeRange(currentMinSize, currentMaxSize string, requestedMinSize, requestedMaxSize *string) (min, max string, err error) {
+	if requestedMinSize != nil {
+		min = *requestedMinSize
+	} else {
+		min = currentMinSize
+	}
+
+	if requestedMaxSize != nil {
+		max = *requestedMaxSize
+	} else {
+		max = currentMaxSize
+	}
+
+	if (min == "") != (max == "") {
+		return "", "", fmt.Errorf("to activate waiting machine pool scaling both minimum and maximum pool sizes must be given")
+	}
+
+	if _, err = metal.NewScalerRange(min, max); err != nil {
+		return "", "", err
+	}
+
+	return min, max, nil
 }

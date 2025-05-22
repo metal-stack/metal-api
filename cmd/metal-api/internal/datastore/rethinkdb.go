@@ -135,18 +135,18 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 
 	// demoted runtime user creation / update
 	rs.log.Info("creating / updating demoted runtime user")
-	_, err = rs.userTable().Insert(map[string]interface{}{"id": DemotedUser, "password": rs.dbpass}, r.InsertOpts{
+	_, err = rs.userTable().Insert(map[string]any{"id": DemotedUser, "password": rs.dbpass}, r.InsertOpts{
 		Conflict: "update",
 	}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
 	rs.log.Info("ensuring demoted user can read and write")
-	_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": true}).RunWrite(rs.session)
+	_, err = rs.db().Grant(DemotedUser, map[string]any{"read": true, "write": true}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
-	_, err = r.DB("rethinkdb").Grant(DemotedUser, map[string]interface{}{"read": true}).RunWrite(rs.session)
+	_, err = r.DB("rethinkdb").Grant(DemotedUser, map[string]any{"read": true}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
@@ -361,7 +361,7 @@ tryAgain:
 	return s
 }
 
-func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id string) error {
+func (rs *RethinkStore) findEntityByID(table *r.Term, entity any, id string) error {
 	res, err := table.Get(id).Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot find %v with id %q in database: %w", getEntityName(entity), id, err)
@@ -377,7 +377,7 @@ func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id str
 	return nil
 }
 
-func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
+func (rs *RethinkStore) findEntity(query *r.Term, entity any) error {
 	res, err := query.Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot find %v in database: %w", getEntityName(entity), err)
@@ -392,7 +392,7 @@ func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
 		return fmt.Errorf("cannot find %v in database: %w", getEntityName(entity), err)
 	}
 
-	next := map[string]interface{}{}
+	next := map[string]any{}
 	hasResult = res.Next(&next)
 	if hasResult {
 		return fmt.Errorf("more than one %v exists", getEntityName(entity))
@@ -401,7 +401,7 @@ func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
 	return nil
 }
 
-func (rs *RethinkStore) searchEntities(query *r.Term, entity interface{}) error {
+func (rs *RethinkStore) searchEntities(query *r.Term, entity any) error {
 	res, err := query.Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot search %v in database: %w", getEntityName(entity), err)
@@ -415,7 +415,7 @@ func (rs *RethinkStore) searchEntities(query *r.Term, entity interface{}) error 
 	return nil
 }
 
-func (rs *RethinkStore) listEntities(table *r.Term, entity interface{}) error {
+func (rs *RethinkStore) listEntities(table *r.Term, entity any) error {
 	res, err := table.Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot list %v from database: %w", getEntityName(entity), err)
@@ -493,7 +493,7 @@ func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.Entity, oldE
 	return nil
 }
 
-func getEntityName(entity interface{}) string {
+func getEntityName(entity any) string {
 	t := reflect.TypeOf(entity)
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
