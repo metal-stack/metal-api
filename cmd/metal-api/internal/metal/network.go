@@ -286,22 +286,34 @@ func (p *Prefix) equals(other *Prefix) bool {
 type (
 	Network struct {
 		Base
-		Prefixes                 Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
-		DestinationPrefixes      Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-		DefaultChildPrefixLength ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
-		PartitionID              string            `rethinkdb:"partitionid" json:"partitionid"`
-		ProjectID                string            `rethinkdb:"projectid" json:"projectid"`
-		ParentNetworkID          string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
-		Vrf                      uint              `rethinkdb:"vrf" json:"vrf"`
-		PrivateSuper             bool              `rethinkdb:"privatesuper" json:"privatesuper"`
-		Nat                      bool              `rethinkdb:"nat" json:"nat"`
-		Underlay                 bool              `rethinkdb:"underlay" json:"underlay"`
-		Shared                   bool              `rethinkdb:"shared" json:"shared"`
-		Labels                   map[string]string `rethinkdb:"labels" json:"labels"`
-		// AddressFamilies            AddressFamilies   `rethinkdb:"addressfamilies" json:"addressfamilies"`
-		AdditionalAnnouncableCIDRs []string       `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
-		NetworkType                *NetworkTypeV2 `rethinkdb:"networktype"`
-		NATType                    *NATType       `rethinkdb:"nattype"`
+		Prefixes                   Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
+		DestinationPrefixes        Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+		DefaultChildPrefixLength   ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
+		PartitionID                string            `rethinkdb:"partitionid" json:"partitionid"`
+		ProjectID                  string            `rethinkdb:"projectid" json:"projectid"`
+		ParentNetworkID            string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
+		Vrf                        uint              `rethinkdb:"vrf" json:"vrf"`
+		Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
+		AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
+		NetworkType                *NetworkTypeV2    `rethinkdb:"networktype"`
+		NATType                    *NATType          `rethinkdb:"nattype"`
+
+		// PrivateSuper if set identifies this Network as a Super Network for private networks
+		//
+		// Deprecated: use SuperNetworkType instead
+		PrivateSuper bool `rethinkdb:"privatesuper"`
+		// Underlay if set indicates as a underlay network for firewalls and switches
+		//
+		// Deprecated: use UnderlayNetworkType instead
+		Underlay bool `rethinkdb:"underlay"`
+		// Shared if set indicates that this network can be used from other projects to acquire ips from
+		//
+		// Deprecated: use ChildSharedNetworkType instead
+		Shared bool `rethinkdb:"shared"`
+		// Nat if set, traffic entering this network is masqueraded behind the interface entering this network
+		//
+		// Deprecated: use IPv4MasqueradeNATType instead
+		Nat bool `rethinkdb:"nat"`
 	}
 
 	ChildPrefixLength map[AddressFamily]uint8
