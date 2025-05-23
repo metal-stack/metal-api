@@ -354,7 +354,7 @@ const (
 	// NoneNATType no nat in place when traffic leaves this network
 	NoneNATType = NATType("none")
 	// IPv4MasqueradeNATType masquerade ipv4 behind gateway ip
-	IPv4MasqueradeNATType = NATType("ipv4-masquerade")
+	IPv4MasqueradeNATType = NATType("ipv4-masq")
 )
 
 // ToAddressFamily will convert a string af to a AddressFamily
