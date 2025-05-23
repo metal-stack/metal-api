@@ -283,29 +283,48 @@ func (p *Prefix) equals(other *Prefix) bool {
 
 // Network is a network in a metal as a service infrastructure.
 // TODO specify rethinkdb restrictions.
-type Network struct {
-	Base
-	Prefixes                 Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
-	DestinationPrefixes      Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-	DefaultChildPrefixLength ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
-	PartitionID              string            `rethinkdb:"partitionid" json:"partitionid"`
-	ProjectID                string            `rethinkdb:"projectid" json:"projectid"`
-	ParentNetworkID          string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
-	Vrf                      uint              `rethinkdb:"vrf" json:"vrf"`
-	PrivateSuper             bool              `rethinkdb:"privatesuper" json:"privatesuper"`
-	Nat                      bool              `rethinkdb:"nat" json:"nat"`
-	Underlay                 bool              `rethinkdb:"underlay" json:"underlay"`
-	Shared                   bool              `rethinkdb:"shared" json:"shared"`
-	Labels                   map[string]string `rethinkdb:"labels" json:"labels"`
-	// AddressFamilies            AddressFamilies   `rethinkdb:"addressfamilies" json:"addressfamilies"`
-	AdditionalAnnouncableCIDRs []string `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
-}
+type (
+	Network struct {
+		Base
+		Prefixes                   Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
+		DestinationPrefixes        Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+		DefaultChildPrefixLength   ChildPrefixLength `rethinkdb:"defaultchildprefixlength" json:"defaultchildprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes per addressfamily if not nil"`
+		PartitionID                string            `rethinkdb:"partitionid" json:"partitionid"`
+		ProjectID                  string            `rethinkdb:"projectid" json:"projectid"`
+		ParentNetworkID            string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
+		Vrf                        uint              `rethinkdb:"vrf" json:"vrf"`
+		Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
+		AdditionalAnnouncableCIDRs []string          `rethinkdb:"additionalannouncablecidrs" json:"additionalannouncablecidrs" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set in a supernetwork"`
+		NetworkType                *NetworkTypeV2    `rethinkdb:"networktype"`
+		NATType                    *NATType          `rethinkdb:"nattype"`
 
-type ChildPrefixLength map[AddressFamily]uint8
+		// PrivateSuper if set identifies this Network as a Super Network for private networks
+		//
+		// Deprecated: use SuperNetworkType instead
+		PrivateSuper bool `rethinkdb:"privatesuper"`
+		// Underlay if set indicates as a underlay network for firewalls and switches
+		//
+		// Deprecated: use UnderlayNetworkType instead
+		Underlay bool `rethinkdb:"underlay"`
+		// Shared if set indicates that this network can be used from other projects to acquire ips from
+		//
+		// Deprecated: use ChildSharedNetworkType instead
+		Shared bool `rethinkdb:"shared"`
+		// Nat if set, traffic entering this network is masqueraded behind the interface entering this network
+		//
+		// Deprecated: use IPv4MasqueradeNATType instead
+		Nat bool `rethinkdb:"nat"`
+	}
 
-// AddressFamily identifies IPv4/IPv6
-type AddressFamily string
-type AddressFamilies []AddressFamily
+	ChildPrefixLength map[AddressFamily]uint8
+
+	// AddressFamily identifies IPv4/IPv6
+	AddressFamily   string
+	AddressFamilies []AddressFamily
+
+	NATType       string
+	NetworkTypeV2 string
+)
 
 const (
 	// InvalidAddressFamily identifies a invalid Addressfamily
@@ -314,6 +333,28 @@ const (
 	IPv4AddressFamily = AddressFamily("IPv4")
 	// IPv6AddressFamily identifies IPv6
 	IPv6AddressFamily = AddressFamily("IPv6")
+
+	// NetworkType
+	// ExternalNetworkType identifies a network where ips can be allocated from different projects
+	ExternalNetworkType = NetworkTypeV2("external")
+	// UnderlayNetworkType identifies a underlay network
+	UnderlayNetworkType = NetworkTypeV2("underlay")
+
+	// SuperNetworkType identifies a super network where child networks can be allocated from
+	SuperNetworkType = NetworkTypeV2("super")
+	// SuperNamespacedNetworkType identifies a super network where child networks can be allocated from, namespaced per project
+	SuperNamespacedNetworkType = NetworkTypeV2("super-namespaced")
+	// ChildNetworkType identifies a child network which is only used in one project for machines and firewalls without external connectivity
+	ChildNetworkType = NetworkTypeV2("child")
+	// ChildSharedNetworkType identifies a child network which can be shared, e.g. ips allocated from different projects
+	ChildSharedNetworkType = NetworkTypeV2("child-shared")
+
+	// NATType
+	InvalidNATType = NATType("invalid")
+	// NoneNATType no nat in place when traffic leaves this network
+	NoneNATType = NATType("none")
+	// IPv4MasqueradeNATType masquerade ipv4 behind gateway ip
+	IPv4MasqueradeNATType = NATType("ipv4-masq")
 )
 
 // ToAddressFamily will convert a string af to a AddressFamily
