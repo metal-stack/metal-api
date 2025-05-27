@@ -134,10 +134,19 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:      "pool scaling disabled; do nothing",
+			name:      "pool scaling disabled and no shutdown machines; do nothing",
 			partition: &metal.Partition{},
 			mockFn: func(mock *MockMachineManager) {
 				mock.On("ShutdownMachines").Once().Return(nil, nil)
+			},
+			wantErr: false,
+		},
+		{
+			name:      "pool scaling disabled and some machines are shutdown; power on all",
+			partition: &metal.Partition{},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
+				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(10)
 			},
 			wantErr: false,
 		},
