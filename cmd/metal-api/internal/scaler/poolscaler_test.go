@@ -22,8 +22,8 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 				WaitingPoolMaxSize: "20",
 			},
 			mockFn: func(mock *MockMachineManager) {
-				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 10)...), nil)
-				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
 			},
 			wantErr: false,
 		},
@@ -34,8 +34,8 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 				WaitingPoolMaxSize: "30%",
 			},
 			mockFn: func(mock *MockMachineManager) {
-				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
-				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 45)...), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 45)), nil)
 			},
 			wantErr: false,
 		},
@@ -46,9 +46,9 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 				WaitingPoolMaxSize: "20",
 			},
 			mockFn: func(mock *MockMachineManager) {
-				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
-				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 10)...), nil)
-				mock.On("ShutdownMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 10)...), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
 				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(8)
 			},
 			wantErr: false,
@@ -60,9 +60,9 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 				WaitingPoolMaxSize: "40%",
 			},
 			mockFn: func(mock *MockMachineManager) {
-				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
-				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 35)...), nil)
-				mock.On("ShutdownMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 20)...), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 35)), nil)
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 20)), nil)
 				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(18)
 			},
 			wantErr: false,
@@ -74,8 +74,8 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 				WaitingPoolMaxSize: "15",
 			},
 			mockFn: func(mock *MockMachineManager) {
-				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 20)...), nil)
-				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 20)), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
 				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(7)
 			},
 			wantErr: false,
@@ -87,8 +87,8 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 				WaitingPoolMaxSize: "20%",
 			},
 			mockFn: func(mock *MockMachineManager) {
-				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
-				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 31)...), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 31)), nil)
 				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(4)
 			},
 			wantErr: false,
@@ -100,9 +100,9 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 				WaitingPoolMaxSize: "40",
 			},
 			mockFn: func(mock *MockMachineManager) {
-				mock.On("ShutdownMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 10)...), nil)
-				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 15)...), nil)
-				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 15)), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
 				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(10)
 			},
 			wantErr: false,
@@ -114,9 +114,9 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 				WaitingPoolMaxSize: "20%",
 			},
 			mockFn: func(mock *MockMachineManager) {
-				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
-				mock.On("ShutdownMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 0)...), nil)
-				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 22)...), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 0)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 22)), nil)
 			},
 			wantErr: false,
 		},
@@ -127,8 +127,8 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 				WaitingPoolMaxSize: "1",
 			},
 			mockFn: func(mock *MockMachineManager) {
-				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 2)...), nil)
-				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 2)...), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 2)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 2)), nil)
 				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(1)
 			},
 			wantErr: false,
@@ -136,7 +136,10 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 		{
 			name:      "pool scaling disabled; do nothing",
 			partition: &metal.Partition{},
-			wantErr:   false,
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("ShutdownMachines").Once().Return(nil, nil)
+			},
+			wantErr: false,
 		},
 	}
 	for i := range tests {
