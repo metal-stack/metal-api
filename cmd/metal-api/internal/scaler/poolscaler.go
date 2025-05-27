@@ -45,6 +45,21 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
 	}
 
 	if waitingPoolRange.IsDisabled() {
+		shutdownMachines, err := p.manager.ShutdownMachines()
+		if err != nil {
+			return err
+		}
+
+		if len(shutdownMachines) < 1 {
+			return nil
+		}
+
+		p.log.Info("power on all shutdown machines as automatic pool size scaling is disabled", "number of machines to power on", len(shutdownMachines))
+		err = p.powerOnMachines(shutdownMachines, len(shutdownMachines))
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
