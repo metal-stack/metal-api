@@ -5,10 +5,13 @@ import (
 )
 
 type PartitionBase struct {
-	MgmtServiceAddress *string           `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
-	Labels             map[string]string `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
-	DNSServers         []DNSServer       `json:"dns_servers,omitempty" description:"the dns servers for this partition" optional:"true"`
-	NTPServers         []NTPServer       `json:"ntp_servers,omitempty" description:"the ntp servers for this partition" optional:"true"`
+	MgmtServiceAddress          *string           `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
+	PrivateNetworkPrefixLength  *int              `json:"privatenetworkprefixlength" description:"the length of private networks for the machine's child networks in this partition, default 22" optional:"true" minimum:"16" maximum:"30"`
+	PartitionWaitingPoolMinSize *string           `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition"`
+	PartitionWaitingPoolMaxSize *string           `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition"`
+	Labels                      map[string]string `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
+	DNSServers                  []DNSServer       `json:"dns_servers,omitempty" description:"the dns servers for this partition" optional:"true"`
+	NTPServers                  []NTPServer       `json:"ntp_servers,omitempty" description:"the ntp servers for this partition" optional:"true"`
 }
 
 type PartitionBootConfiguration struct {
@@ -25,11 +28,13 @@ type PartitionCreateRequest struct {
 
 type PartitionUpdateRequest struct {
 	Common
-	MgmtServiceAddress         *string                     `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
-	PartitionBootConfiguration *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
-	Labels                     map[string]string           `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
-	DNSServers                 []DNSServer                 `json:"dns_servers" description:"the dns servers for this partition"`
-	NTPServers                 []NTPServer                 `json:"ntp_servers" description:"the ntp servers for this partition"`
+	MgmtServiceAddress          *string                     `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
+	PartitionWaitingPoolMinSize *string                     `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition"`
+	PartitionWaitingPoolMaxSize *string                     `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition"`
+	PartitionBootConfiguration  *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
+	Labels                      map[string]string           `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
+	DNSServers                  []DNSServer                 `json:"dns_servers" description:"the dns servers for this partition"`
+	NTPServers                  []NTPServer                 `json:"ntp_servers" description:"the ntp servers for this partition"`
 }
 
 type PartitionResponse struct {
@@ -133,9 +138,11 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			},
 		},
 		PartitionBase: PartitionBase{
-			MgmtServiceAddress: &p.MgmtServiceAddress,
-			DNSServers:         dnsServers,
-			NTPServers:         ntpServers,
+			MgmtServiceAddress:          &p.MgmtServiceAddress,
+			PartitionWaitingPoolMinSize: &p.WaitingPoolMinSize,
+			PartitionWaitingPoolMaxSize: &p.WaitingPoolMaxSize,
+			DNSServers:                  dnsServers,
+			NTPServers:                  ntpServers,
 		},
 		PartitionBootConfiguration: PartitionBootConfiguration{
 			ImageURL:    &p.BootConfiguration.ImageURL,

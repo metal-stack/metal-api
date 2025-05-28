@@ -5,7 +5,10 @@ import (
 	"log/slog"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm/states"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	s "github.com/metal-stack/metal-api/cmd/metal-api/internal/scaler"
+	"github.com/metal-stack/metal-lib/bus"
 )
 
 // ListProvisioningEventContainers returns all machine provisioning event containers.
@@ -40,8 +43,8 @@ func (rs *RethinkStore) UpsertProvisioningEventContainer(ec *metal.ProvisioningE
 	return rs.upsertEntity(rs.eventTable(), ec)
 }
 
-func (rs *RethinkStore) ProvisioningEventForMachine(ctx context.Context, log *slog.Logger, event *metal.ProvisioningEvent, machineID string) (*metal.ProvisioningEventContainer, error) {
-	ec, err := rs.FindProvisioningEventContainer(machineID)
+func (rs *RethinkStore) ProvisioningEventForMachine(ctx context.Context, log *slog.Logger, publisher bus.Publisher, event *metal.ProvisioningEvent, machine *metal.Machine) (*metal.ProvisioningEventContainer, error) {
+	ec, err := rs.FindProvisioningEventContainer(machine.ID)
 	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
 	}
@@ -49,13 +52,45 @@ func (rs *RethinkStore) ProvisioningEventForMachine(ctx context.Context, log *sl
 	if ec == nil {
 		ec = &metal.ProvisioningEventContainer{
 			Base: metal.Base{
-				ID: machineID,
+				ID: machine.ID,
 			},
 			Liveliness: metal.MachineLivelinessAlive,
 		}
 	}
 
-	newEC, err := fsm.HandleProvisioningEvent(ctx, log, ec, event)
+	var scaler *s.PoolScaler
+	if machine.PartitionID != "" && machine.SizeID != "" {
+		// in the early lifecycle, when the pxe booting event is submitted
+		// a machine does not have a partition or size , so the pool scaler
+		// cannot work at this stage
+
+		p, err := rs.FindPartition(machine.PartitionID)
+		if err != nil {
+			return nil, err
+		}
+
+		scaler = s.NewPoolScaler(&s.PoolScalerConfig{
+			Log: log.With("pool-scaler", machine.PartitionID),
+			Manager: &manager{
+				rs:          rs,
+				publisher:   publisher,
+				partitionid: p.ID,
+				sizeid:      machine.SizeID,
+			},
+			Partition: *p,
+		})
+	}
+
+	config := states.StateConfig{
+		Log:       log.With("fsm", machine.ID),
+		Context:   ctx,
+		Container: ec,
+		Event:     event,
+		Scaler:    scaler,
+		Machine:   machine,
+	}
+
+	newEC, err := fsm.HandleProvisioningEvent(&config)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +100,10 @@ func (rs *RethinkStore) ProvisioningEventForMachine(ctx context.Context, log *sl
 	}
 
 	newEC.TrimEvents(100)
-
 	err = rs.UpsertProvisioningEventContainer(newEC)
+	if err != nil {
+		return nil, err
+	}
+
 	return newEC, err
 }

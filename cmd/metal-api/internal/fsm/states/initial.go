@@ -9,6 +9,7 @@ import (
 )
 
 type InitialState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }
@@ -20,6 +21,6 @@ func newInitial(c *StateConfig) *InitialState {
 	}
 }
 
-func (p *InitialState) OnTransition(ctx context.Context, e *fsm.Event) {
+func (p *InitialState) OnEnter(ctx context.Context, e *fsm.Event) {
 	e.Err = fmt.Errorf("unexpected transition back to initial state")
 }
