@@ -34,12 +34,13 @@ func (m *manager) AllMachines() (metal.Machines, error) {
 
 func (m *manager) WaitingMachines() (metal.Machines, error) {
 	q := MachineSearchQuery{
-		PartitionID:  &m.partitionid,
-		SizeID:       &m.sizeid,
-		StateValue:   pointer.Pointer(string(metal.AvailableState)),
-		NotAllocated: pointer.Pointer(true),
-		Waiting:      pointer.Pointer(true),
-		PreAllocated: pointer.Pointer(false),
+		PartitionID:        &m.partitionid,
+		SizeID:             &m.sizeid,
+		StateValue:         pointer.Pointer(string(metal.AvailableState)),
+		NotAllocated:       pointer.Pointer(true),
+		Waiting:            pointer.Pointer(true),
+		PreAllocated:       pointer.Pointer(false),
+		HibernationEnabled: pointer.Pointer(false),
 	}
 
 	waitingMachines := metal.Machines{}
