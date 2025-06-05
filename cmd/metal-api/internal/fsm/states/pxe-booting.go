@@ -8,6 +8,7 @@ import (
 )
 
 type PXEBootingState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }
@@ -19,7 +20,7 @@ func newPXEBooting(c *StateConfig) *PXEBootingState {
 	}
 }
 
-func (p *PXEBootingState) OnTransition(ctx context.Context, e *fsm.Event) {
+func (p *PXEBootingState) OnEnter(ctx context.Context, e *fsm.Event) {
 	p.container.FailedMachineReclaim = false
 
 	if e.Src == PXEBooting.String() {
