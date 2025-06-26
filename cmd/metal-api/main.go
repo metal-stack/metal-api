@@ -21,6 +21,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/avast/retry-go/v4"
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/masterdata"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -72,7 +73,6 @@ const (
 	DataStoreConnectNoDemotion dsConnectOpt = 1
 
 	auditingBackendTimescaleDB = "timescaledb"
-	auditingBackendMeilisearch = "meilisearch"
 )
 
 var (
@@ -290,13 +290,7 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
 	rootCmd.Flags().Bool("auditing-enabled", false, "enable auditing")
-	rootCmd.Flags().String("auditing-search-backend", "", "the auditing backend used as a source for search in the audit service. if not specified the first one configured is picked given the following order of precedence: timescaledb,meilisearch")
-
-	rootCmd.Flags().String("auditing-meili-url", "http://localhost:7700", "url of the auditing service")
-	rootCmd.Flags().String("auditing-meili-api-key", "secret", "api key for the auditing service")
-	rootCmd.Flags().String("auditing-meili-index-prefix", "auditing", "auditing index prefix")
-	rootCmd.Flags().String("auditing-meili-index-interval", "@daily", "auditing index creation interval, can be one of @hourly|@daily|@monthly")
-	rootCmd.Flags().Int64("auditing-meili-keep", 14, "the amount of indexes to keep until cleanup")
+	rootCmd.Flags().String("auditing-search-backend", "", "the auditing backend used as a source for search in the audit service. if not specified the first one configured is picked given the following order of precedence: timescaledb")
 
 	rootCmd.Flags().String("auditing-timescaledb-host", "", "host of the auditing service")
 	rootCmd.Flags().String("auditing-timescaledb-port", "", "port of the auditing service")
@@ -754,7 +748,8 @@ func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []a
 		log.Fatal(err)
 	}
 
-	healthService, err := rest.NewHealth(logger, service.BasePath, ds, ipamer)
+	mdhc := masterdata.NewMasterdataHealthClient(mdc)
+	healthService, err := rest.NewHealth(logger, service.BasePath, ds, ipamer, mdhc)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -956,26 +951,6 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 		backends = append(backends, backend)
 
 		if viper.GetString("auditing-search-backend") == auditingBackendTimescaleDB {
-			searchBackend = backend
-		}
-	}
-
-	if viper.IsSet("auditing-meili-api-key") {
-		backend, err := auditing.NewMeilisearch(c, auditing.MeilisearchConfig{
-			URL:              viper.GetString("auditing-meili-url"),
-			APIKey:           viper.GetString("auditing-meili-api-key"),
-			IndexPrefix:      viper.GetString("auditing-meili-index-prefix"),
-			RotationInterval: auditing.Interval(viper.GetString("auditing-meili-index-interval")),
-			Keep:             viper.GetInt64("auditing-meili-keep"),
-		})
-
-		if err != nil {
-			return nil, nil, err
-		}
-
-		backends = append(backends, backend)
-
-		if viper.GetString("auditing-search-backend") == auditingBackendMeilisearch {
 			searchBackend = backend
 		}
 	}

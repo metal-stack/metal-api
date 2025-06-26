@@ -45,7 +45,7 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 	if projectServiceMock != nil {
 		projectServiceMock(psc)
 	}
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil, nil)
 	ds, mock := datastore.InitMockDB(t)
 	if dsmock != nil {
 		dsmock(mock)
@@ -57,7 +57,7 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 	}
 }
 
-//nolint:golint,unused
+// nolint:unused
 func (m *MockedProjectService) list(user *security.User, resp interface{}) int {
 	return webRequestGet(m.t, m.ws, user, user, "/v1/project", resp)
 }

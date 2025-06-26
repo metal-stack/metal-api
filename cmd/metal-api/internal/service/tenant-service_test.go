@@ -26,7 +26,7 @@ func NewMockedTenantService(t *testing.T, tenantServiceMock func(mock *mdmv1mock
 	if tenantServiceMock != nil {
 		tenantServiceMock(tsc)
 	}
-	mdc := mdm.NewMock(&mdmv1mock.ProjectServiceClient{}, tsc, nil, nil)
+	mdc := mdm.NewMock(&mdmv1mock.ProjectServiceClient{}, tsc, nil, nil, nil)
 	ws := NewTenant(slog.Default(), mdc)
 	return &MockedTenantService{
 		t:  t,
@@ -34,7 +34,7 @@ func NewMockedTenantService(t *testing.T, tenantServiceMock func(mock *mdmv1mock
 	}
 }
 
-//nolint:golint,unused
+// nolint:unused
 func (m *MockedTenantService) list(user *security.User, resp interface{}) int {
 	return webRequestGet(m.t, m.ws, user, user, "/v1/tenant", resp)
 }

@@ -295,8 +295,8 @@ func TestSetMachineStateIssuerResetWhenAvailable(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "1", result.ID)
 	require.Equal(t, string(metal.AvailableState), result.State.Value)
-	require.Equal(t, "", result.State.Description)
-	require.Equal(t, "", result.State.Issuer)
+	require.Empty(t, result.State.Description)
+	require.Empty(t, result.State.Issuer)
 }
 
 func TestGetMachine(t *testing.T) {

@@ -120,7 +120,7 @@ func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 
 	got, err := ip.AcquireRandomUniqueInteger()
 	require.NoError(t, err)
-	assert.EqualValues(t, rs.VRFPoolRangeMin, got)
+	assert.Equal(t, rs.VRFPoolRangeMin, got)
 
 	mock.AssertExpectations(t)
 }
@@ -164,7 +164,7 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 				require.EqualError(t, err, tt.err.Error())
 			} else {
 				require.NoError(t, err)
-				assert.EqualValues(t, tt.value, got)
+				assert.Equal(t, tt.value, got)
 			}
 
 			if tt.requiresMock {
@@ -238,7 +238,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 				require.EqualError(t, err, tt.expectedErr.Error())
 			} else {
 				require.NoError(t, err)
-				assert.EqualValues(t, tt.value, got)
+				assert.Equal(t, tt.value, got)
 			}
 
 			if tt.requiresMock {

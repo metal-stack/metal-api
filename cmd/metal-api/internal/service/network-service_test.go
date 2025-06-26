@@ -519,7 +519,7 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 		)
 		tsc := mdmv1mock.TenantServiceClient{}
 
-		mdc := mdm.NewMock(&psc, &tsc, nil, nil)
+		mdc := mdm.NewMock(&psc, &tsc, nil, nil, nil)
 
 		networkservice := NewNetwork(log, ds, ipamer, mdc)
 		container := restful.NewContainer().Add(networkservice)

@@ -76,9 +76,14 @@ func NewAuditResponse(e auditing.Entry) *AuditResponse {
 			body = fmt.Sprintf("unknown body: %v", v)
 		}
 	}
-	err := ""
+	errStr := ""
 	if e.Error != nil {
-		err = e.Error.Error()
+		b, err := json.Marshal(e.Error)
+		if err == nil {
+			errStr = string(b)
+		} else {
+			errStr = fmt.Sprintf("unknown error: %v", e.Error)
+		}
 	}
 
 	return &AuditResponse{
@@ -95,6 +100,6 @@ func NewAuditResponse(e auditing.Entry) *AuditResponse {
 		RemoteAddr:   e.RemoteAddr,
 		Body:         body,
 		StatusCode:   e.StatusCode,
-		Error:        err,
+		Error:        errStr,
 	}
 }

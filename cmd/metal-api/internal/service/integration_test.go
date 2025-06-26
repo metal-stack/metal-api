@@ -70,7 +70,7 @@ func createTestEnvironment(t *testing.T, log *slog.Logger, ds *datastore.Rethink
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, nil, nil, nil)
+	mdc := mdm.NewMock(psc, nil, nil, nil, nil)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
