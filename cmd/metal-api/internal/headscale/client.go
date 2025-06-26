@@ -8,6 +8,7 @@ import (
 	"time"
 
 	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
+
 	"github.com/juanfont/headscale/hscontrol/db"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -23,6 +24,7 @@ type HeadscaleClient struct {
 	conn   *grpc.ClientConn
 	logger *slog.Logger
 }
+
 
 func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *slog.Logger) (client *HeadscaleClient, err error) {
 	if addr != "" || apiKey != "" {
