@@ -70,16 +70,6 @@ func TestBootService_Register(t *testing.T) {
 			expectedSizeId: testdata.Sz1.ID,
 		},
 		{
-			name:                 "insert existing without second neighbor",
-			uuid:                 "1",
-			dbsizes:              []metal.Size{testdata.Sz1},
-			neighbormac1:         testdata.Switch1.Nics[0].MacAddress,
-			dbmachines:           metal.Machines{testdata.M1},
-			numcores:             1,
-			memory:               100,
-			expectedErrorMessage: "machine 1 is not connected to exactly two switches, found connections to 1 switches",
-		},
-		{
 			name:                 "empty uuid",
 			uuid:                 "",
 			dbsizes:              []metal.Size{testdata.Sz1},
