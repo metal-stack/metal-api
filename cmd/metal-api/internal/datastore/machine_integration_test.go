@@ -1014,7 +1014,7 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 			defer wg.Done()
 
 			for {
-				machine, err := sharedDS.FindWaitingMachine(context.Background(), "project", "partition", size, nil)
+				machine, err := sharedDS.FindWaitingMachine(context.Background(), "project", "partition", size, nil, metal.RoleMachine)
 				if err != nil {
 					if metal.IsConflict(err) {
 						t.Errorf("concurrent modification occurred, shared mutex is not working")
