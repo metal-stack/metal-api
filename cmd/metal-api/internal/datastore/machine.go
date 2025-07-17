@@ -473,10 +473,13 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 	var partitionMachines metal.Machines
 	err = rs.SearchMachines(&MachineSearchQuery{
 		PartitionID: &partitionid,
+		SizeID:      &size.ID,
 	}, &partitionMachines)
 	if err != nil {
 		return nil, err
 	}
+
+	partitionMachinesByProject := partitionMachines.ByProjectID()
 
 	var reservations metal.SizeReservations
 	err = rs.SearchSizeReservations(&SizeReservationSearchQuery{
@@ -487,12 +490,12 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 		return nil, err
 	}
 
-	ok := checkSizeReservations(available, projectid, partitionMachines.WithSize(size.ID).ByProjectID(), reservations)
+	ok := checkSizeReservations(available, projectid, partitionMachinesByProject, reservations)
 	if !ok {
 		return nil, errors.New("no machine available")
 	}
 
-	projectMachines := partitionMachines.ByProjectID()[projectid]
+	projectMachines := partitionMachinesByProject[projectid]
 
 	spreadCandidates := spreadAcrossRacks(available, projectMachines, placementTags)
 	if len(spreadCandidates) == 0 {
