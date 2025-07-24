@@ -16,8 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
 	"github.com/Masterminds/semver/v3"
 	"github.com/avast/retry-go/v4"
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -613,7 +611,7 @@ func initAuth(lg *slog.Logger) security.UserGetter {
 
 		// get provider tenant from masterdata
 		ts, err := mdc.Tenant().Find(context.Background(), &v1.TenantFindRequest{
-			Id: wrapperspb.String(providerTenant),
+			Id: &providerTenant,
 		})
 		if err != nil {
 			return nil, err

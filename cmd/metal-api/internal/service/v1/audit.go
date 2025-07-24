@@ -55,7 +55,7 @@ type AuditResponse struct {
 	RemoteAddr   string `json:"remote_addr" optional:"true"`
 
 	Body       string `json:"body" optional:"true"`
-	StatusCode int    `json:"status_code" optional:"true"`
+	StatusCode *int   `json:"status_code" optional:"true"`
 
 	// Internal errors
 	Error string `json:"error" optional:"true"`
