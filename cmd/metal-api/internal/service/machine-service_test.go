@@ -458,6 +458,18 @@ func TestOnMachine(t *testing.T) {
 			cmd:      metal.MachinePxeCmd,
 			endpoint: "pxe",
 		},
+		{
+			cmd:      metal.ChassisIdentifyLEDOnCmd,
+			endpoint: "chassis-identify-led-on",
+		},
+		{
+			cmd:      metal.ChassisIdentifyLEDOnCmd,
+			endpoint: "chassis-identify-led-on?description=test",
+		},
+		{
+			cmd:      metal.ChassisIdentifyLEDOffCmd,
+			endpoint: "chassis-identify-led-off?description=test",
+		},
 	}
 
 	for i := range tests {
