@@ -389,7 +389,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/power/chassis-identify-led-on").
+	ws.Route(ws.PATCH("/{id}/power/chassis-identify-led-on").
 		To(editor(r.chassisIdentifyLEDOn)).
 		Operation("chassisIdentifyLEDOn").
 		Doc("sends a power-on to the chassis identify LED").
@@ -401,7 +401,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/power/chassis-identify-led-off").
+	ws.Route(ws.PATCH("/{id}/power/chassis-identify-led-off").
 		To(editor(r.chassisIdentifyLEDOff)).
 		Operation("chassisIdentifyLEDOff").
 		Doc("sends a power-off to the chassis identify LED").
