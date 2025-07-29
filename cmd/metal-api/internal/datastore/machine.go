@@ -524,8 +524,6 @@ func checkSizeReservations(available metal.Machines, projectid string, machinesB
 	)
 
 	for _, r := range reservations {
-		r := r
-
 		// sum up the amount of reservations
 		amount += r.Amount
 
