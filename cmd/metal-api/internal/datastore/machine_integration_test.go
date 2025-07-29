@@ -1062,9 +1062,11 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 
 func Test_FindWaitingMachine_RackSpreadingDistribution(t *testing.T) {
 	var (
-		size1      = metal.Size{Base: metal.Base{ID: "1"}}
-		threeRacks = func(i int) string {
-			return "rack-" + strconv.FormatInt(int64((i%3)+1), 10)
+		partitionID = "partition"
+		projectID   = "project"
+		size1       = metal.Size{Base: metal.Base{ID: "1"}}
+		fiveRacks   = func(i int) string {
+			return "rack-" + strconv.FormatInt(int64((i%5)+1), 10)
 		}
 	)
 
@@ -1077,19 +1079,19 @@ func Test_FindWaitingMachine_RackSpreadingDistribution(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	for i := range 100 {
+	for i := range 200 {
 		err := sharedDS.createEntity(sharedDS.machineTable(), &metal.Machine{
 			Base: metal.Base{
 				ID: strconv.Itoa(i),
 			},
-			PartitionID: "partition",
+			PartitionID: partitionID,
 			SizeID:      size1.ID,
 			State: metal.MachineState{
 				Value: metal.AvailableState,
 			},
 			Waiting:      true,
 			PreAllocated: false,
-			RackID:       threeRacks(i),
+			RackID:       fiveRacks(i),
 		})
 		require.NoError(t, err)
 
@@ -1111,41 +1113,43 @@ func Test_FindWaitingMachine_RackSpreadingDistribution(t *testing.T) {
 		{role: metal.RoleFirewall, size: "firewall"},
 		{role: metal.RoleMachine, size: "machine"},
 		{role: metal.RoleMachine, size: "machine"},
+		// just to prove that it affects the algorithm:
+		// {role: metal.RoleMachine, size: size1.ID},
 	} {
 		err := sharedDS.createEntity(sharedDS.machineTable(), &metal.Machine{
 			Base: metal.Base{
-				ID: "specific-" + strconv.Itoa(i),
+				ID: "allocated-" + strconv.Itoa(i),
 			},
-			PartitionID: "partition",
+			PartitionID: partitionID,
 			SizeID:      spec.size,
 			State: metal.MachineState{
 				Value: metal.AvailableState,
 			},
-			Waiting: true,
 			Allocation: &metal.MachineAllocation{
-				Role: spec.role,
+				Project: projectID,
+				Role:    spec.role,
 			},
-			RackID: threeRacks(i),
+			RackID: fiveRacks(i),
 		})
 		require.NoError(t, err)
 
 		err = sharedDS.createEntity(sharedDS.eventTable(), &metal.ProvisioningEventContainer{
 			Base: metal.Base{
-				ID: "specific-" + strconv.Itoa(i),
+				ID: "allocated-" + strconv.Itoa(i),
 			},
 			Liveliness: metal.MachineLivelinessAlive,
 		})
 		require.NoError(t, err)
 	}
 
-	for range 51 {
-		machine, err := sharedDS.FindWaitingMachine(context.Background(), "project", "partition", size1, nil, metal.RoleMachine)
+	for range 100 {
+		machine, err := sharedDS.FindWaitingMachine(context.Background(), projectID, partitionID, size1, nil, metal.RoleMachine)
 		require.NoError(t, err)
 
 		newMachine := *machine
 		newMachine.PreAllocated = false
 		newMachine.Allocation = &metal.MachineAllocation{
-			Project: "project",
+			Project: projectID,
 		}
 		newMachine.Allocation.Role = metal.RoleMachine
 		newMachine.SizeID = size1.ID
@@ -1159,10 +1163,10 @@ func Test_FindWaitingMachine_RackSpreadingDistribution(t *testing.T) {
 	}
 
 	var ms metal.Machines
-	err := sharedDS.SearchMachines(&MachineSearchQuery{AllocationProject: pointer.Pointer("project"), SizeID: &size1.ID}, &ms)
+	err := sharedDS.SearchMachines(&MachineSearchQuery{AllocationProject: &projectID, SizeID: &size1.ID, PartitionID: &partitionID}, &ms)
 	require.NoError(t, err)
 
-	require.Len(t, ms, 51)
+	require.Len(t, ms, 100)
 
 	machinesByRack := map[string]int{}
 	for _, m := range ms {
@@ -1170,7 +1174,7 @@ func Test_FindWaitingMachine_RackSpreadingDistribution(t *testing.T) {
 	}
 
 	for id, count := range machinesByRack {
-		assert.Equal(t, 17, count, "uneven machine distribution in %s", id)
+		assert.Equal(t, 100/5, count, "uneven machine distribution in %s", id)
 	}
 
 	fmt.Println(machinesByRack)
