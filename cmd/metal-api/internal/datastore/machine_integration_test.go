@@ -1073,9 +1073,7 @@ func Test_FindWaitingMachine_RackSpreadingDistribution(t *testing.T) {
 	defer func() {
 		_, err := sharedDS.machineTable().Delete().RunWrite(sharedDS.session)
 		require.NoError(t, err)
-	}()
-	defer func() {
-		_, err := sharedDS.eventTable().Delete().RunWrite(sharedDS.session)
+		_, err = sharedDS.eventTable().Delete().RunWrite(sharedDS.session)
 		require.NoError(t, err)
 	}()
 
