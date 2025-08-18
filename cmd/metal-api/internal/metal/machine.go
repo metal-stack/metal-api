@@ -334,8 +334,6 @@ func (ms Machines) WithSize(id string) Machines {
 	var res Machines
 
 	for _, m := range ms {
-		m := m
-
 		if m.SizeID != id {
 			continue
 		}
@@ -350,9 +348,25 @@ func (ms Machines) WithPartition(id string) Machines {
 	var res Machines
 
 	for _, m := range ms {
-		m := m
-
 		if m.PartitionID != id {
+			continue
+		}
+
+		res = append(res, m)
+	}
+
+	return res
+}
+
+func (ms Machines) WithRole(role Role) Machines {
+	var res Machines
+
+	for _, m := range ms {
+		if m.Allocation == nil {
+			continue
+		}
+
+		if m.Allocation.Role != role {
 			continue
 		}
 

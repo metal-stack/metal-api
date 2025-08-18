@@ -5,6 +5,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
@@ -993,8 +994,6 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 			},
 		},
 	} {
-		initEntity := initEntity
-
 		err := sharedDS.createEntity(initEntity.table, initEntity.entity)
 		require.NoError(t, err)
 
@@ -1004,8 +1003,7 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < 100; i++ {
-		i := i
+	for i := range 100 {
 		wg.Add(1)
 
 		log := root.With("worker", i)
@@ -1014,7 +1012,7 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 			defer wg.Done()
 
 			for {
-				machine, err := sharedDS.FindWaitingMachine(context.Background(), "project", "partition", size, nil)
+				machine, err := sharedDS.FindWaitingMachine(context.Background(), "project", "partition", size, nil, metal.RoleMachine)
 				if err != nil {
 					if metal.IsConflict(err) {
 						t.Errorf("concurrent modification occurred, shared mutex is not working")
@@ -1060,4 +1058,122 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, 100, count)
+}
+
+func Test_FindWaitingMachine_RackSpreadingDistribution(t *testing.T) {
+	var (
+		partitionID = "partition"
+		projectID   = "project"
+		size1       = metal.Size{Base: metal.Base{ID: "1"}}
+		fiveRacks   = func(i int) string {
+			return "rack-" + strconv.FormatInt(int64((i%5)+1), 10)
+		}
+	)
+
+	defer func() {
+		_, err := sharedDS.machineTable().Delete().RunWrite(sharedDS.session)
+		require.NoError(t, err)
+		_, err = sharedDS.eventTable().Delete().RunWrite(sharedDS.session)
+		require.NoError(t, err)
+	}()
+
+	for i := range 200 {
+		err := sharedDS.createEntity(sharedDS.machineTable(), &metal.Machine{
+			Base: metal.Base{
+				ID: strconv.Itoa(i),
+			},
+			PartitionID: partitionID,
+			SizeID:      size1.ID,
+			State: metal.MachineState{
+				Value: metal.AvailableState,
+			},
+			Waiting:      true,
+			PreAllocated: false,
+			RackID:       fiveRacks(i),
+		})
+		require.NoError(t, err)
+
+		err = sharedDS.createEntity(sharedDS.eventTable(), &metal.ProvisioningEventContainer{
+			Base: metal.Base{
+				ID: strconv.Itoa(i),
+			},
+			Liveliness: metal.MachineLivelinessAlive,
+		})
+		require.NoError(t, err)
+	}
+
+	// just allocate some machines with different specs that should not influence later allocs
+	for i, spec := range []struct {
+		role metal.Role
+		size string
+	}{
+		{role: metal.RoleFirewall, size: "firewall"},
+		{role: metal.RoleFirewall, size: "firewall"},
+		{role: metal.RoleMachine, size: "machine"},
+		{role: metal.RoleMachine, size: "machine"},
+		// just to prove that it affects the algorithm:
+		// {role: metal.RoleMachine, size: size1.ID},
+	} {
+		err := sharedDS.createEntity(sharedDS.machineTable(), &metal.Machine{
+			Base: metal.Base{
+				ID: "allocated-" + strconv.Itoa(i),
+			},
+			PartitionID: partitionID,
+			SizeID:      spec.size,
+			State: metal.MachineState{
+				Value: metal.AvailableState,
+			},
+			Allocation: &metal.MachineAllocation{
+				Project: projectID,
+				Role:    spec.role,
+			},
+			RackID: fiveRacks(i),
+		})
+		require.NoError(t, err)
+
+		err = sharedDS.createEntity(sharedDS.eventTable(), &metal.ProvisioningEventContainer{
+			Base: metal.Base{
+				ID: "allocated-" + strconv.Itoa(i),
+			},
+			Liveliness: metal.MachineLivelinessAlive,
+		})
+		require.NoError(t, err)
+	}
+
+	for range 100 {
+		machine, err := sharedDS.FindWaitingMachine(context.Background(), projectID, partitionID, size1, nil, metal.RoleMachine)
+		require.NoError(t, err)
+
+		newMachine := *machine
+		newMachine.PreAllocated = false
+		newMachine.Allocation = &metal.MachineAllocation{
+			Project: projectID,
+		}
+		newMachine.Allocation.Role = metal.RoleMachine
+		newMachine.SizeID = size1.ID
+
+		err = sharedDS.updateEntity(sharedDS.machineTable(), &newMachine, machine)
+		if err != nil {
+			t.Errorf("unable to update machine: %s", err)
+		}
+
+		t.Logf("machine %s allocated in %s", newMachine.ID, newMachine.RackID)
+	}
+
+	var ms metal.Machines
+	err := sharedDS.SearchMachines(&MachineSearchQuery{AllocationProject: &projectID, SizeID: &size1.ID, PartitionID: &partitionID}, &ms)
+	require.NoError(t, err)
+
+	require.Len(t, ms, 100)
+
+	machinesByRack := map[string]int{}
+	for _, m := range ms {
+		machinesByRack[m.RackID]++
+	}
+
+	for id, count := range machinesByRack {
+		assert.Equal(t, 100/5, count, "uneven machine distribution in %s", id)
+	}
+
+	fmt.Println(machinesByRack)
 }

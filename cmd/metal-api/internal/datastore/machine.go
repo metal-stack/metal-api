@@ -422,7 +422,7 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 // FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
 // TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
 // but current implementation should have a slightly better readability.
-func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, partitionid string, size metal.Size, placementTags []string) (*metal.Machine, error) {
+func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, partitionid string, size metal.Size, placementTags []string, role metal.Role) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
@@ -473,6 +473,7 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 	var partitionMachines metal.Machines
 	err = rs.SearchMachines(&MachineSearchQuery{
 		PartitionID: &partitionid,
+		SizeID:      &size.ID,
 	}, &partitionMachines)
 	if err != nil {
 		return nil, err
@@ -487,12 +488,12 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 		return nil, err
 	}
 
-	ok := checkSizeReservations(available, projectid, partitionMachines.WithSize(size.ID).ByProjectID(), reservations)
+	ok := checkSizeReservations(available, projectid, partitionMachines.ByProjectID(), reservations)
 	if !ok {
 		return nil, errors.New("no machine available")
 	}
 
-	projectMachines := partitionMachines.ByProjectID()[projectid]
+	projectMachines := partitionMachines.WithRole(role).ByProjectID()[projectid]
 
 	spreadCandidates := spreadAcrossRacks(available, projectMachines, placementTags)
 	if len(spreadCandidates) == 0 {
@@ -523,8 +524,6 @@ func checkSizeReservations(available metal.Machines, projectid string, machinesB
 	)
 
 	for _, r := range reservations {
-		r := r
-
 		// sum up the amount of reservations
 		amount += r.Amount
 
