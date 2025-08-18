@@ -80,7 +80,7 @@ func (r *auditResource) find(request *restful.Request, response *restful.Respons
 		ForwardedFor: requestPayload.ForwardedFor,
 		RemoteAddr:   requestPayload.RemoteAddr,
 		Body:         requestPayload.Body,
-		StatusCode:   requestPayload.StatusCode,
+		StatusCode:   &requestPayload.StatusCode,
 		Error:        requestPayload.Error,
 	})
 	if err != nil {
