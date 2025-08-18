@@ -1434,7 +1434,7 @@ func findWaitingMachine(ctx context.Context, ds *datastore.RethinkStore, allocat
 		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
 
-	machine, err := ds.FindWaitingMachine(ctx, allocationSpec.ProjectID, partition.ID, *size, allocationSpec.PlacementTags)
+	machine, err := ds.FindWaitingMachine(ctx, allocationSpec.ProjectID, partition.ID, *size, allocationSpec.PlacementTags, allocationSpec.Role)
 	if err != nil {
 		return nil, err
 	}
