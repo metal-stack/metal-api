@@ -9,7 +9,6 @@ import (
 	v1 "github.com/metal-stack/masterdata-api/api/rest/v1"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -198,7 +197,7 @@ func (r *tenantResource) deleteTenant(request *restful.Request, response *restfu
 		return
 	}
 
-	plr, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{TenantId: wrapperspb.String(id)})
+	plr, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{TenantId: &id})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
