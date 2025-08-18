@@ -330,3 +330,94 @@ func Test_MigrationChildPrefixLength(t *testing.T) {
 	require.NotNil(t, n4fetched.DefaultChildPrefixLength)
 	require.Equal(t, uint8(22), n4fetched.DefaultChildPrefixLength[metal.IPv4AddressFamily])
 }
+
+func Test_MigrationNetworkType(t *testing.T) {
+	container, c, err := test.StartRethink(t)
+	require.NoError(t, err)
+	defer func() {
+		_ = container.Terminate(context.Background())
+	}()
+
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs.VRFPoolRangeMin = 10000
+	rs.VRFPoolRangeMax = 10010
+	rs.ASNPoolRangeMin = 10000
+	rs.ASNPoolRangeMax = 10010
+
+	err = rs.Connect()
+	require.NoError(t, err)
+	err = rs.Initialize()
+	require.NoError(t, err)
+
+	nws := []*metal.Network{
+		{Base: metal.Base{ID: "internet"}, Vrf: 10, Nat: true, Shared: false},
+		{Base: metal.Base{ID: "underlay"}, Underlay: true},
+		{Base: metal.Base{ID: "dc-interconnect"}, Vrf: 201},
+		{Base: metal.Base{ID: "dc-interconnect-child-1"}, ParentNetworkID: "tenant-super", Vrf: 201},
+		{Base: metal.Base{ID: "dc-interconnect-child-2"}, ParentNetworkID: "tenant-super", Vrf: 201},
+		{Base: metal.Base{ID: "tenant-super"}, PrivateSuper: true},
+		{Base: metal.Base{ID: "private-network-1"}, ParentNetworkID: "tenant-super", Vrf: 101},
+		{Base: metal.Base{ID: "private-network-2"}, ParentNetworkID: "tenant-super", Vrf: 102},
+		{Base: metal.Base{ID: "private-network-3"}, ParentNetworkID: "tenant-super", Vrf: 103},
+		{Base: metal.Base{ID: "private-network-4"}, ParentNetworkID: "tenant-super", Vrf: 104},
+		{Base: metal.Base{ID: "partition-storage"}, ParentNetworkID: "tenant-super", Vrf: 105, Shared: true},
+	}
+
+	for _, nw := range nws {
+		err := rs.CreateNetwork(nw)
+		require.NoError(t, err)
+	}
+
+	err = rs.Migrate(nil, false)
+	require.NoError(t, err)
+
+	internet, err := rs.FindNetworkByID("internet")
+	require.NoError(t, err)
+	require.NotNil(t, internet)
+	require.Equal(t, metal.IPv4MasqueradeNATType, *internet.NATType)
+	require.Equal(t, metal.ExternalNetworkType, *internet.NetworkType)
+
+	underlay, err := rs.FindNetworkByID("underlay")
+	require.NoError(t, err)
+	require.NotNil(t, underlay)
+	require.Equal(t, metal.NoneNATType, *underlay.NATType)
+	require.Equal(t, metal.UnderlayNetworkType, *underlay.NetworkType)
+
+	tenantSuper, err := rs.FindNetworkByID("tenant-super")
+	require.NoError(t, err)
+	require.NotNil(t, tenantSuper)
+	require.Equal(t, metal.NoneNATType, *tenantSuper.NATType)
+	require.Equal(t, metal.SuperNetworkType, *tenantSuper.NetworkType)
+
+	private1, err := rs.FindNetworkByID("private-network-1")
+	require.NoError(t, err)
+	require.NotNil(t, private1)
+	require.Equal(t, metal.NoneNATType, *private1.NATType)
+	require.Equal(t, metal.ChildNetworkType, *private1.NetworkType)
+
+	private2, err := rs.FindNetworkByID("private-network-2")
+	require.NoError(t, err)
+	require.NotNil(t, private2)
+	require.Equal(t, metal.NoneNATType, *private2.NATType)
+	require.Equal(t, metal.ChildNetworkType, *private2.NetworkType)
+
+	private3, err := rs.FindNetworkByID("private-network-3")
+	require.NoError(t, err)
+	require.NotNil(t, private3)
+	require.Equal(t, metal.NoneNATType, *private3.NATType)
+	require.Equal(t, metal.ChildNetworkType, *private3.NetworkType)
+
+	private4, err := rs.FindNetworkByID("private-network-4")
+	require.NoError(t, err)
+	require.NotNil(t, private4)
+	require.Equal(t, metal.NoneNATType, *private4.NATType)
+	require.Equal(t, metal.ChildNetworkType, *private4.NetworkType)
+
+	partitionStorage, err := rs.FindNetworkByID("partition-storage")
+	require.NoError(t, err)
+	require.NotNil(t, partitionStorage)
+	require.Equal(t, metal.NoneNATType, *partitionStorage.NATType)
+	require.Equal(t, metal.ChildSharedNetworkType, *partitionStorage.NetworkType)
+}
