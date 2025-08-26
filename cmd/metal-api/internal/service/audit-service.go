@@ -6,6 +6,7 @@ import (
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -80,7 +81,7 @@ func (r *auditResource) find(request *restful.Request, response *restful.Respons
 		ForwardedFor: requestPayload.ForwardedFor,
 		RemoteAddr:   requestPayload.RemoteAddr,
 		Body:         requestPayload.Body,
-		StatusCode:   &requestPayload.StatusCode,
+		StatusCode:   pointer.PointerOrNil(requestPayload.StatusCode),
 		Error:        requestPayload.Error,
 	})
 	if err != nil {
@@ -90,7 +91,6 @@ func (r *auditResource) find(request *restful.Request, response *restful.Respons
 
 	result := []*v1.AuditResponse{}
 	for _, e := range backendResult {
-		e := e
 		result = append(result, v1.NewAuditResponse(e))
 	}
 
