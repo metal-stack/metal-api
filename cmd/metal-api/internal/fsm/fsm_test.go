@@ -3,10 +3,12 @@ package fsm
 import (
 	"context"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm/states"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
@@ -127,7 +129,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "valid transition from registering to preparing (metal-hammer wait skip)",
+			name: "valid transition from registering to installing (metal-hammer wait skip)",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -631,7 +633,14 @@ func TestHandleProvisioningEvent(t *testing.T) {
 		ctx := context.Background()
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HandleProvisioningEvent(ctx, slog.Default(), tt.container, tt.event)
+			params := states.StateConfig{
+				Log:       slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+				Context:   ctx,
+				Container: tt.container,
+				Event:     tt.event,
+			}
+
+			got, err := HandleProvisioningEvent(&params)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
@@ -652,15 +661,22 @@ func TestReactionToAllIncomingEvents(t *testing.T) {
 	// this test ensures that for every incoming event we have a proper transition
 	for e1 := range metal.AllProvisioningEventTypes {
 		for e2 := range metal.AllProvisioningEventTypes {
-			_, err := HandleProvisioningEvent(ctx, slog.Default(), &metal.ProvisioningEventContainer{
-				Events: metal.ProvisioningEvents{
-					{
-						Event: e2,
+			params := states.StateConfig{
+				Log:     slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+				Context: ctx,
+				Container: &metal.ProvisioningEventContainer{
+					Events: metal.ProvisioningEvents{
+						{
+							Event: e2,
+						},
 					},
 				},
-			}, &metal.ProvisioningEvent{
-				Event: e1,
-			})
+				Event: &metal.ProvisioningEvent{
+					Event: e1,
+				},
+			}
+
+			_, err := HandleProvisioningEvent(&params)
 			if err != nil {
 				t.Errorf("transitioning from state %s with event %s: %s", e2, e1, err)
 			}

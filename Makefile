@@ -63,3 +63,7 @@ visualize-fsm:
 	cd cmd/metal-api/internal/tools/visualize_fsm
 	go run main.go
 	dot -Tsvg fsm.dot > fsm.svg
+
+.PHONY: mocks
+mocks:
+	docker run --user $$(id -u):$$(id -g) --rm -w /work -v ${PWD}:/work vektra/mockery:v2.21.1 --name MachineManager --dir /work/cmd/metal-api/internal/scaler --output /work/cmd/metal-api/internal/scaler --filename pool_scaler_mock_test.go --testonly --inpackage

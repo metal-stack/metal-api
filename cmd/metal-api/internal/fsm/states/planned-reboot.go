@@ -8,6 +8,7 @@ import (
 )
 
 type PlannedRebootState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }
@@ -19,7 +20,7 @@ func newPlannedReboot(c *StateConfig) *PlannedRebootState {
 	}
 }
 
-func (p *PlannedRebootState) OnTransition(ctx context.Context, e *fsm.Event) {
+func (p *PlannedRebootState) OnEnter(ctx context.Context, e *fsm.Event) {
 	p.container.CrashLoop = false
 	appendEventToContainer(p.event, p.container)
 }

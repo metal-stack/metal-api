@@ -21,7 +21,7 @@ type MachineBase struct {
 	Allocation               *MachineAllocation              `json:"allocation" description:"the allocation data of an allocated machine" optional:"true"`
 	State                    MachineState                    `json:"state" rethinkdb:"state" description:"the state of this machine"`
 	LEDState                 ChassisIdentifyLEDState         `json:"ledstate" rethinkdb:"ledstate" description:"the state of this chassis identify LED"`
-	Liveliness               string                          `json:"liveliness" description:"the liveliness of this machine"`
+	Liveliness               string                          `json:"liveliness" description:"the liveliness of this machine" enum:"Alive|Dead|Unknown|Hibernated"`
 	RecentProvisioningEvents MachineRecentProvisioningEvents `json:"events" description:"recent events of this machine during provisioning"`
 	Tags                     []string                        `json:"tags" description:"tags for this machine"`
 }
@@ -109,10 +109,17 @@ type MetalGPU struct {
 }
 
 type MachineState struct {
-	Value              string `json:"value" enum:"RESERVED|LOCKED|" description:"the state of this machine. empty means available for all"`
-	Description        string `json:"description" description:"a description why this machine is in the given state"`
-	Issuer             string `json:"issuer,omitempty" optional:"true" description:"the user that changed the state"`
-	MetalHammerVersion string `json:"metal_hammer_version" description:"the version of metal hammer which put the machine in waiting state"`
+	Value              string             `json:"value" enum:"RESERVED|LOCKED|" description:"the state of this machine. empty means available for all"`
+	Description        string             `json:"description" description:"a description why this machine is in the given state"`
+	Issuer             string             `json:"issuer,omitempty" optional:"true" description:"the user that changed the state"`
+	MetalHammerVersion string             `json:"metal_hammer_version" description:"the version of metal hammer which put the machine in waiting state"`
+	Hibernation        MachineHibernation `json:"hibernation" description:"indicates that a machine was sent to sleep or woken up by the pool scaler"`
+}
+
+type MachineHibernation struct {
+	Enabled     bool       `json:"enabled" description:"true if hibernation is enabled"`
+	Description string     `json:"description" description:"describes last state change of hibernation"`
+	Changed     *time.Time `json:"changed" optional:"true" description:"last changed timestamp"`
 }
 
 type ChassisIdentifyLEDState struct {
@@ -678,6 +685,11 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Description:        m.State.Description,
 				Issuer:             m.State.Issuer,
 				MetalHammerVersion: m.State.MetalHammerVersion,
+				Hibernation: MachineHibernation{
+					Enabled:     m.State.Hibernation.Enabled,
+					Description: m.State.Hibernation.Description,
+					Changed:     m.State.Hibernation.Changed,
+				},
 			},
 			LEDState: ChassisIdentifyLEDState{
 				Value:       string(m.LEDState.Value),

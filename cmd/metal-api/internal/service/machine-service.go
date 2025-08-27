@@ -32,6 +32,7 @@ import (
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	e "github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -920,6 +921,17 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		if report.PowerState != "" {
 			newMachine.IPMI.PowerState = report.PowerState
 		}
+
+		h := newMachine.State.Hibernation
+		// TODO: an enum for PowerState would be nice
+		if newMachine.IPMI.PowerState == "ON" && h.Enabled && h.Changed != nil && time.Since(*h.Changed) > 10*time.Minute {
+			newMachine.State.Hibernation = metal.MachineHibernation{
+				Enabled:     false,
+				Description: "machine was hibernated by poolscaler but is still powered on or was powered on by user",
+				Changed:     pointer.Pointer(time.Now()),
+			}
+		}
+
 		if report.PowerMetric != nil {
 			newMachine.IPMI.PowerMetric = &metal.PowerMetric{
 				AverageConsumedWatts: report.PowerMetric.AverageConsumedWatts,
@@ -1802,7 +1814,7 @@ func (r *machineResource) freeMachine(request *restful.Request, response *restfu
 
 	logger := r.logger(request)
 
-	err = publishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
+	err = e.PublishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
 	if err != nil {
 		logger.Error("unable to publish machine command", "command", string(metal.ChassisIdentifyLEDOffCmd), "machineID", m.ID, "error", err)
 	}
@@ -1826,9 +1838,9 @@ func (r *machineResource) freeMachine(request *restful.Request, response *restfu
 		Event:   metal.ProvisioningEventMachineReclaim,
 		Message: "free machine called",
 	}
-
 	ctx := request.Request.Context()
-	_, err = r.ds.ProvisioningEventForMachine(ctx, logger, &ev, id)
+	_, err = r.ds.ProvisioningEventForMachine(ctx, logger, r, &ev, m)
+
 	if err != nil {
 		r.log.Error("error sending provisioning event after machine free", "error", err)
 	}
@@ -1977,7 +1989,7 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 				return
 			}
 
-			err = publishMachineCmd(logger, m, r.Publisher, metal.MachineReinstallCmd)
+			err = e.PublishMachineCmd(logger, m, r.Publisher, metal.MachineReinstallCmd)
 			if err != nil {
 				logger.Error("unable to publish machine command", "command", string(metal.MachineReinstallCmd), "machineID", m.ID, "error", err)
 			}
@@ -2032,61 +2044,65 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *slog.Logger) error {
 		return err
 	}
 
-	unknown := 0
-	alive := 0
-	dead := 0
-	errs := 0
+	var (
+		unknown    = 0
+		alive      = 0
+		dead       = 0
+		hibernated = 0
+		errs       = 0
+	)
 	for _, m := range machines {
 		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
 			logger.Error("cannot update liveliness", "error", err, "machine", m)
 			errs++
-			// fall through, so the rest of the machines is getting evaluated
+			// fall through, so the machine counted anyway and rest of the machines is getting evaluated
 		}
 		switch lvlness {
 		case metal.MachineLivelinessAlive:
 			alive++
 		case metal.MachineLivelinessDead:
 			dead++
+		case metal.MachineLivelinessHibernated:
+			hibernated++
 		case metal.MachineLivelinessUnknown:
 			unknown++
 		}
 	}
 
-	logger.Info("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
+	logger.Info("machine liveliness evaluated", "alive", alive, "dead", dead, "hibernated", hibernated, "unknown", unknown, "errors", errs)
 
 	return nil
 }
 
 func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
-	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
+	ec, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
 		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioning event container found for machine: %s", m.ID)
 	}
 
-	old := *provisioningEvents
+	updateLiveliness := func(liveliness metal.MachineLiveliness) (metal.MachineLiveliness, error) {
+		old := *ec
+		ec.Liveliness = liveliness
 
-	if provisioningEvents.LastEventTime != nil {
-		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
-			if m.Allocation != nil {
-				// the machine is either dead or the customer did turn off the phone home service
-				provisioningEvents.Liveliness = metal.MachineLivelinessUnknown
-			} else {
-				// the machine is just dead
-				provisioningEvents.Liveliness = metal.MachineLivelinessDead
-			}
-		} else {
-			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
-		}
-
-		err = ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
-		if err != nil {
-			return provisioningEvents.Liveliness, err
-		}
+		return ec.Liveliness, ds.UpdateProvisioningEventContainer(&old, ec)
 	}
 
-	return provisioningEvents.Liveliness, nil
+	if m.State.Hibernation.Enabled {
+		return updateLiveliness(metal.MachineLivelinessHibernated)
+	}
+
+	if time.Since(pointer.SafeDeref(ec.LastEventTime)) < metal.MachineDeadAfter {
+		return updateLiveliness(metal.MachineLivelinessAlive)
+	}
+
+	if m.Allocation != nil {
+		// the machine is either dead or the customer did turn off the phone home service
+		return updateLiveliness(metal.MachineLivelinessUnknown)
+	}
+
+	return updateLiveliness(metal.MachineLivelinessDead)
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
@@ -2117,6 +2133,10 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 		}
 
 		if provisioningEvents.LastEventTime == nil {
+			continue
+		}
+
+		if provisioningEvents.Liveliness == metal.MachineLivelinessHibernated {
 			continue
 		}
 
@@ -2291,7 +2311,7 @@ func (r *machineResource) machineCmd(ctx context.Context, cmd metal.MachineComma
 			Event:   metal.ProvisioningEventPlannedReboot,
 			Message: string(cmd),
 		}
-		_, err = r.ds.ProvisioningEventForMachine(ctx, logger, &ev, id)
+		_, err = r.ds.ProvisioningEventForMachine(ctx, logger, r, &ev, newMachine)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -2327,7 +2347,7 @@ func (r *machineResource) machineCmd(ctx context.Context, cmd metal.MachineComma
 		newMachine.IPMI.Password = r.ipmiSuperUser.Password()
 	}
 
-	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)
+	err = e.PublishMachineCmd(logger, newMachine, r.Publisher, cmd)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -2340,25 +2360,6 @@ func (r *machineResource) machineCmd(ctx context.Context, cmd metal.MachineComma
 	}
 
 	r.send(request, response, http.StatusOK, resp)
-}
-
-func publishMachineCmd(logger *slog.Logger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
-	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
-		Cmd: &metal.MachineExecCommand{
-			Command:         cmd,
-			TargetMachineID: m.ID,
-			IPMI:            &m.IPMI,
-		},
-	}
-
-	logger.Info("publish event", "event", evt, "command", *evt.Cmd)
-	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore) (*v1.MachineResponse, error) {

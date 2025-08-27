@@ -13,6 +13,7 @@ import (
 const failedMachineReclaimThreshold = 5 * time.Minute
 
 type PhonedHomeState struct {
+	noopState
 	log       *slog.Logger
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
@@ -26,7 +27,7 @@ func newPhonedHome(c *StateConfig) *PhonedHomeState {
 	}
 }
 
-func (p *PhonedHomeState) OnTransition(ctx context.Context, e *fsm.Event) {
+func (p *PhonedHomeState) OnEnter(ctx context.Context, e *fsm.Event) {
 	switch e.Src {
 	case PhonedHome.String():
 		updateTimeAndLiveliness(p.event, p.container)

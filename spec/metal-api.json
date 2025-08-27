@@ -143,6 +143,9 @@
           "format": "int64",
           "type": "integer"
         },
+        "hibernation_enabled": {
+          "type": "boolean"
+        },
         "id": {
           "type": "string"
         },
@@ -235,8 +238,14 @@
           },
           "type": "array"
         },
+        "not_allocated": {
+          "type": "boolean"
+        },
         "partition_id": {
           "type": "string"
+        },
+        "preallocated": {
+          "type": "boolean"
         },
         "rackid": {
           "type": "string"
@@ -257,6 +266,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       }
     },
@@ -1268,6 +1280,9 @@
           "format": "int64",
           "type": "integer"
         },
+        "hibernation_enabled": {
+          "type": "boolean"
+        },
         "id": {
           "type": "string"
         },
@@ -1360,8 +1375,14 @@
           },
           "type": "array"
         },
+        "not_allocated": {
+          "type": "boolean"
+        },
         "partition_id": {
           "type": "string"
+        },
+        "preallocated": {
+          "type": "boolean"
         },
         "rackid": {
           "type": "string"
@@ -1382,6 +1403,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       }
     },
@@ -1471,6 +1495,12 @@
         },
         "liveliness": {
           "description": "the liveliness of this machine",
+          "enum": [
+            "Alive",
+            "Dead",
+            "Hibernated",
+            "Unknown"
+          ],
           "type": "string"
         },
         "name": {
@@ -2350,6 +2380,12 @@
         },
         "liveliness": {
           "description": "the liveliness of this machine",
+          "enum": [
+            "Alive",
+            "Dead",
+            "Hibernated",
+            "Unknown"
+          ],
           "type": "string"
         },
         "partition": {
@@ -2507,6 +2543,9 @@
           "format": "int64",
           "type": "integer"
         },
+        "hibernation_enabled": {
+          "type": "boolean"
+        },
         "id": {
           "type": "string"
         },
@@ -2599,8 +2638,14 @@
           },
           "type": "array"
         },
+        "not_allocated": {
+          "type": "boolean"
+        },
         "partition_id": {
           "type": "string"
+        },
+        "preallocated": {
+          "type": "boolean"
         },
         "rackid": {
           "type": "string"
@@ -2621,6 +2666,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       }
     },
@@ -2749,6 +2797,27 @@
         "memory"
       ]
     },
+    "v1.MachineHibernation": {
+      "properties": {
+        "changed": {
+          "description": "last changed timestamp",
+          "format": "date-time",
+          "type": "string"
+        },
+        "description": {
+          "description": "describes last state change of hibernation",
+          "type": "string"
+        },
+        "enabled": {
+          "description": "true if hibernation is enabled",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "description",
+        "enabled"
+      ]
+    },
     "v1.MachineIPMI": {
       "description": "The IPMI connection data",
       "properties": {
@@ -2852,6 +2921,12 @@
         },
         "liveliness": {
           "description": "the liveliness of this machine",
+          "enum": [
+            "Alive",
+            "Dead",
+            "Hibernated",
+            "Unknown"
+          ],
           "type": "string"
         },
         "name": {
@@ -3086,6 +3161,9 @@
           "format": "int64",
           "type": "integer"
         },
+        "hibernation_enabled": {
+          "type": "boolean"
+        },
         "id": {
           "type": "string"
         },
@@ -3183,6 +3261,9 @@
           },
           "type": "array"
         },
+        "not_allocated": {
+          "type": "boolean"
+        },
         "omit": {
           "description": "a list of machine issues to omit",
           "items": {
@@ -3199,6 +3280,9 @@
         },
         "partition_id": {
           "type": "string"
+        },
+        "preallocated": {
+          "type": "boolean"
         },
         "rackid": {
           "type": "string"
@@ -3223,6 +3307,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -3451,6 +3538,12 @@
         },
         "liveliness": {
           "description": "the liveliness of this machine",
+          "enum": [
+            "Alive",
+            "Dead",
+            "Hibernated",
+            "Unknown"
+          ],
           "type": "string"
         },
         "name": {
@@ -3501,6 +3594,10 @@
           "description": "a description why this machine is in the given state",
           "type": "string"
         },
+        "hibernation": {
+          "$ref": "#/definitions/v1.MachineHibernation",
+          "description": "indicates that a machine was sent to sleep or woken up by the pool scaler"
+        },
         "issuer": {
           "description": "the user that changed the state",
           "type": "string"
@@ -3521,6 +3618,7 @@
       },
       "required": [
         "description",
+        "hibernation",
         "metal_hammer_version",
         "value"
       ]
@@ -4247,8 +4345,27 @@
             "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
+        },
+        "privatenetworkprefixlength": {
+          "description": "the length of private networks for the machine's child networks in this partition, default 22",
+          "format": "int32",
+          "maximum": 30,
+          "minimum": 16,
+          "type": "integer"
+        },
+        "waitingpoolmaxsize": {
+          "description": "the maximum waiting pool size of this partition",
+          "type": "string"
+        },
+        "waitingpoolminsize": {
+          "description": "the minimum waiting pool size of this partition",
+          "type": "string"
         }
-      }
+      },
+      "required": [
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
+      ]
     },
     "v1.PartitionBootConfiguration": {
       "description": "a partition has a distinct location in a data center, individual entities belong to a partition",
@@ -4355,11 +4472,28 @@
             "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
+        },
+        "privatenetworkprefixlength": {
+          "description": "the length of private networks for the machine's child networks in this partition, default 22",
+          "format": "int32",
+          "maximum": 30,
+          "minimum": 16,
+          "type": "integer"
+        },
+        "waitingpoolmaxsize": {
+          "description": "the maximum waiting pool size of this partition",
+          "type": "string"
+        },
+        "waitingpoolminsize": {
+          "description": "the minimum waiting pool size of this partition",
+          "type": "string"
         }
       },
       "required": [
         "bootconfig",
-        "id"
+        "id",
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
       ]
     },
     "v1.PartitionResponse": {
@@ -4416,11 +4550,28 @@
             "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
+        },
+        "privatenetworkprefixlength": {
+          "description": "the length of private networks for the machine's child networks in this partition, default 22",
+          "format": "int32",
+          "maximum": 30,
+          "minimum": 16,
+          "type": "integer"
+        },
+        "waitingpoolmaxsize": {
+          "description": "the maximum waiting pool size of this partition",
+          "type": "string"
+        },
+        "waitingpoolminsize": {
+          "description": "the minimum waiting pool size of this partition",
+          "type": "string"
         }
       },
       "required": [
         "bootconfig",
-        "id"
+        "id",
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
       ]
     },
     "v1.PartitionUpdateRequest": {
@@ -4465,12 +4616,22 @@
             "$ref": "#/definitions/v1.NTPServer"
           },
           "type": "array"
+        },
+        "waitingpoolmaxsize": {
+          "description": "the maximum waiting pool size of this partition",
+          "type": "string"
+        },
+        "waitingpoolminsize": {
+          "description": "the minimum waiting pool size of this partition",
+          "type": "string"
         }
       },
       "required": [
         "dns_servers",
         "id",
-        "ntp_servers"
+        "ntp_servers",
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
       ]
     },
     "v1.PowerMetric": {

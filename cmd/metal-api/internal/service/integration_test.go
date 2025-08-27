@@ -72,12 +72,13 @@ func createTestEnvironment(t *testing.T, log *slog.Logger, ds *datastore.Rethink
 	}}, nil)
 	mdc := mdm.NewMock(psc, nil, nil, nil, nil)
 
+	ctx := context.Background()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
 	go func() {
-		err := metalgrpc.Run(&metalgrpc.ServerConfig{
-			Context:          context.Background(),
+		err := metalgrpc.Run(&metalgrpc.ServerConfig{ //nolint
+			Context:          ctx,
 			Store:            ds,
 			Publisher:        publisher,
 			Consumer:         consumer,
@@ -115,7 +116,7 @@ func createTestEnvironment(t *testing.T, log *slog.Logger, ds *datastore.Rethink
 		machineService:             machineService,
 		ipService:                  ipService,
 		ds:                         ds,
-		ctx:                        context.TODO(),
+		ctx:                        ctx,
 		listener:                   listener,
 	}
 

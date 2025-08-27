@@ -197,6 +197,12 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
+	minSize, maxSize, err := getPoolsizeRange("", "", requestPayload.PartitionWaitingPoolMinSize, requestPayload.PartitionWaitingPoolMaxSize)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	var dnsServers metal.DNSServers
 	if len(requestPayload.DNSServers) != 0 {
 		for _, s := range requestPayload.DNSServers {
@@ -237,8 +243,10 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
-		DNSServers: dnsServers,
-		NTPServers: ntpServers,
+		WaitingPoolMinSize: minSize,
+		WaitingPoolMaxSize: maxSize,
+		DNSServers:         dnsServers,
+		NTPServers:         ntpServers,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
@@ -323,6 +331,14 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
+
+	minSize, maxSize, err := getPoolsizeRange(oldPartition.WaitingPoolMinSize, oldPartition.WaitingPoolMaxSize, requestPayload.PartitionWaitingPoolMinSize, requestPayload.PartitionWaitingPoolMaxSize)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+	newPartition.WaitingPoolMinSize = minSize
+	newPartition.WaitingPoolMaxSize = maxSize
 
 	if requestPayload.DNSServers != nil {
 		newPartition.DNSServers = metal.DNSServers{}
@@ -554,4 +570,28 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	}
 
 	return res, nil
+}
+
+func getPoolsizeRange(currentMinSize, currentMaxSize string, requestedMinSize, requestedMaxSize *string) (min, max string, err error) {
+	if requestedMinSize != nil {
+		min = *requestedMinSize
+	} else {
+		min = currentMinSize
+	}
+
+	if requestedMaxSize != nil {
+		max = *requestedMaxSize
+	} else {
+		max = currentMaxSize
+	}
+
+	if (min == "") != (max == "") {
+		return "", "", fmt.Errorf("to activate waiting machine pool scaling both minimum and maximum pool sizes must be given")
+	}
+
+	if _, err = metal.NewScalerRange(min, max); err != nil {
+		return "", "", err
+	}
+
+	return min, max, nil
 }

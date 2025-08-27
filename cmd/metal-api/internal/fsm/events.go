@@ -152,13 +152,14 @@ func eventCallbacks(config *states.StateConfig) fsm.Callbacks {
 		// therefore we have an artificial state self_transition from which we can trigger the state-specific callback
 		"enter_" + SelfTransitionState: func(ctx context.Context, e *fsm.Event) {
 			if state, ok := allStates[e.Src]; ok {
-				state.OnTransition(ctx, e)
+				state.OnEnter(ctx, e)
 			}
 		},
 	}
 
 	for name, state := range allStates {
-		callbacks["enter_"+name] = state.OnTransition
+		callbacks["enter_"+name] = state.OnEnter
+		callbacks["leave_"+name] = state.OnLeave
 	}
 
 	return callbacks

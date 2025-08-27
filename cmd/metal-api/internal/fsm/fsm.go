@@ -1,10 +1,8 @@
 package fsm
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/looplab/fsm"
@@ -17,57 +15,51 @@ import (
 // The function returns a new provisioning event container that can then be safely persisted in the database. If an error is returned, the incoming event is not supposed to be persisted in the database.
 //
 // Among other things, this function can detect crash loops or other irregularities within a machine lifecycle and enriches the returned provisioning event container with this information.
-func HandleProvisioningEvent(ctx context.Context, log *slog.Logger, ec *metal.ProvisioningEventContainer, event *metal.ProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
-	if ec == nil {
-		return nil, fmt.Errorf("provisioning event container must not be nil")
-	}
-
-	if event == nil {
-		return nil, fmt.Errorf("provisioning event must not be nil")
+func HandleProvisioningEvent(c *states.StateConfig) (*metal.ProvisioningEventContainer, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
 	}
 
 	var (
-		clone     = *ec
-		container = &clone
-		f         = fsm.NewFSM(
-			initialStateFromEventContainer(container),
+		f = fsm.NewFSM(
+			initialStateFromEventContainer(c.Container),
 			Events(),
-			eventCallbacks(&states.StateConfig{Log: log, Event: event, Container: container}),
+			eventCallbacks(c),
 		)
 	)
 
-	err := f.Event(ctx, event.Event.String())
+	err := f.Event(c.Context, c.Event.Event.String())
 	if err == nil {
-		return container, nil
+		return c.Container, nil
 	}
 
 	if errors.As(err, &fsm.InvalidEventError{}) {
-		if event.Message == "" {
-			event.Message = fmt.Sprintf("[unexpectedly received in %s]", strings.ToLower(f.Current()))
+		if c.Event.Message == "" {
+			c.Event.Message = fmt.Sprintf("[unexpectedly received in %s]", strings.ToLower(f.Current()))
 		} else {
-			event.Message = fmt.Sprintf("[unexpectedly received in %s]: %s", strings.ToLower(f.Current()), event.Message)
+			c.Event.Message = fmt.Sprintf("[unexpectedly received in %s]: %s", strings.ToLower(f.Current()), c.Event.Message)
 		}
 
-		container.LastEventTime = &event.Time
-		container.Liveliness = metal.MachineLivelinessAlive
-		container.LastErrorEvent = event
+		c.Container.LastEventTime = &c.Event.Time
+		c.Container.Liveliness = metal.MachineLivelinessAlive
+		c.Container.LastErrorEvent = c.Event
 
-		switch e := event.Event; e { //nolint:exhaustive
+		switch e := c.Event.Event; e { //nolint:exhaustive
 		case metal.ProvisioningEventPXEBooting, metal.ProvisioningEventPreparing:
-			container.CrashLoop = true
-			container.Events = append([]metal.ProvisioningEvent{*event}, container.Events...)
+			c.Container.CrashLoop = true
+			c.Container.Events = append([]metal.ProvisioningEvent{*c.Event}, c.Container.Events...)
 		case metal.ProvisioningEventAlive:
 			// under no circumstances we want to persists alive in the events container.
 			// when this happens the FSM gets stuck in invalid transitions
 			// (e.g. all following transitions are invalid and all subsequent alive events will be stored, cramping history).
 		default:
-			container.Events = append([]metal.ProvisioningEvent{*event}, container.Events...)
+			c.Container.Events = append([]metal.ProvisioningEvent{*c.Event}, c.Container.Events...)
 		}
 
-		return container, nil
+		return c.Container, nil
 	}
 
-	return nil, fmt.Errorf("internal error while calculating provisioning event container for machine %s: %w", container.ID, err)
+	return nil, fmt.Errorf("internal error while calculating provisioning event container for machine %s: %w", c.Container.ID, err)
 }
 
 func initialStateFromEventContainer(container *metal.ProvisioningEventContainer) string {

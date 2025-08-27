@@ -1,0 +1,175 @@
+package scaler
+
+import (
+	"log/slog"
+	"os"
+	"testing"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+)
+
+func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
+	tests := []struct {
+		name      string
+		partition *metal.Partition
+		mockFn    func(mock *MockMachineManager)
+		wantErr   bool
+	}{
+		{
+			name: "waiting machines match pool size; do nothing",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "10",
+				WaitingPoolMaxSize: "20",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+			},
+			wantErr: false,
+		},
+		{
+			name: "waiting machines match pool size in percent; do nothing",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "25%",
+				WaitingPoolMaxSize: "30%",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 45)), nil)
+			},
+			wantErr: false,
+		},
+		{
+			name: "more waiting machines needed; power on 8 machines",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "15",
+				WaitingPoolMaxSize: "20",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
+				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(8)
+			},
+			wantErr: false,
+		},
+		{
+			name: "more waiting machines needed in percent; power on 18 machines",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "30%",
+				WaitingPoolMaxSize: "40%",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 35)), nil)
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 20)), nil)
+				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(18)
+			},
+			wantErr: false,
+		},
+		{
+			name: "pool size exceeded; power off 7 machines",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "10",
+				WaitingPoolMaxSize: "15",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 20)), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(7)
+			},
+			wantErr: false,
+		},
+		{
+			name: "pool size exceeded in percent; power off 4 machines",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "15%",
+				WaitingPoolMaxSize: "20%",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 31)), nil)
+				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(4)
+			},
+			wantErr: false,
+		},
+		{
+			name: "more machines needed than available; power on all remaining",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "30",
+				WaitingPoolMaxSize: "40",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 15)), nil)
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(10)
+			},
+			wantErr: false,
+		},
+		{
+			name: "no more machines left; do nothing",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "15%",
+				WaitingPoolMaxSize: "20%",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 150)), nil)
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 0)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 22)), nil)
+			},
+			wantErr: false,
+		},
+		{
+			name: "edge case 2 waiting machines; min = max = 1",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "1",
+				WaitingPoolMaxSize: "1",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("AllMachines").Once().Return(metal.Machines(make([]metal.Machine, 2)), nil)
+				mock.On("WaitingMachines").Once().Return(metal.Machines(make([]metal.Machine, 2)), nil)
+				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(1)
+			},
+			wantErr: false,
+		},
+		{
+			name:      "pool scaling disabled and no shutdown machines; do nothing",
+			partition: &metal.Partition{},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("ShutdownMachines").Once().Return(nil, nil)
+			},
+			wantErr: false,
+		},
+		{
+			name:      "pool scaling disabled and some machines are shutdown; power on all",
+			partition: &metal.Partition{},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("ShutdownMachines").Once().Return(metal.Machines(make([]metal.Machine, 10)), nil)
+				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(10)
+			},
+			wantErr: false,
+		},
+	}
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			manager := NewMockMachineManager(t)
+
+			if tt.mockFn != nil {
+				tt.mockFn(manager)
+			}
+
+			p := &PoolScaler{
+				log:       slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})),
+				manager:   manager,
+				partition: *tt.partition,
+			}
+			if err := p.AdjustNumberOfWaitingMachines(); (err != nil) != tt.wantErr {
+				t.Errorf("PoolScaler.AdjustNumberOfWaitingMachines() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			manager.AssertExpectations(t)
+		})
+	}
+}

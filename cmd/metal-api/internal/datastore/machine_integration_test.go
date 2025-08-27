@@ -369,6 +369,54 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "search by not_allocated true",
+			q: &MachineSearchQuery{
+				NotAllocated: pointer.Pointer(true),
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{}},
+				{Base: metal.Base{ID: "2"}, Allocation: &metal.MachineAllocation{}},
+				{Base: metal.Base{ID: "3"}, Allocation: nil},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, Allocation: nil}),
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by not_allocated false",
+			q: &MachineSearchQuery{
+				NotAllocated: pointer.Pointer(false),
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{}},
+				{Base: metal.Base{ID: "2"}, Allocation: &metal.MachineAllocation{}},
+				{Base: metal.Base{ID: "3"}, Allocation: nil},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{}}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, Allocation: &metal.MachineAllocation{}}),
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by not_allocated nil",
+			q: &MachineSearchQuery{
+				NotAllocated: nil,
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{}},
+				{Base: metal.Base{ID: "2"}, Allocation: &metal.MachineAllocation{}},
+				{Base: metal.Base{ID: "3"}, Allocation: nil},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{}}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, Allocation: &metal.MachineAllocation{}}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, Allocation: nil}),
+			},
+			wantErr: nil,
+		},
+		{
 			name: "search by network ids",
 			q: &MachineSearchQuery{
 				NetworkIDs: []string{"internet", "private-tenant-a"},
@@ -642,6 +690,93 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 			want: []*metal.Machine{
 				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, State: metal.MachineState{Value: metal.AvailableState}}),
 				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, State: metal.MachineState{Value: metal.AvailableState}}),
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by waiting true",
+			q: &MachineSearchQuery{
+				Waiting: pointer.Pointer(true),
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, Waiting: true},
+				{Base: metal.Base{ID: "2"}, Waiting: true},
+				{Base: metal.Base{ID: "3"}, Waiting: false},
+				{Base: metal.Base{ID: "4"}, Waiting: false},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, Waiting: true}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, Waiting: true}),
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by preallocated true",
+			q: &MachineSearchQuery{
+				PreAllocated: pointer.Pointer(true),
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, PreAllocated: true},
+				{Base: metal.Base{ID: "2"}, PreAllocated: true},
+				{Base: metal.Base{ID: "3"}, PreAllocated: false},
+				{Base: metal.Base{ID: "4"}, PreAllocated: false},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, PreAllocated: true}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, PreAllocated: true}),
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by hibernation_enabled true",
+			q: &MachineSearchQuery{
+				HibernationEnabled: pointer.Pointer(true),
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}},
+				{Base: metal.Base{ID: "2"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}},
+				{Base: metal.Base{ID: "3"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}},
+				{Base: metal.Base{ID: "4"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}}),
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by hibernation_enabled false",
+			q: &MachineSearchQuery{
+				HibernationEnabled: pointer.Pointer(false),
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}},
+				{Base: metal.Base{ID: "2"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}},
+				{Base: metal.Base{ID: "3"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}},
+				{Base: metal.Base{ID: "4"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "4"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}}),
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by hibernation_enabled nil",
+			q: &MachineSearchQuery{
+				HibernationEnabled: nil,
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}},
+				{Base: metal.Base{ID: "2"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}},
+				{Base: metal.Base{ID: "3"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}},
+				{Base: metal.Base{ID: "4"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: true}}}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "4"}, State: metal.MachineState{Hibernation: metal.MachineHibernation{Enabled: false}}}),
 			},
 			wantErr: nil,
 		},

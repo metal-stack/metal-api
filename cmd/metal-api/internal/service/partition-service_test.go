@@ -11,18 +11,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
-
 	restful "github.com/emicklei/go-restful/v3"
+	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 type nopTopicCreator struct {
@@ -810,6 +809,104 @@ func TestPartitionCapacity(t *testing.T) {
 
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func Test_partitionResource_getPoolsizeRange(t *testing.T) {
+	tests := []struct {
+		name                   string
+		currentMin, currentMax string
+		newMin, newMax         *string
+		wantMin, wantMax       string
+		wantErr                bool
+	}{
+		{
+			name:    "both args empty leaves partition unchanged",
+			wantErr: false,
+		},
+		{
+			name:    "if one arg is given the other must be given, too",
+			newMin:  pointer.Pointer("10"),
+			wantErr: true,
+		},
+		{
+			name:       "leaving max size empty is okay if the field is already set in the partition",
+			currentMin: "10",
+			currentMax: "20",
+			newMin:     pointer.Pointer("5"),
+			wantMin:    "5",
+			wantMax:    "20",
+			wantErr:    false,
+		},
+		{
+			name:       "leaving min size empty is okay if the field is already set in the partition",
+			currentMin: "10",
+			currentMax: "20",
+			newMax:     pointer.Pointer("50"),
+			wantMin:    "10",
+			wantMax:    "50",
+			wantErr:    false,
+		},
+		{
+			name:       "setting both fields overrides existing entries",
+			currentMin: "10",
+			currentMax: "20",
+			newMin:     pointer.Pointer("20"),
+			newMax:     pointer.Pointer("50"),
+			wantMin:    "20",
+			wantMax:    "50",
+			wantErr:    false,
+		},
+		{
+			name:    "setting both fields overrides non-exsiting entries",
+			newMin:  pointer.Pointer("20"),
+			newMax:  pointer.Pointer("50"),
+			wantMin: "20",
+			wantMax: "50",
+			wantErr: false,
+		},
+		{
+			name:    "min must not be greater than max",
+			newMin:  pointer.Pointer("60"),
+			newMax:  pointer.Pointer("50"),
+			wantErr: true,
+		},
+		{
+			name:       "min must not be greater than existing max",
+			currentMin: "10",
+			currentMax: "50",
+			newMin:     pointer.Pointer("60"),
+			wantErr:    true,
+		},
+		{
+			name:       "existing min must not be greater than new max",
+			currentMin: "10",
+			currentMax: "50",
+			newMax:     pointer.Pointer("5"),
+			wantErr:    true,
+		},
+		{
+			name:       "passing empty strings is allowed",
+			currentMin: "10",
+			currentMax: "50",
+			newMin:     pointer.Pointer(""),
+			newMax:     pointer.Pointer(""),
+			wantMin:    "",
+			wantMax:    "",
+			wantErr:    false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			minSize, maxSize, err := getPoolsizeRange(tt.currentMin, tt.currentMax, tt.newMin, tt.newMax)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("partitionResource.setPoolsizeRange() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if minSize != tt.wantMin || maxSize != tt.wantMax {
+				t.Errorf("partitionResource.setPoolsizeRange() = %s, %s, wantMin %s, wantMax %s", minSize, maxSize, tt.wantMin, tt.wantMax)
 			}
 		})
 	}
