@@ -29,8 +29,14 @@ const (
 	swallowBufferedPhonedHomeThreshold = 5 * time.Minute
 )
 
-type FSMState interface {
+type IFSMState interface {
 	OnTransition(ctx context.Context, e *fsm.Event)
+}
+
+type FSMState struct {
+	container *metal.ProvisioningEventContainer
+	event     *metal.ProvisioningEvent
+	log       *slog.Logger
 }
 
 type stateType string
@@ -45,8 +51,8 @@ type StateConfig struct {
 	Event     *metal.ProvisioningEvent
 }
 
-func AllStates(c *StateConfig) map[string]FSMState {
-	return map[string]FSMState{
+func AllStates(c *StateConfig) map[string]IFSMState {
+	return map[string]IFSMState{
 		Alive.String():            newAlive(c),
 		Crashing.String():         newCrash(c),
 		Initial.String():          newInitial(c),
@@ -80,4 +86,13 @@ func appendEventToContainer(event *metal.ProvisioningEvent, container *metal.Pro
 func updateTimeAndLiveliness(event *metal.ProvisioningEvent, container *metal.ProvisioningEventContainer) {
 	container.LastEventTime = &event.Time
 	container.Liveliness = metal.MachineLivelinessAlive
+}
+
+func (s *FSMState) swallowBufferedPhonedHome(e *fsm.Event) {
+	if e.Event == metal.ProvisioningEventPhonedHome.String() {
+		if s.container.LastEventTime != nil && s.event.Time.Sub(*s.container.LastEventTime) < swallowBufferedPhonedHomeThreshold {
+			s.log.Debug("swallowing delayed phoned home event", "current event", s.event, "id", s.container.ID)
+			return
+		}
+	}
 }

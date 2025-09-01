@@ -2,23 +2,21 @@ package states
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/looplab/fsm"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 type PhonedHomeState struct {
-	log       *slog.Logger
-	container *metal.ProvisioningEventContainer
-	event     *metal.ProvisioningEvent
+	*FSMState
 }
 
 func newPhonedHome(c *StateConfig) *PhonedHomeState {
 	return &PhonedHomeState{
-		log:       c.Log,
-		container: c.Container,
-		event:     c.Event,
+		FSMState: &FSMState{
+			container: c.Container,
+			event:     c.Event,
+			log:       c.Log,
+		},
 	}
 }
 

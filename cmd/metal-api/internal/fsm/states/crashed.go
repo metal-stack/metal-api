@@ -4,18 +4,19 @@ import (
 	"context"
 
 	"github.com/looplab/fsm"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 type CrashState struct {
-	container *metal.ProvisioningEventContainer
-	event     *metal.ProvisioningEvent
+	*FSMState
 }
 
 func newCrash(c *StateConfig) *CrashState {
 	return &CrashState{
-		container: c.Container,
-		event:     c.Event,
+		FSMState: &FSMState{
+			container: c.Container,
+			event:     c.Event,
+			log:       c.Log,
+		},
 	}
 }
 
