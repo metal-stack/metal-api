@@ -3,14 +3,10 @@ package states
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
-
-// failedMachineReclaimThreshold is the duration after which the machine reclaim is assumed to have failed.
-const failedMachineReclaimThreshold = 5 * time.Minute
 
 type PhonedHomeState struct {
 	log       *slog.Logger

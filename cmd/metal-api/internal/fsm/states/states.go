@@ -3,6 +3,7 @@ package states
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -21,6 +22,11 @@ const (
 	PhonedHome       stateType = "State Phoned Home"
 	PlannedReboot    stateType = "State Planned Reboot"
 	MachineReclaim   stateType = "State Machine Reclaim"
+
+	// failedMachineReclaimThreshold is the duration after which the machine reclaim is assumed to have failed.
+	failedMachineReclaimThreshold = 5 * time.Minute
+	// swallowBufferedPhonedHomeThreshold is the duration after which we don't expect any delayed phoned home events to occur.
+	swallowBufferedPhonedHomeThreshold = 5 * time.Minute
 )
 
 type FSMState interface {
