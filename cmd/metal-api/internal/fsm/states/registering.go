@@ -21,6 +21,8 @@ func newRegistering(c *StateConfig) *RegisteringState {
 }
 
 func (p *RegisteringState) OnTransition(ctx context.Context, e *fsm.Event) {
-	p.swallowBufferedPhonedHome(e)
+	if p.swallowBufferedPhonedHome(e) {
+		return
+	}
 	appendEventToContainer(p.event, p.container)
 }

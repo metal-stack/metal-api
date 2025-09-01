@@ -21,7 +21,9 @@ func newPXEBooting(c *StateConfig) *PXEBootingState {
 }
 
 func (p *PXEBootingState) OnTransition(ctx context.Context, e *fsm.Event) {
-	p.swallowBufferedPhonedHome(e)
+	if p.swallowBufferedPhonedHome(e) {
+		return
+	}
 	p.container.FailedMachineReclaim = false
 
 	if e.Src == PXEBooting.String() {

@@ -21,7 +21,9 @@ func newPreparing(c *StateConfig) *PreparingState {
 }
 
 func (p *PreparingState) OnTransition(ctx context.Context, e *fsm.Event) {
-	p.swallowBufferedPhonedHome(e)
+	if p.swallowBufferedPhonedHome(e) {
+		return
+	}
 	p.container.FailedMachineReclaim = false
 	appendEventToContainer(p.event, p.container)
 }

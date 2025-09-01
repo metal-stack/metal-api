@@ -88,11 +88,12 @@ func updateTimeAndLiveliness(event *metal.ProvisioningEvent, container *metal.Pr
 	container.Liveliness = metal.MachineLivelinessAlive
 }
 
-func (s *FSMState) swallowBufferedPhonedHome(e *fsm.Event) {
+func (s *FSMState) swallowBufferedPhonedHome(e *fsm.Event) bool {
 	if e.Event == metal.ProvisioningEventPhonedHome.String() {
 		if s.container.LastEventTime != nil && s.event.Time.Sub(*s.container.LastEventTime) < swallowBufferedPhonedHomeThreshold {
 			s.log.Debug("swallowing delayed phoned home event", "current event", s.event, "id", s.container.ID)
-			return
+			return true
 		}
 	}
+	return false
 }

@@ -21,6 +21,8 @@ func newWaiting(c *StateConfig) *WaitingState {
 }
 
 func (p *WaitingState) OnTransition(ctx context.Context, e *fsm.Event) {
-	p.swallowBufferedPhonedHome(e)
+	if p.swallowBufferedPhonedHome(e) {
+		return
+	}
 	appendEventToContainer(p.event, p.container)
 }
