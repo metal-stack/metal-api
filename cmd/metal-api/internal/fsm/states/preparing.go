@@ -4,23 +4,26 @@ import (
 	"context"
 
 	"github.com/looplab/fsm"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 type PreparingState struct {
-	container *metal.ProvisioningEventContainer
-	event     *metal.ProvisioningEvent
+	*FSMState
 }
 
 func newPreparing(c *StateConfig) *PreparingState {
 	return &PreparingState{
-		container: c.Container,
-		event:     c.Event,
+		FSMState: &FSMState{
+			container: c.Container,
+			event:     c.Event,
+			log:       c.Log,
+		},
 	}
 }
 
 func (p *PreparingState) OnTransition(ctx context.Context, e *fsm.Event) {
+	if p.swallowBufferedPhonedHome(e) {
+		return
+	}
 	p.container.FailedMachineReclaim = false
-
 	appendEventToContainer(p.event, p.container)
 }

@@ -3,6 +3,7 @@ package fsm
 import (
 	"context"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 
@@ -13,7 +14,8 @@ import (
 func TestHandleProvisioningEvent(t *testing.T) {
 	now := time.Now()
 	lastEventTime := now.Add(-time.Minute * 4)
-	exceedThresholdTime := now.Add(-time.Minute * 10)
+	exceedReclaimThresholdTime := now.Add(-time.Minute * 10)
+	exceedBufferedPhonedHomeThreshold := now.Add(-time.Minute * 10)
 	tests := []struct {
 		event     *metal.ProvisioningEvent
 		container *metal.ProvisioningEventContainer
@@ -427,12 +429,12 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  exceedThresholdTime,
+						Time:  exceedReclaimThresholdTime,
 						Event: metal.ProvisioningEventMachineReclaim,
 					},
 				},
 				Liveliness:    metal.MachineLivelinessAlive,
-				LastEventTime: &exceedThresholdTime,
+				LastEventTime: &exceedReclaimThresholdTime,
 			},
 			event: &metal.ProvisioningEvent{
 				Time:  now,
@@ -446,7 +448,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				LastEventTime:        &now,
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  exceedThresholdTime,
+						Time:  exceedReclaimThresholdTime,
 						Event: metal.ProvisioningEventMachineReclaim,
 					},
 				},
@@ -626,12 +628,69 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "swallow delayed buffered phoned home event",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventWaiting,
+					},
+				},
+				Liveliness:    metal.MachineLivelinessAlive,
+				LastEventTime: &lastEventTime,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPhonedHome,
+			},
+			want: &metal.ProvisioningEventContainer{
+				Liveliness:    metal.MachineLivelinessAlive,
+				LastEventTime: &lastEventTime,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventWaiting,
+					},
+				},
+			},
+		},
+		{
+			name: "buffered phoned home event threshold exceeded",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  exceedBufferedPhonedHomeThreshold,
+						Event: metal.ProvisioningEventWaiting,
+					},
+				},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPhonedHome,
+			},
+			want: &metal.ProvisioningEventContainer{
+				Liveliness:    metal.MachineLivelinessAlive,
+				LastEventTime: &now,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  now,
+						Event: metal.ProvisioningEventPhonedHome,
+					},
+					{
+						Time:  exceedBufferedPhonedHomeThreshold,
+						Event: metal.ProvisioningEventWaiting,
+					},
+				},
+			},
+		},
 	}
 	for i := range tests {
 		ctx := context.Background()
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HandleProvisioningEvent(ctx, slog.Default(), tt.container, tt.event)
+			got, err := HandleProvisioningEvent(ctx, slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})), tt.container, tt.event)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
