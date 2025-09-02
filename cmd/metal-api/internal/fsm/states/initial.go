@@ -5,18 +5,19 @@ import (
 	"fmt"
 
 	"github.com/looplab/fsm"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 type InitialState struct {
-	container *metal.ProvisioningEventContainer
-	event     *metal.ProvisioningEvent
+	*FSMState
 }
 
 func newInitial(c *StateConfig) *InitialState {
 	return &InitialState{
-		container: c.Container,
-		event:     c.Event,
+		FSMState: &FSMState{
+			container: c.Container,
+			event:     c.Event,
+			log:       c.Log,
+		},
 	}
 }
 

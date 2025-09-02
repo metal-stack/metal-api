@@ -88,6 +88,10 @@ func Events() fsm.Events {
 			Src: []string{
 				states.PlannedReboot.String(),
 				states.PhonedHome.String(),
+				states.PXEBooting.String(),
+				states.Preparing.String(),
+				states.Registering.String(),
+				states.Waiting.String(),
 			},
 			Dst: SelfTransitionState,
 		},
