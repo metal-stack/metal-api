@@ -380,8 +380,9 @@ func (r *partitionResource) partitionCapacity(request *restful.Request, response
 
 func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
 	var (
-		ps metal.Partitions
-		ms metal.Machines
+		ps    metal.Partitions
+		ms    metal.Machines
+		allMs metal.Machines
 
 		pcs = map[string]*v1.PartitionCapacity{}
 
@@ -413,6 +414,16 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		return nil, err
 	}
 
+	// if filtered on partition get all without more filters for issues evaluation
+	if machineQuery.PartitionID != nil {
+		err = r.ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: machineQuery.PartitionID}, &allMs)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		allMs = ms
+	}
+
 	ecs, err := r.ds.ListProvisioningEventContainers()
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch provisioning event containers: %w", err)
@@ -429,7 +440,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	}
 
 	machinesWithIssues, err := issues.Find(&issues.Config{
-		Machines:        ms,
+		Machines:        allMs,
 		EventContainers: ecs,
 		Omit:            []issues.Type{issues.TypeLastEventError},
 	})

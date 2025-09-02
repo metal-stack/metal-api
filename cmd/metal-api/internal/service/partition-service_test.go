@@ -310,6 +310,27 @@ func TestPartitionCapacity(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("event")).Return(events, nil)
 			mock.On(r.DB("mockdb").Table("partition")).Return(partitions, nil)
 			mock.On(r.DB("mockdb").Table("size")).Return(sizes, nil)
+
+			//Filtered mocks
+			var filteredPartition []metal.Partition
+			for _, partition := range partitions {
+				if partition.ID == "partition-a" {
+					filteredPartition = append(filteredPartition, partition)
+				}
+			}
+			var filteredMachinesByPartition []metal.Machine
+			var filteredMachinesByPartitionBySize []metal.Machine
+			for _, machine := range ms {
+				if machine.PartitionID == "partition-a" {
+					filteredMachinesByPartition = append(filteredMachinesByPartition, machine)
+					if machine.SizeID == "size-a" {
+						filteredMachinesByPartitionBySize = append(filteredMachinesByPartitionBySize, machine)
+					}
+				}
+			}
+			mock.On(r.DB("mockdb").Table("partition").Get("partition-a")).Return(filteredPartition, nil)
+			mock.On(r.DB("mockdb").Table("machine").Filter(func(var_1 r.Term) r.Term { return var_1.Field("partitionid").Eq("partition-a") })).Return(filteredMachinesByPartition, nil)
+			mock.On(r.DB("mockdb").Table("machine").Filter(func(var_1 r.Term) r.Term { return var_1.Field("partitionid").Eq("partition-a") }).Filter(func(var_1 r.Term) r.Term { return var_1.Field("sizeid").Eq("size-a") })).Return(filteredMachinesByPartitionBySize, nil)
 		}
 
 		machineTpl = func(id, partition, size, project string) metal.Machine {
@@ -406,6 +427,92 @@ func TestPartitionCapacity(t *testing.T) {
 							Faulty:         1,
 							Allocated:      1,
 							FaultyMachines: []string{"1"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "filter considers all machines",
+			pcr: &v1.PartitionCapacityRequest{
+				ID:   pointer.Pointer("partition-a"),
+				Size: pointer.Pointer("size-a"),
+			},
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
+				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
+				m3 := machineTpl("3", "partition-a", "size-a", "project-123")
+				m4 := machineTpl("4", "partition-a", "size-b", "project-123")
+				m4.IPMI.Address = "1.2.3.1"
+				m5 := machineTpl("5", "partition-b", "size-a", "project-123")
+				mockMachines(mock, metal.MachineLivelinessAlive, nil, m1, m2, m3, m4, m5)
+			},
+
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:           "size-a",
+							Total:          3,
+							PhonedHome:     3,
+							Faulty:         1,
+							Allocated:      3,
+							FaultyMachines: []string{"1"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "non filter considers all machines",
+			pcr:  &v1.PartitionCapacityRequest{},
+			mockFn: func(mock *r.Mock) {
+				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
+				m2 := machineTpl("2", "partition-a", "size-a", "project-123")
+				m3 := machineTpl("3", "partition-a", "size-a", "project-123")
+				m4 := machineTpl("4", "partition-a", "size-b", "project-123")
+				m4.IPMI.Address = "1.2.3.1"
+				m5 := machineTpl("5", "partition-b", "size-a", "project-123")
+				mockMachines(mock, metal.MachineLivelinessAlive, nil, m1, m2, m3, m4, m5)
+			},
+			want: []*v1.PartitionCapacity{
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:           "size-a",
+							Total:          3,
+							PhonedHome:     3,
+							Faulty:         1,
+							Allocated:      3,
+							FaultyMachines: []string{"1"},
+						},
+						{
+							Size:           "size-b",
+							Total:          1,
+							PhonedHome:     1,
+							Faulty:         1,
+							Allocated:      1,
+							FaultyMachines: []string{"4"},
+						},
+					},
+				},
+				{
+					Common: v1.Common{
+						Identifiable: v1.Identifiable{ID: "partition-b"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+					},
+					ServerCapacities: v1.ServerCapacities{
+						{
+							Size:       "size-a",
+							Total:      1,
+							PhonedHome: 1,
+							Faulty:     0,
+							Allocated:  1,
 						},
 					},
 				},
