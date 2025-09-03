@@ -386,7 +386,8 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 		pcs = map[string]*v1.PartitionCapacity{}
 
-		machineQuery = datastore.MachineSearchQuery{}
+		machineQuery    = datastore.MachineSearchQuery{}
+		allMachineQuery = datastore.MachineSearchQuery{}
 	)
 
 	if pcr != nil && pcr.ID != nil {
@@ -397,6 +398,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		ps = metal.Partitions{*p}
 
 		machineQuery.PartitionID = pcr.ID
+		allMachineQuery.PartitionID = pcr.ID
 	} else {
 		var err error
 		ps, err = r.ds.ListPartitions()
@@ -415,13 +417,9 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	}
 
 	// if filtered on partition get all without more filters for issues evaluation
-	if machineQuery.PartitionID != nil {
-		err = r.ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: machineQuery.PartitionID}, &allMs)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		allMs = ms
+	err = r.ds.SearchMachines(&allMachineQuery, &allMs)
+	if err != nil {
+		return nil, err
 	}
 
 	ecs, err := r.ds.ListProvisioningEventContainers()
