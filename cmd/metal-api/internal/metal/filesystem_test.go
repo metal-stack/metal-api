@@ -863,7 +863,7 @@ func Test_convertToOpAndVersion(t *testing.T) {
 			op:                "",
 			version:           nil,
 			wantErr:           true,
-			errString:         "given imageconstraint:>=10.0.1 is not valid, missing space between op and version? Invalid Semantic Version",
+			errString:         "given imageconstraint:>=10.0.1 is not valid, missing space between op and version? invalid semantic version",
 		},
 		{
 			name:              "invalid version",
@@ -871,7 +871,7 @@ func Test_convertToOpAndVersion(t *testing.T) {
 			op:                "",
 			version:           nil,
 			wantErr:           true,
-			errString:         "given version:10.x.1 is not valid:Invalid Semantic Version",
+			errString:         "given version:10.x.1 is not valid:invalid semantic version",
 		},
 	}
 	for _, tt := range tests {
