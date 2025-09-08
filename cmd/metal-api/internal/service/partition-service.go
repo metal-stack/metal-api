@@ -380,12 +380,14 @@ func (r *partitionResource) partitionCapacity(request *restful.Request, response
 
 func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
 	var (
-		ps metal.Partitions
-		ms metal.Machines
+		ps    metal.Partitions
+		ms    metal.Machines
+		allMs metal.Machines
 
 		pcs = map[string]*v1.PartitionCapacity{}
 
-		machineQuery = datastore.MachineSearchQuery{}
+		machineQuery    = datastore.MachineSearchQuery{}
+		allMachineQuery = datastore.MachineSearchQuery{}
 	)
 
 	if pcr != nil && pcr.ID != nil {
@@ -396,6 +398,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		ps = metal.Partitions{*p}
 
 		machineQuery.PartitionID = pcr.ID
+		allMachineQuery.PartitionID = pcr.ID
 	} else {
 		var err error
 		ps, err = r.ds.ListPartitions()
@@ -409,6 +412,12 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	}
 
 	err := r.ds.SearchMachines(&machineQuery, &ms)
+	if err != nil {
+		return nil, err
+	}
+
+	// if filtered on partition get all without more filters for issues evaluation
+	err = r.ds.SearchMachines(&allMachineQuery, &allMs)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +438,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	}
 
 	machinesWithIssues, err := issues.Find(&issues.Config{
-		Machines:        ms,
+		Machines:        allMs,
 		EventContainers: ecs,
 		Omit:            []issues.Type{issues.TypeLastEventError},
 	})
