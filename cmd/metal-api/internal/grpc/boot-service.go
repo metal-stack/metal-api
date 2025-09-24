@@ -272,10 +272,6 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 	err = retry.Do(
 		func() error {
 			// RackID is set here
-			err := b.ds.ConnectMachineWithSwitches(m)
-			if err != nil {
-				return err
-			}
 			return b.ds.UpdateMachine(&old, m)
 		},
 		retry.Attempts(10),
