@@ -24,8 +24,14 @@ func TestMachine_HasMAC(t *testing.T) {
 				SizeID:      "1",
 				Allocation:  nil,
 				Hardware: MachineHardware{
-					Memory:   100,
-					CPUCores: 1,
+					Memory: 100,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
 					Nics: Nics{
 						Nic{
 							MacAddress: "11:11:11:11:11:11",
@@ -195,3 +201,171 @@ func TestMachineNetwork_NetworkType(t *testing.T) {
 }
 
 // TODO: Write tests for machine allocation
+
+func TestEgressRule_Validate(t *testing.T) {
+	tests := []struct {
+		name       string
+		Protocol   Protocol
+		Ports      []int
+		To         []string
+		Comment    string
+		wantErr    bool
+		wantErrmsg string
+	}{
+		{
+			name:     "valid egress rule",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3},
+			To:       []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:  "allow apt update",
+		},
+		{
+			name:       "wrong protocol",
+			Protocol:   Protocol("sctp"),
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "egress rule has invalid protocol: sctp",
+		},
+		{
+			name:       "wrong port",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3, -1},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "egress rule with error:port is out of range",
+		},
+		{
+			name:       "wrong cidr",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/33"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "egress rule with error:invalid cidr: netip.ParsePrefix(\"2.3.4.5/33\"): prefix length out of range",
+		},
+		{
+			name:       "wrong comment",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:    "allow apt update\n",
+			wantErr:    true,
+			wantErrmsg: "egress rule with error:illegal character in comment found, only: \"abcdefghijklmnopqrstuvwxyz_- \" allowed",
+		},
+		{
+			name:       "too long comment",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:    "much too long comment aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			wantErr:    true,
+			wantErrmsg: "egress rule with error:comments can not exceed 100 characters",
+		},
+		{
+			name:       "mixed address family in cidrs",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32", "2001:db8::/32"},
+			Comment:    "mixed address family",
+			wantErr:    true,
+			wantErrmsg: "egress rule with error:mixed address family in one rule is not supported:[1.2.3.0/24 2.3.4.5/32 2001:db8::/32]",
+		},
+		{
+			name:       "malformed cidr",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"2001:db8::1"},
+			Comment:    "malformed cidr",
+			wantErr:    true,
+			wantErrmsg: "egress rule with error:invalid cidr: netip.ParsePrefix(\"2001:db8::1\"): no '/'",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := EgressRule{
+				Protocol: tt.Protocol,
+				Ports:    tt.Ports,
+				To:       tt.To,
+				Comment:  tt.Comment,
+			}
+			if err := r.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("EgressRule.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err := r.Validate(); err != nil {
+				if tt.wantErrmsg != err.Error() {
+					t.Errorf("EgressRule.Validate() error = %v, wantErrmsg %v", err.Error(), tt.wantErrmsg)
+				}
+			}
+		})
+	}
+}
+func TestIngressRule_Validate(t *testing.T) {
+	tests := []struct {
+		name       string
+		Protocol   Protocol
+		Ports      []int
+		To         []string
+		From       []string
+		Comment    string
+		wantErr    bool
+		wantErrmsg string
+	}{
+		{
+			name:     "valid ingress rule",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3},
+			From:     []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:  "allow apt update",
+		},
+		{
+			name:     "valid ingress rule",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3},
+			From:     []string{"1.2.3.0/24", "2.3.4.5/32"},
+			To:       []string{"100.2.3.0/24", "200.3.4.5/32"},
+			Comment:  "allow apt update",
+		},
+		{
+			name:       "invalid ingress rule, mixed address families in to and from",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			From:       []string{"1.2.3.0/24", "2.3.4.5/32"},
+			To:         []string{"100.2.3.0/24", "2001:db8::/32"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "ingress rule with error:mixed address family in one rule is not supported:[100.2.3.0/24 2001:db8::/32]",
+		},
+		{
+			name:       "invalid ingress rule, mixed address families in to and from",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			From:       []string{"2.3.4.5/32"},
+			To:         []string{"2001:db8::/32"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "ingress rule with error:mixed address family in one rule is not supported:[2.3.4.5/32 2001:db8::/32]",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := IngressRule{
+				Protocol: tt.Protocol,
+				Ports:    tt.Ports,
+				To:       tt.To,
+				From:     tt.From,
+				Comment:  tt.Comment,
+			}
+			if err := r.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("IngressRule.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err := r.Validate(); err != nil {
+				if tt.wantErrmsg != err.Error() {
+					t.Errorf("IngressRule.Validate() error = %v, wantErrmsg %v", err.Error(), tt.wantErrmsg)
+				}
+			}
+		})
+	}
+}

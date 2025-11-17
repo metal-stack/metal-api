@@ -24,18 +24,6 @@ func AllIssueTypes() []Type {
 	}
 }
 
-func NotAllocatableIssueTypes() []Type {
-	return []Type{
-		TypeNoPartition,
-		TypeLivelinessDead,
-		TypeLivelinessUnknown,
-		TypeLivelinessNotAvailable,
-		TypeFailedMachineReclaim,
-		TypeCrashLoop,
-		TypeNoEventContainer,
-	}
-}
-
 func NewIssueFromType(t Type) (issue, error) {
 	switch t {
 	case TypeNoPartition:

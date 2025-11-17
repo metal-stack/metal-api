@@ -2,11 +2,11 @@ package service
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/security"
-	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -19,7 +19,7 @@ type userResource struct {
 }
 
 // NewUser returns a webservice for user specific endpoints.
-func NewUser(log *zap.SugaredLogger, userGetter security.UserGetter) *restful.WebService {
+func NewUser(log *slog.Logger, userGetter security.UserGetter) *restful.WebService {
 	r := userResource{
 		webResource: webResource{
 			log: log,

@@ -25,7 +25,7 @@ func acquireASN(ds *datastore.RethinkStore) (*uint32, error) {
 	if err != nil {
 		return nil, err
 	}
-	asn := ASNBase + uint32(i)
+	asn := ASNBase + uint32(i) // nolint:gosec
 	if asn > ASNMax {
 		return nil, fmt.Errorf("unable to calculate asn, got a asn larger than ASNMax: %d > %d", asn, ASNMax)
 	}

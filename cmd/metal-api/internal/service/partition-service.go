@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -10,7 +11,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
@@ -30,7 +30,7 @@ type partitionResource struct {
 }
 
 // NewPartition returns a webservice for partition specific endpoints.
-func NewPartition(log *zap.SugaredLogger, ds *datastore.RethinkStore, tc TopicCreator) *restful.WebService {
+func NewPartition(log *slog.Logger, ds *datastore.RethinkStore, tc TopicCreator) *restful.WebService {
 	r := partitionResource{
 		webResource: webResource{
 			log: log,
@@ -170,14 +170,6 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 	if requestPayload.Labels != nil {
 		labels = requestPayload.Labels
 	}
-	prefixLength := uint8(22)
-	if requestPayload.PrivateNetworkPrefixLength != nil {
-		prefixLength = uint8(*requestPayload.PrivateNetworkPrefixLength)
-		if prefixLength < 16 || prefixLength > 30 {
-			r.sendError(request, response, httperrors.BadRequest(errors.New("private network prefix length is out of range")))
-			return
-		}
-	}
 	var imageURL string
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
@@ -205,20 +197,48 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
+	var dnsServers metal.DNSServers
+	if len(requestPayload.DNSServers) != 0 {
+		for _, s := range requestPayload.DNSServers {
+			dnsServers = append(dnsServers, metal.DNSServer{
+				IP: s.IP,
+			})
+		}
+	}
+	var ntpServers metal.NTPServers
+	if len(requestPayload.NTPServers) != 0 {
+		for _, s := range requestPayload.NTPServers {
+			ntpServers = append(ntpServers, metal.NTPServer{
+				Address: s.Address,
+			})
+		}
+	}
+
+	if err := dnsServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	if err := ntpServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	p := &metal.Partition{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
 			Name:        name,
 			Description: description,
 		},
-		Labels:                     labels,
-		MgmtServiceAddress:         mgmtServiceAddress,
-		PrivateNetworkPrefixLength: prefixLength,
+		Labels:             labels,
+		MgmtServiceAddress: mgmtServiceAddress,
 		BootConfiguration: metal.BootConfiguration{
 			ImageURL:    imageURL,
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
+		DNSServers: dnsServers,
+		NTPServers: ntpServers,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
@@ -304,6 +324,34 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
+	if requestPayload.DNSServers != nil {
+		newPartition.DNSServers = metal.DNSServers{}
+		for _, s := range requestPayload.DNSServers {
+			newPartition.DNSServers = append(newPartition.DNSServers, metal.DNSServer{
+				IP: s.IP,
+			})
+		}
+	}
+
+	if requestPayload.NTPServers != nil {
+		newPartition.NTPServers = metal.NTPServers{}
+		for _, s := range requestPayload.NTPServers {
+			newPartition.NTPServers = append(newPartition.NTPServers, metal.NTPServer{
+				Address: s.Address,
+			})
+		}
+	}
+
+	if err := newPartition.DNSServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	if err := newPartition.NTPServers.Validate(); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
@@ -332,12 +380,14 @@ func (r *partitionResource) partitionCapacity(request *restful.Request, response
 
 func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
 	var (
-		ps metal.Partitions
-		ms metal.Machines
+		ps    metal.Partitions
+		ms    metal.Machines
+		allMs metal.Machines
 
 		pcs = map[string]*v1.PartitionCapacity{}
 
-		machineQuery = datastore.MachineSearchQuery{}
+		machineQuery    = datastore.MachineSearchQuery{}
+		allMachineQuery = datastore.MachineSearchQuery{}
 	)
 
 	if pcr != nil && pcr.ID != nil {
@@ -348,6 +398,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		ps = metal.Partitions{*p}
 
 		machineQuery.PartitionID = pcr.ID
+		allMachineQuery.PartitionID = pcr.ID
 	} else {
 		var err error
 		ps, err = r.ds.ListPartitions()
@@ -365,6 +416,12 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		return nil, err
 	}
 
+	// if filtered on partition get all without more filters for issues evaluation
+	err = r.ds.SearchMachines(&allMachineQuery, &allMs)
+	if err != nil {
+		return nil, err
+	}
+
 	ecs, err := r.ds.ListProvisioningEventContainers()
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch provisioning event containers: %w", err)
@@ -375,10 +432,15 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		return nil, fmt.Errorf("unable to list sizes: %w", err)
 	}
 
+	sizeReservations, err := r.ds.ListSizeReservations()
+	if err != nil {
+		return nil, fmt.Errorf("unable to list size reservations: %w", err)
+	}
+
 	machinesWithIssues, err := issues.Find(&issues.Config{
-		Machines:        ms,
+		Machines:        allMs,
 		EventContainers: ecs,
-		Only:            issues.NotAllocatableIssueTypes(),
+		Omit:            []issues.Type{issues.TypeLastEventError},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to calculate machine issues: %w", err)
@@ -389,6 +451,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		ecsByID           = ecs.ByID()
 		sizesByID         = sizes.ByID()
 		machinesByProject = ms.ByProjectID()
+		rvsBySize         = sizeReservations.BySize()
 	)
 
 	for _, m := range ms {
@@ -436,24 +499,33 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 		cap.Total++
 
-		if m.Allocation != nil {
-			cap.Allocated++
-			continue
-		}
-
 		if _, ok := machinesWithIssues[m.ID]; ok {
 			cap.Faulty++
 			cap.FaultyMachines = append(cap.FaultyMachines, m.ID)
-			continue
 		}
 
-		if m.State.Value == metal.AvailableState && metal.ProvisioningEventWaiting == pointer.FirstOrZero(ec.Events).Event {
+		// allocation dependent counts
+		switch {
+		case m.Allocation != nil:
+			cap.Allocated++
+		case m.Waiting && !m.PreAllocated && m.State.Value == metal.AvailableState && ec.Liveliness == metal.MachineLivelinessAlive:
+			// the free and allocatable machine counts consider the same aspects as the query for electing the machine candidate!
+			cap.Allocatable++
 			cap.Free++
-			continue
+		default:
+			cap.Unavailable++
 		}
 
-		cap.Other++
-		cap.OtherMachines = append(cap.OtherMachines, m.ID)
+		// provisioning state dependent counts
+		switch pointer.FirstOrZero(ec.Events).Event { //nolint:exhaustive
+		case metal.ProvisioningEventPhonedHome:
+			cap.PhonedHome++
+		case metal.ProvisioningEventWaiting:
+			cap.Waiting++
+		default:
+			cap.Other++
+			cap.OtherMachines = append(cap.OtherMachines, m.ID)
+		}
 	}
 
 	res := []v1.PartitionCapacity{}
@@ -461,16 +533,30 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		pc := pc
 
 		for _, cap := range pc.ServerCapacities {
-			cap := cap
-
 			size := sizesByID[cap.Size]
 
-			for _, reservation := range size.Reservations.ForPartition(pc.ID) {
-				reservation := reservation
+			rvs, ok := rvsBySize[size.ID]
+			if !ok {
+				continue
+			}
+
+			for _, reservation := range rvs.ForPartition(pc.ID) {
+				usedReservations := min(len(machinesByProject[reservation.ProjectID].WithSize(size.ID).WithPartition(pc.ID)), reservation.Amount)
 
 				cap.Reservations += reservation.Amount
-				cap.UsedReservations += min(len(machinesByProject[reservation.ProjectID].WithSize(size.ID).WithPartition(pc.ID)), reservation.Amount)
+				cap.UsedReservations += usedReservations
+
+				if pcr.Project != nil && *pcr.Project == reservation.ProjectID {
+					continue
+				}
+
+				cap.Free -= reservation.Amount - usedReservations
+				cap.Free = max(cap.Free, 0)
 			}
+		}
+
+		for _, cap := range pc.ServerCapacities {
+			cap.RemainingReservations = cap.Reservations - cap.UsedReservations
 		}
 
 		res = append(res, *pc)

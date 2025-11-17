@@ -17,8 +17,8 @@ type IPType string
 type IPScope string
 
 const (
-	// TagIPSeperator is the seperator character for key and values in IP-Tags
-	TagIPSeperator = "="
+	// TagIPSeparator is the separator character for key and values in IP-Tags
+	TagIPSeparator = "="
 
 	// Ephemeral IPs will be cleaned up automatically on machine, network, project deletion
 	Ephemeral IPType = "ephemeral"
@@ -102,7 +102,7 @@ func (ip *IP) HasMachineId(id string) bool {
 
 func (ip *IP) GetMachineIds() []string {
 	ts := tags.New(ip.Tags)
-	return ts.Values(tag.MachineID + TagIPSeperator)
+	return ts.Values(tag.MachineID + TagIPSeparator)
 }
 
 func (ip *IP) AddMachineId(id string) {
@@ -121,7 +121,7 @@ func (ip *IP) RemoveMachineId(id string) {
 }
 
 func IpTag(key, value string) string {
-	return fmt.Sprintf("%s%s%s", key, TagIPSeperator, value)
+	return fmt.Sprintf("%s%s%s", key, TagIPSeparator, value)
 }
 
 type IPs []IP

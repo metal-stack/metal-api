@@ -42,7 +42,7 @@ type (
 	}
 	Filesystem struct {
 		Path          *string  `json:"path" description:"the mountpoint where this filesystem should be mounted on" optional:"true"`
-		Device        string   `json:"device" description:"the underlaying device where this filesystem should be created"`
+		Device        string   `json:"device" description:"the underlying device where this filesystem should be created"`
 		Format        string   `json:"format" description:"the filesystem format"`
 		Label         *string  `json:"label" description:"optional label for this this filesystem" optional:"true"`
 		MountOptions  []string `json:"mountoptions" description:"the options to use to mount this filesystem" optional:"true"`

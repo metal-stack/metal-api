@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log/slog"
 	"testing"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -13,7 +14,6 @@ import (
 	"github.com/metal-stack/security"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 )
 
 type MockedTenantService struct {
@@ -26,15 +26,15 @@ func NewMockedTenantService(t *testing.T, tenantServiceMock func(mock *mdmv1mock
 	if tenantServiceMock != nil {
 		tenantServiceMock(tsc)
 	}
-	mdc := mdm.NewMock(&mdmv1mock.ProjectServiceClient{}, tsc)
-	ws := NewTenant(zaptest.NewLogger(t).Sugar(), mdc)
+	mdc := mdm.NewMock(&mdmv1mock.ProjectServiceClient{}, tsc, nil, nil, nil)
+	ws := NewTenant(slog.Default(), mdc)
 	return &MockedTenantService{
 		t:  t,
 		ws: ws,
 	}
 }
 
-//nolint:golint,unused
+// nolint:unused
 func (m *MockedTenantService) list(user *security.User, resp interface{}) int {
 	return webRequestGet(m.t, m.ws, user, user, "/v1/tenant", resp)
 }

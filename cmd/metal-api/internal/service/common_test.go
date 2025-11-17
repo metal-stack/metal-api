@@ -1,12 +1,14 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/security"
@@ -52,6 +54,36 @@ func webRequest(t require.TestingT, method string, service *restful.WebService, 
 	err = json.NewDecoder(resp.Body).Decode(response)
 	require.NoError(t, err)
 	return resp.StatusCode
+}
+
+func genericWebRequest[E any](t *testing.T, service *restful.WebService, user *security.User, body any, method string, path string) (int, E) {
+	var encoded []byte
+
+	if body != nil {
+		var err error
+		encoded, err = json.Marshal(body)
+		require.NoError(t, err)
+	}
+
+	req := httptest.NewRequest(method, path, bytes.NewBuffer(encoded))
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+
+	recorder := httptest.NewRecorder()
+
+	container := restful.NewContainer().Add(service)
+	container.Filter(MockAuth(user))
+	container.ServeHTTP(recorder, req)
+
+	res := recorder.Result()
+	defer res.Body.Close()
+
+	var got E
+	err := json.Unmarshal(recorder.Body.Bytes(), &got)
+	require.NoError(t, err, "unable to parse response into %T: %s", got, recorder.Body.String())
+
+	return recorder.Code, got
 }
 
 func MockAuth(user *security.User) restful.FilterFunction {

@@ -1,6 +1,8 @@
 package fsm
 
 import (
+	"context"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm/states"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -86,6 +88,10 @@ func Events() fsm.Events {
 			Src: []string{
 				states.PlannedReboot.String(),
 				states.PhonedHome.String(),
+				states.PXEBooting.String(),
+				states.Preparing.String(),
+				states.Registering.String(),
+				states.Waiting.String(),
 			},
 			Dst: SelfTransitionState,
 		},
@@ -148,9 +154,9 @@ func eventCallbacks(config *states.StateConfig) fsm.Callbacks {
 	callbacks := fsm.Callbacks{
 		// unfortunately, the FSM does not trigger the specific state callback when a state transitions to itself
 		// therefore we have an artificial state self_transition from which we can trigger the state-specific callback
-		"enter_" + SelfTransitionState: func(e *fsm.Event) {
+		"enter_" + SelfTransitionState: func(ctx context.Context, e *fsm.Event) {
 			if state, ok := allStates[e.Src]; ok {
-				state.OnTransition(e)
+				state.OnTransition(ctx, e)
 			}
 		},
 	}

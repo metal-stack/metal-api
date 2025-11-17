@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/security"
-	"go.uber.org/zap"
 )
 
 const (
@@ -27,18 +27,18 @@ const (
 var BasePath = "/"
 
 type webResource struct {
-	log *zap.SugaredLogger
+	log *slog.Logger
 	ds  *datastore.RethinkStore
 }
 
 // logger returns the request logger from the request.
-func (w *webResource) logger(rq *restful.Request) *zap.SugaredLogger {
+func (w *webResource) logger(rq *restful.Request) *slog.Logger {
 	requestLogger := rest.GetLoggerFromContext(rq.Request, w.log)
-	return requestLogger.WithOptions(zap.AddCallerSkip(1))
+	return requestLogger
 }
 
 func (w *webResource) sendError(rq *restful.Request, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
-	w.logger(rq).Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message)
+	w.logger(rq).Error("service error", "status", httperr.StatusCode, "error", httperr.Message)
 	w.send(rq, rsp, httperr.StatusCode, httperr)
 }
 
@@ -69,10 +69,10 @@ func defaultError(err error) *httperrors.HTTPErrorResponse {
 	return httperrors.UnprocessableEntity(err)
 }
 
-func send(log *zap.SugaredLogger, rsp *restful.Response, status int, value any) {
+func send(log *slog.Logger, rsp *restful.Response, status int, value any) {
 	err := rsp.WriteHeaderAndEntity(status, value)
 	if err != nil {
-		log.Errorw("failed to send response", "error", err)
+		log.Error("failed to send response", "error", err)
 	}
 }
 
@@ -149,14 +149,14 @@ func oneOf(rf restful.RouteFunction, acc ...security.ResourceAccess) restful.Rou
 		if !usr.HasGroup(acc...) {
 			log := rest.GetLoggerFromContext(request.Request, nil)
 			if log != nil {
-				log.Infow("missing group", "user", usr, "required-group", acc)
+				log.Info("missing group", "user", usr, "required-group", acc)
 			}
 
 			httperr := httperrors.Forbidden(fmt.Errorf("you are not member in one of %+v", acc))
 
 			err := response.WriteHeaderAndEntity(httperr.StatusCode, httperr)
 			if err != nil && log != nil {
-				log.Errorw("failed to send response", "error", err)
+				log.Error("failed to send response", "error", err)
 			}
 			return
 		}
@@ -170,13 +170,13 @@ func tenant(request *restful.Request) string {
 
 // TenantEnsurer holds allowed tenants and a list of path suffixes that
 type TenantEnsurer struct {
-	logger               *zap.SugaredLogger
+	logger               *slog.Logger
 	allowedTenants       map[string]bool
 	excludedPathSuffixes []string
 }
 
 // NewTenantEnsurer creates a new ensurer with the given tenants.
-func NewTenantEnsurer(log *zap.SugaredLogger, tenants, excludedPathSuffixes []string) TenantEnsurer {
+func NewTenantEnsurer(log *slog.Logger, tenants, excludedPathSuffixes []string) TenantEnsurer {
 	result := TenantEnsurer{
 		logger:               log,
 		allowedTenants:       make(map[string]bool),
@@ -206,8 +206,8 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	if !e.allowed(tenantID) {
 		httperror := httperrors.Forbidden(fmt.Errorf("tenant %s not allowed", tenantID))
 
-		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger).Desugar().WithOptions(zap.AddCallerSkip(1)).Sugar()
-		requestLogger.Errorw("service error", "status", httperror.StatusCode, "error", httperror.Message)
+		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger) // FIXME call stack skip missing
+		requestLogger.Error("service error", "status", httperror.StatusCode, "error", httperror.Message)
 
 		send(requestLogger, resp, httperror.StatusCode, httperror.Message)
 		return

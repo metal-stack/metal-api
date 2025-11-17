@@ -5,8 +5,10 @@ package datastore
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -15,7 +17,6 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/testcommon"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
-	"go.uber.org/zap"
 
 	"testing"
 )
@@ -45,11 +46,14 @@ func startRethinkInitialized() (container testcontainers.Container, ds *RethinkS
 		panic(err)
 	}
 
-	rs := New(zap.L().Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := New(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
 	rs.ASNPoolRangeMax = 10010
+
+	rs.sharedMutexCheckInterval = 3 * time.Second
 
 	err = rs.Connect()
 	if err != nil {

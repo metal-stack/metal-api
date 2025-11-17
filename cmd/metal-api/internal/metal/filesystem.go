@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+
+	metalcommon "github.com/metal-stack/metal-lib/pkg/metal"
 )
 
 const (
@@ -168,7 +169,11 @@ type (
 )
 
 // Validate a existing FilesystemLayout
-func (f FilesystemLayout) Validate() error {
+func (f *FilesystemLayout) Validate() error {
+	if f == nil {
+		return nil
+	}
+
 	// check device existence from disk.partition -> raid.device -> filesystem
 	// collect all provided devices
 	providedDevices := make(map[string]bool)
@@ -313,7 +318,7 @@ func (c *FilesystemLayoutConstraints) validate() error {
 var validOPS = map[string]bool{"=": true, "!=": true, ">": true, "<": true, ">=": true, "=>": true, "<=": true, "=<": true, "~": true, "~>": true, "^": true}
 
 func convertToOpAndVersion(versionconstraint string) (string, *semver.Version, error) {
-	// a version constrain op is given it must be seperated by a whitespace
+	// a version constrain op is given it must be separated by a whitespace
 	parts := strings.SplitN(versionconstraint, " ", 2)
 	// might be a single specific version, then it must parse into a semver
 	if len(parts) == 1 {
@@ -470,7 +475,7 @@ func (c *FilesystemLayoutConstraints) matches(sizeID, imageID string) bool {
 	}
 	// Size matches
 	for os, versionconstraint := range c.Images {
-		imageos, version, err := utils.GetOsAndSemverFromImage(imageID)
+		imageos, version, err := metalcommon.GetOsAndSemverFromImage(imageID)
 		if err != nil {
 			return false
 		}

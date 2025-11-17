@@ -8,6 +8,20 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
+// SwitchPortStatus is a type alias for a string that represents the status of a switch port.
+// Valid values are defined as constants in this package.
+type SwitchPortStatus string
+
+// SwitchPortStatus defines the possible statuses for a switch port.
+// UNKNOWN indicates the status is not known.
+// UP indicates the port is up and operational.
+// DOWN indicates the port is down and not operational.
+const (
+	SwitchPortStatusUnknown SwitchPortStatus = "UNKNOWN"
+	SwitchPortStatusUp      SwitchPortStatus = "UP"
+	SwitchPortStatusDown    SwitchPortStatus = "DOWN"
+)
+
 type SwitchBase struct {
 	RackID         string    `json:"rack_id" modelDescription:"A switch that can register at the api." description:"the id of the rack in which this switch is located"`
 	Mode           string    `json:"mode" description:"the mode the switch currently has" optional:"true"`
@@ -18,19 +32,21 @@ type SwitchBase struct {
 }
 
 type SwitchOS struct {
-	Vendor           string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
-	Version          string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
-	MetalCoreVersion string `json:"metal_core_version" description:"the version of metal-core running" optional:"true"`
+	Vendor           metal.SwitchOSVendor `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true" enum:"SONiC|Cumulus"`
+	Version          string               `json:"version" description:"the operating system version the switch currently has" optional:"true"`
+	MetalCoreVersion string               `json:"metal_core_version" description:"the version of metal-core running" optional:"true"`
 }
 
 type SwitchNics []SwitchNic
 
 type SwitchNic struct {
-	MacAddress string     `json:"mac" description:"the mac address of this network interface"`
-	Name       string     `json:"name" description:"the name of this network interface"`
-	Identifier string     `json:"identifier" description:"the identifier of this network interface"`
-	Vrf        string     `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
-	BGPFilter  *BGPFilter `json:"filter" description:"configures the bgp filter applied at the switch port" optional:"true"`
+	MacAddress   string                    `json:"mac" description:"the mac address of this network interface"`
+	Name         string                    `json:"name" description:"the name of this network interface"`
+	Identifier   string                    `json:"identifier" description:"the identifier of this network interface"`
+	Vrf          string                    `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
+	BGPFilter    *BGPFilter                `json:"filter" description:"configures the bgp filter applied at the switch port" optional:"true"`
+	Actual       SwitchPortStatus          `json:"actual" description:"the current state of the nic" enum:"UP|DOWN|UNKNOWN"`
+	BGPPortState *metal.SwitchBGPPortState `json:"bgp_port_state" description:"the current bgp port state" optional:"true"`
 }
 
 type BGPFilter struct {
@@ -70,9 +86,35 @@ type SwitchUpdateRequest struct {
 	SwitchBase
 }
 
+type SwitchPortToggleRequest struct {
+	NicName string           `json:"nic" description:"the nic of the switch you want to change"`
+	Status  SwitchPortStatus `json:"status" description:"sets the port status" enum:"UP|DOWN"`
+}
+
+// SwitchMigrateResponse is used to migrate from one switch to another, e.g. for changing os vendor.
+type SwitchMigrateRequest struct {
+	OldSwitchID string `json:"old_switch_id" description:"the id of the switch that should be migrated away from"`
+	NewSwitchID string `json:"new_switch_id" description:"the id of the new switch to migrate to"`
+}
+
+// SwitchNotifyRequest represents the notification sent from the switch
+// to the metal-api after a sync operation. It contains the duration of
+// the sync, any error that occurred, and the updated switch port states.
 type SwitchNotifyRequest struct {
-	Duration time.Duration `json:"sync_duration" description:"the duration of the switch synchronization"`
-	Error    *string       `json:"error"`
+	Duration      time.Duration                 `json:"sync_duration" description:"the duration of the switch synchronization"`
+	Error         *string                       `json:"error"`
+	PortStates    map[string]SwitchPortStatus   `json:"port_states" description:"the current switch port states"`
+	BGPPortStates map[string]SwitchBGPPortState `json:"bgp_port_states" description:"the current bgp port states" optional:"true"`
+}
+
+type SwitchBGPPortState struct {
+	Neighbor              string
+	PeerGroup             string
+	VrfName               string
+	BgpState              string
+	BgpTimerUpEstablished int64
+	SentPrefixCounter     int64
+	AcceptedPrefixCounter int64
 }
 
 type SwitchNotifyResponse struct {
@@ -84,9 +126,9 @@ type SwitchNotifyResponse struct {
 type SwitchResponse struct {
 	Common
 	SwitchBase
-	Nics          SwitchNics         `json:"nics" description:"the list of network interfaces on the switch"`
+	Nics          SwitchNics         `json:"nics" description:"the list of network interfaces on the switch with the desired nic states"`
 	Partition     PartitionResponse  `json:"partition" description:"the partition in which this switch is located"`
-	Connections   []SwitchConnection `json:"connections" description:"a connection between a switch port and a machine"`
+	Connections   []SwitchConnection `json:"connections" description:"a connection between a switch port and a machine with the real nic states"`
 	LastSync      *SwitchSync        `json:"last_sync" description:"last successful synchronization to the switch" optional:"true"`
 	LastSyncError *SwitchSync        `json:"last_sync_error" description:"last synchronization to the switch that was erroneous" optional:"true"`
 	Timestamps
@@ -114,6 +156,11 @@ func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partiti
 		}
 	}
 
+	var partition PartitionResponse
+	if partitionResp := NewPartitionResponse(p); partitionResp != nil {
+		partition = *partitionResp
+	}
+
 	return &SwitchResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -133,7 +180,7 @@ func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partiti
 			ConsoleCommand: s.ConsoleCommand,
 		},
 		Nics:          nics,
-		Partition:     *NewPartitionResponse(p),
+		Partition:     partition,
 		Connections:   cons,
 		LastSync:      snr.LastSync,
 		LastSyncError: snr.LastSyncError,

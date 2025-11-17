@@ -113,34 +113,34 @@ func (rs *RethinkStore) Migrate(targetVersion *int, dry bool) error {
 	}
 
 	if len(ms) == 0 {
-		rs.log.Infow("no database migration required", "current-version", current.Version)
+		rs.log.Info("no database migration required", "current-version", current.Version)
 		return nil
 	}
 
-	rs.log.Infow("database migration required", "current-version", current.Version, "newer-versions", len(ms), "target-version", ms[len(ms)-1].Version)
+	rs.log.Info("database migration required", "current-version", current.Version, "newer-versions", len(ms), "target-version", ms[len(ms)-1].Version)
 
 	if dry {
 		for _, m := range ms {
-			rs.log.Infow("database migration dry run", "version", m.Version, "name", m.Name)
+			rs.log.Info("database migration dry run", "version", m.Version, "name", m.Name)
 		}
 		return nil
 	}
 
-	rs.log.Infow("setting demoted runtime user to read only", "user", DemotedUser)
+	rs.log.Info("setting demoted runtime user to read only", "user", DemotedUser)
 	_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": false}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		rs.log.Infow("removing read only", "user", DemotedUser)
+		rs.log.Info("removing read only", "user", DemotedUser)
 		_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": true}).RunWrite(rs.session)
 		if err != nil {
-			rs.log.Errorw("error giving back write permissions", "user", DemotedUser)
+			rs.log.Error("error giving back write permissions", "user", DemotedUser)
 		}
 	}()
 
 	for _, m := range ms {
-		rs.log.Infow("running database migration", "version", m.Version, "name", m.Name)
+		rs.log.Info("running database migration", "version", m.Version, "name", m.Name)
 		err = m.Up(rs.db(), rs.session, rs)
 		if err != nil {
 			return fmt.Errorf("error running database migration: %w", err)
@@ -154,7 +154,7 @@ func (rs *RethinkStore) Migrate(targetVersion *int, dry bool) error {
 		}
 	}
 
-	rs.log.Infow("database migration succeeded")
+	rs.log.Info("database migration succeeded")
 
 	return nil
 }

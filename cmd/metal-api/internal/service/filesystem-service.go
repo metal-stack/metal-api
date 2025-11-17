@@ -3,12 +3,12 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
-	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -20,7 +20,7 @@ type filesystemResource struct {
 }
 
 // NewFilesystemLayout returns a webservice for filesystem specific endpoints.
-func NewFilesystemLayout(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
+func NewFilesystemLayout(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	r := filesystemResource{
 		webResource: webResource{
 			log: log,

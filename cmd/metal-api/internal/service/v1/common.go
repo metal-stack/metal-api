@@ -10,7 +10,7 @@ import (
 type EmptyBody struct{}
 
 type Identifiable struct {
-	ID string `json:"id" description:"the unique ID of this entity" unique:"true" required:"true"`
+	ID string `json:"id" description:"the unique ID of this entity" required:"true"`
 }
 
 type Describable struct {

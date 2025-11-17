@@ -18,8 +18,9 @@ type AuditFindRequest struct {
 	RequestId string `json:"rqid" optional:"true"`
 	Type      string `json:"type" optional:"true"`
 
-	User   string `json:"user" optional:"true"`
-	Tenant string `json:"tenant" optional:"true"`
+	User    string `json:"user" optional:"true"`
+	Tenant  string `json:"tenant" optional:"true"`
+	Project string `json:"project" optional:"true"`
 
 	Detail string `json:"detail" optional:"true"`
 	Phase  string `json:"phase" optional:"true"`
@@ -54,7 +55,7 @@ type AuditResponse struct {
 	RemoteAddr   string `json:"remote_addr" optional:"true"`
 
 	Body       string `json:"body" optional:"true"`
-	StatusCode int    `json:"status_code" optional:"true"`
+	StatusCode *int   `json:"status_code" optional:"true"`
 
 	// Internal errors
 	Error string `json:"error" optional:"true"`
@@ -75,9 +76,14 @@ func NewAuditResponse(e auditing.Entry) *AuditResponse {
 			body = fmt.Sprintf("unknown body: %v", v)
 		}
 	}
-	err := ""
+	errStr := ""
 	if e.Error != nil {
-		err = e.Error.Error()
+		b, err := json.Marshal(e.Error)
+		if err == nil {
+			errStr = string(b)
+		} else {
+			errStr = fmt.Sprintf("unknown error: %v", e.Error)
+		}
 	}
 
 	return &AuditResponse{
@@ -94,6 +100,6 @@ func NewAuditResponse(e auditing.Entry) *AuditResponse {
 		RemoteAddr:   e.RemoteAddr,
 		Body:         body,
 		StatusCode:   e.StatusCode,
-		Error:        err,
+		Error:        errStr,
 	}
 }

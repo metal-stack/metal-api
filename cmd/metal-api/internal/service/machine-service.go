@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-lib/auditing"
@@ -22,9 +24,8 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"go.uber.org/zap"
-
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -34,7 +35,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
@@ -76,6 +76,10 @@ type machineAllocationSpec struct {
 	Role               metal.Role
 	VPN                *metal.MachineVPN
 	PlacementTags      []string
+	EgressRules        []metal.EgressRule
+	IngressRules       []metal.IngressRule
+	DNSServers         metal.DNSServers
+	NTPServers         metal.NTPServers
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -106,7 +110,7 @@ type Allocator func(Allocation) error
 
 // NewMachine returns a webservice for machine specific endpoints.
 func NewMachine(
-	log *zap.SugaredLogger,
+	log *slog.Logger,
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	ep *bus.Endpoints,
@@ -661,7 +665,7 @@ func (r *machineResource) getMachineConsolePassword(request *restful.Request, re
 		ConsolePassword: m.Allocation.ConsolePassword,
 	}
 
-	r.log.Infow("consolepassword requested", "machine", m.ID, "user", user.Name, "email", user.EMail, "tenant", user.Tenant, "reason", requestPayload.Reason)
+	r.log.Info("consolepassword requested", "machine", m.ID, "user", user.Name, "email", user.EMail, "tenant", user.Tenant, "reason", requestPayload.Reason)
 
 	r.send(request, response, http.StatusOK, resp)
 }
@@ -750,7 +754,7 @@ func (r *machineResource) setMachineState(request *restful.Request, response *re
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r machineResource) findIPMIMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) findIPMIMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	m, err := r.ds.FindMachineByID(id)
@@ -860,11 +864,11 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 				Value: ledstate,
 			}
 		} else {
-			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
+			logger.Error("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
 		}
 		err = r.ds.CreateMachine(m)
 		if err != nil {
-			logger.Errorw("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
+			logger.Error("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
 			continue
 		}
 		resp.Created = append(resp.Created, uuid)
@@ -890,7 +894,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		} else if len(hostAndPort) < 2 {
 			newMachine.IPMI.Address = report.BMCIp + ":" + defaultIPMIPort
 		} else {
-			logger.Errorw("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
+			logger.Error("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
 			continue
 		}
 
@@ -900,7 +904,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		}
 
 		if newMachine.PartitionID != p.ID {
-			logger.Errorw("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
+			logger.Error("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
 			continue
 		}
 
@@ -924,6 +928,16 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 				MinConsumedWatts:     report.PowerMetric.MinConsumedWatts,
 			}
 		}
+		var powerSupplies metal.PowerSupplies
+		for _, ps := range report.PowerSupplies {
+			powerSupplies = append(powerSupplies, metal.PowerSupply{
+				Status: metal.PowerSupplyStatus{
+					Health: ps.Status.Health,
+					State:  ps.Status.State,
+				},
+			})
+		}
+		newMachine.IPMI.PowerSupplies = powerSupplies
 
 		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
 		if err == nil {
@@ -932,13 +946,13 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 				Description: newMachine.LEDState.Description,
 			}
 		} else {
-			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
+			logger.Error("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
 		}
 		newMachine.IPMI.LastUpdated = time.Now()
 
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
-			logger.Errorw("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
+			logger.Error("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
 			continue
 		}
 		resp.Updated = append(resp.Updated, uuid)
@@ -952,14 +966,14 @@ func updateFru(m *metal.Machine, fru *v1.MachineFru) {
 		return
 	}
 
-	m.IPMI.Fru.ChassisPartSerial = utils.StrValueDefault(fru.ChassisPartSerial, m.IPMI.Fru.ChassisPartSerial)
-	m.IPMI.Fru.ChassisPartNumber = utils.StrValueDefault(fru.ChassisPartNumber, m.IPMI.Fru.ChassisPartNumber)
-	m.IPMI.Fru.BoardMfg = utils.StrValueDefault(fru.BoardMfg, m.IPMI.Fru.BoardMfg)
-	m.IPMI.Fru.BoardMfgSerial = utils.StrValueDefault(fru.BoardMfgSerial, m.IPMI.Fru.BoardMfgSerial)
-	m.IPMI.Fru.BoardPartNumber = utils.StrValueDefault(fru.BoardPartNumber, m.IPMI.Fru.BoardPartNumber)
-	m.IPMI.Fru.ProductManufacturer = utils.StrValueDefault(fru.ProductManufacturer, m.IPMI.Fru.ProductManufacturer)
-	m.IPMI.Fru.ProductSerial = utils.StrValueDefault(fru.ProductSerial, m.IPMI.Fru.ProductSerial)
-	m.IPMI.Fru.ProductPartNumber = utils.StrValueDefault(fru.ProductPartNumber, m.IPMI.Fru.ProductPartNumber)
+	m.IPMI.Fru.ChassisPartSerial = pointer.SafeDerefOrDefault(fru.ChassisPartSerial, m.IPMI.Fru.ChassisPartSerial)
+	m.IPMI.Fru.ChassisPartNumber = pointer.SafeDerefOrDefault(fru.ChassisPartNumber, m.IPMI.Fru.ChassisPartNumber)
+	m.IPMI.Fru.BoardMfg = pointer.SafeDerefOrDefault(fru.BoardMfg, m.IPMI.Fru.BoardMfg)
+	m.IPMI.Fru.BoardMfgSerial = pointer.SafeDerefOrDefault(fru.BoardMfgSerial, m.IPMI.Fru.BoardMfgSerial)
+	m.IPMI.Fru.BoardPartNumber = pointer.SafeDerefOrDefault(fru.BoardPartNumber, m.IPMI.Fru.BoardPartNumber)
+	m.IPMI.Fru.ProductManufacturer = pointer.SafeDerefOrDefault(fru.ProductManufacturer, m.IPMI.Fru.ProductManufacturer)
+	m.IPMI.Fru.ProductSerial = pointer.SafeDerefOrDefault(fru.ProductSerial, m.IPMI.Fru.ProductSerial)
+	m.IPMI.Fru.ProductPartNumber = pointer.SafeDerefOrDefault(fru.ProductPartNumber, m.IPMI.Fru.ProductPartNumber)
 }
 
 func (r *machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
@@ -976,13 +990,13 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 		return
 	}
 
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload, metal.RoleMachine, user)
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload, nil, user)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	m, err := allocateMachine(r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
+	m, err := allocateMachine(request.Request.Context(), r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -997,37 +1011,102 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.MachineAllocateRequest, role metal.Role, user *security.User) (*machineAllocationSpec, error) {
+func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.MachineAllocateRequest, firewallRequest *v1.FirewallAllocateRequest, user *security.User) (*machineAllocationSpec, error) {
 	var uuid string
-	if requestPayload.UUID != nil {
-		uuid = *requestPayload.UUID
+	if machineRequest.UUID != nil {
+		uuid = *machineRequest.UUID
 	}
 	var name string
-	if requestPayload.Name != nil {
-		name = *requestPayload.Name
+	if machineRequest.Name != nil {
+		name = *machineRequest.Name
 	}
 	var description string
-	if requestPayload.Description != nil {
-		description = *requestPayload.Description
+	if machineRequest.Description != nil {
+		description = *machineRequest.Description
 	}
 	hostname := "metal"
-	if requestPayload.Hostname != nil {
-		hostname = *requestPayload.Hostname
+	if machineRequest.Hostname != nil {
+		hostname = *machineRequest.Hostname
 	}
 	var userdata string
-	if requestPayload.UserData != nil {
-		userdata = *requestPayload.UserData
+	if machineRequest.UserData != nil {
+		userdata = *machineRequest.UserData
 	}
-	if requestPayload.Networks == nil {
+	if machineRequest.Networks == nil {
 		return nil, errors.New("network ids cannot be nil")
 	}
-	if len(requestPayload.Networks) <= 0 {
+	if len(machineRequest.Networks) <= 0 {
 		return nil, errors.New("network ids cannot be empty")
 	}
 
-	image, err := ds.FindImage(requestPayload.ImageID)
+	image, err := ds.FindImage(machineRequest.ImageID)
 	if err != nil {
 		return nil, err
+	}
+
+	var (
+		egress  []metal.EgressRule
+		ingress []metal.IngressRule
+		role    = metal.RoleMachine
+	)
+
+	if firewallRequest != nil {
+		role = metal.RoleFirewall
+
+		if firewallRequest.FirewallRules != nil {
+			for _, ruleSpec := range firewallRequest.FirewallRules.Egress {
+				ruleSpec := ruleSpec
+
+				if ruleSpec.Protocol == "" {
+					ruleSpec.Protocol = string(metal.ProtocolTCP)
+				}
+
+				protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
+				if err != nil {
+					return nil, err
+				}
+
+				rule := metal.EgressRule{
+					Protocol: protocol,
+					Ports:    ruleSpec.Ports,
+					To:       ruleSpec.To,
+					Comment:  ruleSpec.Comment,
+				}
+
+				if err := rule.Validate(); err != nil {
+					return nil, err
+				}
+
+				egress = append(egress, rule)
+			}
+
+			for _, ruleSpec := range firewallRequest.FirewallRules.Ingress {
+				ruleSpec := ruleSpec
+
+				if ruleSpec.Protocol == "" {
+					ruleSpec.Protocol = string(metal.ProtocolTCP)
+				}
+
+				protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
+				if err != nil {
+					return nil, err
+				}
+
+				rule := metal.IngressRule{
+					Protocol: protocol,
+					Ports:    ruleSpec.Ports,
+					To:       ruleSpec.To,
+					From:     ruleSpec.From,
+					Comment:  ruleSpec.Comment,
+				}
+
+				if err := rule.Validate(); err != nil {
+					return nil, err
+				}
+
+				ingress = append(ingress, rule)
+			}
+		}
 	}
 
 	imageFeatureType := metal.ImageFeatureMachine
@@ -1039,8 +1118,8 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		return nil, fmt.Errorf("given image is not usable for a %s, features: %s", imageFeatureType, image.ImageFeatureString())
 	}
 
-	partitionID := requestPayload.PartitionID
-	sizeID := requestPayload.SizeID
+	partitionID := machineRequest.PartitionID
+	sizeID := machineRequest.SizeID
 
 	if uuid == "" && partitionID == "" {
 		return nil, errors.New("when no machine id is given, a partition id must be specified")
@@ -1066,29 +1145,67 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		return nil, fmt.Errorf("size:%s not found err:%w", sizeID, err)
 	}
 
+	partition, err := ds.FindPartition(partitionID)
+	if err != nil {
+		return nil, fmt.Errorf("partition:%s not found err:%w", partitionID, err)
+	}
+
+	var (
+		dnsServers = partition.DNSServers
+		ntpServers = partition.NTPServers
+	)
+	if len(machineRequest.DNSServers) != 0 {
+		dnsServers = metal.DNSServers{}
+		for _, s := range machineRequest.DNSServers {
+			dnsServers = append(dnsServers, metal.DNSServer{
+				IP: s.IP,
+			})
+		}
+	}
+	if len(machineRequest.NTPServers) != 0 {
+		ntpServers = []metal.NTPServer{}
+		for _, s := range machineRequest.NTPServers {
+			ntpServers = append(ntpServers, metal.NTPServer{
+				Address: s.Address,
+			})
+		}
+	}
+
+	if err := dnsServers.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := ntpServers.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &machineAllocationSpec{
 		Creator:            user.EMail,
 		UUID:               uuid,
 		Name:               name,
 		Description:        description,
 		Hostname:           hostname,
-		ProjectID:          requestPayload.ProjectID,
+		ProjectID:          machineRequest.ProjectID,
 		PartitionID:        partitionID,
 		Machine:            m,
 		Size:               size,
 		Image:              image,
-		SSHPubKeys:         requestPayload.SSHPubKeys,
+		SSHPubKeys:         machineRequest.SSHPubKeys,
 		UserData:           userdata,
-		Tags:               requestPayload.Tags,
-		Networks:           requestPayload.Networks,
-		IPs:                requestPayload.IPs,
+		Tags:               machineRequest.Tags,
+		Networks:           machineRequest.Networks,
+		IPs:                machineRequest.IPs,
 		Role:               role,
-		FilesystemLayoutID: requestPayload.FilesystemLayoutID,
-		PlacementTags:      requestPayload.PlacementTags,
+		FilesystemLayoutID: machineRequest.FilesystemLayoutID,
+		PlacementTags:      machineRequest.PlacementTags,
+		EgressRules:        egress,
+		IngressRules:       ingress,
+		DNSServers:         dnsServers,
+		NTPServers:         ntpServers,
 	}, nil
 }
 
-func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, publisher bus.Publisher) (*metal.Machine, error) {
+func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, publisher bus.Publisher) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
@@ -1100,7 +1217,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	}
 
 	projectID := allocationSpec.ProjectID
-	p, err := mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+	p, err := mdc.Project().Get(ctx, &mdmv1.ProjectGetRequest{Id: projectID})
 	if err != nil {
 		return nil, err
 	}
@@ -1137,23 +1254,19 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 	}
 
-	var machineCandidate *metal.Machine
-	err = retry.Do(
-		func() error {
-			var err2 error
-			machineCandidate, err2 = findMachineCandidate(ds, allocationSpec)
-			return err2
-		},
-		retry.Attempts(10),
-		retry.RetryIf(func(err error) bool {
-			return metal.IsConflict(err)
-		}),
-		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
-		retry.LastErrorOnly(true),
-	)
+	machineCandidate, err := findMachineCandidate(ctx, ds, allocationSpec)
 	if err != nil {
 		return nil, err
 	}
+
+	var firewallRules *metal.FirewallRules
+	if len(allocationSpec.EgressRules) > 0 || len(allocationSpec.IngressRules) > 0 {
+		firewallRules = &metal.FirewallRules{
+			Egress:  allocationSpec.EgressRules,
+			Ingress: allocationSpec.IngressRules,
+		}
+	}
+
 	// as some fields in the allocation spec are optional, they will now be clearly defined by the machine candidate
 	allocationSpec.UUID = machineCandidate.ID
 
@@ -1170,6 +1283,10 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		MachineNetworks: []*metal.MachineNetwork{},
 		Role:            allocationSpec.Role,
 		VPN:             allocationSpec.VPN,
+		FirewallRules:   firewallRules,
+		UUID:            uuid.New().String(),
+		DNSServers:      allocationSpec.DNSServers,
+		NTPServers:      allocationSpec.NTPServers,
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {
@@ -1181,7 +1298,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 			}
 			rollbackError := actor.machineNetworkReleaser(cleanupMachine)
 			if rollbackError != nil {
-				logger.Errorw("cannot call async machine cleanup", "error", rollbackError)
+				logger.Error("cannot call async machine cleanup", "error", rollbackError)
 			}
 			old := *machineCandidate
 			machineCandidate.Allocation = nil
@@ -1190,7 +1307,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 			rollbackError = ds.UpdateMachine(&old, machineCandidate)
 			if rollbackError != nil {
-				logger.Errorw("cannot update machinecandidate to reset allocation", "error", rollbackError)
+				logger.Error("cannot update machinecandidate to reset allocation", "error", rollbackError)
 			}
 		}
 		return err
@@ -1206,7 +1323,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	if err != nil {
 		return nil, rollbackOnError(fmt.Errorf("unable to gather networks:%w", err))
 	}
-	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
+	err = makeNetworks(ctx, ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
 		return nil, rollbackOnError(fmt.Errorf("unable to make networks:%w", err))
 	}
@@ -1233,9 +1350,9 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	// TODO: can be removed after metal-core refactoring
 	err = publisher.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: machine.ID})
 	if err != nil {
-		logger.Errorw("failed to publish machine allocation event, fallback should trigger on metal-hammer", "topic", metal.TopicAllocation.Name, "machineID", machine.ID, "error", err)
+		logger.Error("failed to publish machine allocation event, fallback should trigger on metal-hammer", "topic", metal.TopicAllocation.Name, "machineID", machine.ID, "error", err)
 	} else {
-		logger.Debugw("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machine.ID)
+		logger.Debug("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machine.ID)
 	}
 
 	return machine, nil
@@ -1263,7 +1380,7 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	for _, pubKey := range allocationSpec.SSHPubKeys {
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
 		if err != nil {
-			return fmt.Errorf("invalid public SSH key: %s", pubKey)
+			return fmt.Errorf("invalid public SSH key: %s error:%w", pubKey, err)
 		}
 	}
 
@@ -1281,12 +1398,12 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	return nil
 }
 
-func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
+func findMachineCandidate(ctx context.Context, ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
 	var err error
 	var machine *metal.Machine
 	if allocationSpec.Machine == nil {
 		// requesting allocation of an arbitrary ready machine in partition with given size
-		machine, err = findWaitingMachine(ds, allocationSpec)
+		machine, err = findWaitingMachine(ctx, ds, allocationSpec)
 		if err != nil {
 			return nil, err
 		}
@@ -1307,7 +1424,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	return machine, err
 }
 
-func findWaitingMachine(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
+func findWaitingMachine(ctx context.Context, ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
 	size, err := ds.FindSize(allocationSpec.Size.ID)
 	if err != nil {
 		return nil, fmt.Errorf("size cannot be found: %w", err)
@@ -1317,7 +1434,7 @@ func findWaitingMachine(ds *datastore.RethinkStore, allocationSpec *machineAlloc
 		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
 
-	machine, err := ds.FindWaitingMachine(allocationSpec.ProjectID, partition.ID, *size, allocationSpec.PlacementTags)
+	machine, err := ds.FindWaitingMachine(ctx, allocationSpec.ProjectID, partition.ID, *size, allocationSpec.PlacementTags, allocationSpec.Role)
 	if err != nil {
 		return nil, err
 	}
@@ -1327,9 +1444,12 @@ func findWaitingMachine(ds *datastore.RethinkStore, allocationSpec *machineAlloc
 // makeNetworks creates network entities and ip addresses as specified in the allocation network map.
 // created networks are added to the machine allocation directly after their creation. This way, the rollback mechanism
 // is enabled to clean up networks that were already created.
-func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
+func makeNetworks(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
 	for _, n := range networks {
-		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
+		if n == nil || n.network == nil {
+			continue
+		}
+		machineNetwork, err := makeMachineNetwork(ctx, ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return err
 		}
@@ -1405,10 +1525,12 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	// - user specifies administrative networks, i.e. underlay or privatesuper networks
 	// - user's private network is specified with noauto but no specific IPs are given: this would yield a machine with no ip address
 
-	specNetworks := make(map[string]*allocationNetwork)
-	var primaryPrivateNetwork *allocationNetwork
-	var privateNetworks []*allocationNetwork
-	var privateSharedNetworks []*allocationNetwork
+	var (
+		specNetworks          = make(map[string]*allocationNetwork)
+		primaryPrivateNetwork *allocationNetwork
+		privateNetworks       []*allocationNetwork
+		privateSharedNetworks []*allocationNetwork
+	)
 
 	for _, networkSpec := range allocationSpec.Networks {
 		auto := true
@@ -1508,13 +1630,13 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		network.ips = append(network.ips, *ip)
 	}
 
-	for _, pn := range privateNetworks {
-		if pn.network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
-			return nil, fmt.Errorf("private network %q must be located in the partition where the machine is going to be placed", pn.network.ID)
+	for _, privateNetwork := range privateNetworks {
+		if privateNetwork.network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
+			return nil, fmt.Errorf("private network %q must be located in the partition where the machine is going to be placed", privateNetwork.network.ID)
 		}
 
-		if !pn.auto && len(pn.ips) == 0 {
-			return nil, fmt.Errorf("the private network %q has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address", pn.network.ID)
+		if !privateNetwork.auto && len(privateNetwork.ips) == 0 {
+			return nil, fmt.Errorf("the private network %q has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address", privateNetwork.network.ID)
 		}
 	}
 
@@ -1543,32 +1665,37 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 	}, nil
 }
 
-func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
+func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
-		ipAddress, ipParentCidr, err := allocateIP(n.network, "", ipamer)
-		if err != nil {
-			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
+		if len(n.network.Prefixes) == 0 {
+			return nil, fmt.Errorf("given network %s does not have prefixes configured", n.network.ID)
 		}
-		ip := &metal.IP{
-			IPAddress:        ipAddress,
-			ParentPrefixCidr: ipParentCidr,
-			Name:             allocationSpec.Name,
-			Description:      "autoassigned",
-			NetworkID:        n.network.ID,
-			Type:             metal.Ephemeral,
-			ProjectID:        allocationSpec.ProjectID,
+		for _, af := range n.network.Prefixes.AddressFamilies() {
+			ipAddress, ipParentCidr, err := allocateRandomIP(ctx, n.network, ipamer, &af)
+			if err != nil {
+				return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
+			}
+			ip := &metal.IP{
+				IPAddress:        ipAddress,
+				ParentPrefixCidr: ipParentCidr,
+				Name:             allocationSpec.Name,
+				Description:      "autoassigned",
+				NetworkID:        n.network.ID,
+				Type:             metal.Ephemeral,
+				ProjectID:        allocationSpec.ProjectID,
+			}
+			ip.AddMachineId(allocationSpec.UUID)
+			err = ds.CreateIP(ip)
+			if err != nil {
+				return nil, err
+			}
+			n.ips = append(n.ips, *ip)
 		}
-		ip.AddMachineId(allocationSpec.UUID)
-		err = ds.CreateIP(ip)
-		if err != nil {
-			return nil, err
-		}
-		n.ips = append(n.ips, *ip)
 	}
 
 	// from the makeNetworks call, a lot of ips might be set in this network
 	// add a machine tag to all of them
-	ipAddresses := []string{}
+	var ipAddresses []string
 	for i := range n.ips {
 		ip := n.ips[i]
 		newIP := ip
@@ -1665,7 +1792,7 @@ func uniqueTags(tags []string) []string {
 	return uniqueTags
 }
 
-func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) freeMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
@@ -1677,7 +1804,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 
 	err = publishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
 	if err != nil {
-		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("unable to publish machine command", "command", string(metal.ChassisIdentifyLEDOffCmd), "machineID", m.ID, "error", err)
 	}
 
 	err = r.actor.freeMachine(request.Request.Context(), r.Publisher, m, r.headscaleClient, logger)
@@ -1699,9 +1826,11 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		Event:   metal.ProvisioningEventMachineReclaim,
 		Message: "free machine called",
 	}
-	_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
+
+	ctx := request.Request.Context()
+	_, err = r.ds.ProvisioningEventForMachine(ctx, logger, &ev, id)
 	if err != nil {
-		r.log.Errorw("error sending provisioning event after machine free", "error", err)
+		r.log.Error("error sending provisioning event after machine free", "error", err)
 	}
 }
 
@@ -1726,7 +1855,7 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 		return
 	}
 	if err == nil && ec.Liveliness != metal.MachineLivelinessDead {
-		r.sendError(request, response, defaultError(errors.New("can only delete dead machines")))
+		r.sendError(request, response, defaultError(errors.New("can only delete dead machines, if you power off this machine it will reach dead state.")))
 		return
 	}
 
@@ -1834,15 +1963,15 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 				return
 			}
 
-			logger.Info("marked machine to get reinstalled", zap.String("machineID", m.ID))
+			logger.Info("marked machine to get reinstalled", "machineID", m.ID)
 
-			err = deleteVRFSwitches(r.ds, m, logger.Desugar())
+			err = deleteVRFSwitches(r.ds, m, logger)
 			if err != nil {
 				r.sendError(request, response, defaultError(err))
 				return
 			}
 
-			err = publishDeleteEvent(r.Publisher, m, logger.Desugar())
+			err = publishDeleteEvent(r.Publisher, m, logger)
 			if err != nil {
 				r.sendError(request, response, defaultError(err))
 				return
@@ -1850,7 +1979,7 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 
 			err = publishMachineCmd(logger, m, r.Publisher, metal.MachineReinstallCmd)
 			if err != nil {
-				logger.Error("unable to publish machine command", zap.String("command", string(metal.MachineReinstallCmd)), zap.String("machineID", m.ID), zap.Error(err))
+				logger.Error("unable to publish machine command", "command", string(metal.MachineReinstallCmd), "machineID", m.ID, "error", err)
 			}
 
 			r.send(request, response, http.StatusOK, resp)
@@ -1862,8 +1991,8 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 	r.sendError(request, response, httperrors.BadRequest(errors.New("machine either locked, not allocated yet or invalid image ID specified")))
 }
 
-func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.Logger) error {
-	logger.Info("set VRF at switch", zap.String("machineID", m.ID))
+func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *slog.Logger) error {
+	logger.Info("set VRF at switch", "machineID", m.ID)
 	err := retry.Do(
 		func() error {
 			_, err := ds.SetVrfAtSwitches(m, "")
@@ -1877,25 +2006,25 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap
 		retry.LastErrorOnly(true),
 	)
 	if err != nil {
-		logger.Error("cannot delete vrf switches", zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("cannot delete vrf switches", "machineID", m.ID, "error", err)
 		return fmt.Errorf("cannot delete vrf switches: %w", err)
 	}
 	return nil
 }
 
-func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.Logger) error {
-	logger.Info("publish machine delete event", zap.String("machineID", m.ID))
+func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *slog.Logger) error {
+	logger.Info("publish machine delete event", "machineID", m.ID)
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	if err != nil {
-		logger.Error("cannot publish delete event", zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("cannot publish delete event", "machineID", m.ID, "error", err)
 		return fmt.Errorf("cannot publish delete event: %w", err)
 	}
 	return nil
 }
 
 // MachineLiveliness evaluates whether machines are still alive or if they have died
-func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) error {
+func MachineLiveliness(ds *datastore.RethinkStore, logger *slog.Logger) error {
 	logger.Info("machine liveliness was requested")
 
 	machines, err := ds.ListMachines()
@@ -1910,7 +2039,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 	for _, m := range machines {
 		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
-			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
+			logger.Error("cannot update liveliness", "error", err, "machine", m)
 			errs++
 			// fall through, so the rest of the machines is getting evaluated
 		}
@@ -1924,7 +2053,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		}
 	}
 
-	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
+	logger.Info("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
 
 	return nil
 }
@@ -1961,7 +2090,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
-func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *slog.Logger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
@@ -1983,7 +2112,7 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 		provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
 		if err != nil {
 			// we have no provisioning events... we cannot tell
-			logger.Debugw("no provisioningEvents found for resurrection", "machineID", m.ID, "error", err)
+			logger.Debug("no provisioningEvents found for resurrection", "machineID", m.ID, "error", err)
 			continue
 		}
 
@@ -1992,19 +2121,19 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 		}
 
 		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
-			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
+			logger.Info("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
 			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
-				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+				logger.Error("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
 			continue
 		}
 
 		if provisioningEvents.FailedMachineReclaim {
-			logger.Infow("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
+			logger.Info("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
 			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
-				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+				logger.Error("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
 			continue
 		}
@@ -2016,39 +2145,39 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 }
 
 func (r *machineResource) machineOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineOnCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineOnCmd, request, response)
 }
 
 func (r *machineResource) machineOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineOffCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineOffCmd, request, response)
 }
 
 func (r *machineResource) machineReset(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineResetCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineResetCmd, request, response)
 }
 
 func (r *machineResource) machineCycle(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineCycleCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineCycleCmd, request, response)
 }
 
 func (r *machineResource) machineBios(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineBiosCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineBiosCmd, request, response)
 }
 
 func (r *machineResource) machineDisk(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineDiskCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachineDiskCmd, request, response)
 }
 
 func (r *machineResource) machinePxe(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachinePxeCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.MachinePxeCmd, request, response)
 }
 
 func (r *machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.ChassisIdentifyLEDOnCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.ChassisIdentifyLEDOnCmd, request, response)
 }
 
 func (r *machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.ChassisIdentifyLEDOffCmd, request, response)
+	r.machineCmd(request.Request.Context(), metal.ChassisIdentifyLEDOffCmd, request, response)
 }
 
 func (r *machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
@@ -2125,7 +2254,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 		},
 	}
 
-	r.logger(request).Infow("publish event", "event", evt, "command", *evt.Cmd)
+	r.logger(request).Info("publish event", "event", evt, "command", *evt.Cmd)
 	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	if err != nil {
 		r.sendError(request, response, httperrors.InternalServerError(err))
@@ -2141,7 +2270,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineCmd(ctx context.Context, cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
 	logger := r.logger(request)
 
 	id := request.PathParameter("id")
@@ -2162,7 +2291,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 			Event:   metal.ProvisioningEventPlannedReboot,
 			Message: string(cmd),
 		}
-		_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
+		_, err = r.ds.ProvisioningEventForMachine(ctx, logger, &ev, id)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -2213,7 +2342,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
+func publishMachineCmd(logger *slog.Logger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
@@ -2223,7 +2352,7 @@ func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bu
 		},
 	}
 
-	logger.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	logger.Info("publish event", "event", evt, "command", *evt.Cmd)
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	if err != nil {
 		return err

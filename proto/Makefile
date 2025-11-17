@@ -1,5 +1,5 @@
 MAKEFLAGS += --no-print-directory
-BUF_VERSION := 1.28.1
+BUF_VERSION := 1.57.0
 
 _buf:
 	docker run --rm \
@@ -11,7 +11,7 @@ _buf:
 
 .PHONY: protolint
 protolint:
-	@$(MAKE)	_buf	CMD="format -w ."
+	@$(MAKE)	_buf	CMD="format -w"
 	@$(MAKE)	_buf	CMD="lint -v"
 
 .PHONY: protoc

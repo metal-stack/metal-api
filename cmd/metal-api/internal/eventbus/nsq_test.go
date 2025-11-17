@@ -1,12 +1,13 @@
 package eventbus
 
 import (
+	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestNewNSQ(t *testing.T) {
@@ -15,8 +16,7 @@ func TestNewNSQ(t *testing.T) {
 		HTTPEndpoint: "rest",
 	}
 	publisher := bus.NewPublisher
-	logger := zap.NewNop()
-
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	actual := NewNSQ(cfg, logger, publisher)
 
 	assert.NotNil(t, actual)
@@ -32,7 +32,7 @@ func TestNSQ_WaitForPublisher(t *testing.T) {
 	}
 	publisher := NopPublisher{}
 
-	nsq := NewNSQ(cfg, zap.NewNop(), func(logger *zap.Logger, config *bus.PublisherConfig) (bus.Publisher, error) {
+	nsq := NewNSQ(cfg, slog.Default(), func(logger *slog.Logger, config *bus.PublisherConfig) (bus.Publisher, error) {
 		assert.Equal(t, cfg.TCPAddress, config.TCPAddress)
 		assert.Equal(t, cfg.HTTPEndpoint, config.HTTPEndpoint)
 		return publisher, nil
@@ -54,7 +54,7 @@ func TestNSQ_WaitForTopicsCreated(t *testing.T) {
 		T:     t,
 		topic: topic.GetFQN(partition.GetID()),
 	}
-	nsq := NewNSQ(nil, zap.NewNop(), func(*zap.Logger, *bus.PublisherConfig) (bus.Publisher, error) {
+	nsq := NewNSQ(nil, slog.Default(), func(*slog.Logger, *bus.PublisherConfig) (bus.Publisher, error) {
 		return nil, nil
 	})
 	assert.NotNil(t, nsq)
