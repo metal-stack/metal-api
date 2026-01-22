@@ -778,7 +778,7 @@ func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []a
 	restful.DefaultContainer.Add(service.NewFilesystemLayout(logger.WithGroup("filesystem-layout-service"), ds))
 	restful.DefaultContainer.Add(service.NewSwitch(logger.WithGroup("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
-	restful.DefaultContainer.Add(service.NewVPN(logger.WithGroup("vpn-service"), headscaleClient))
+	restful.DefaultContainer.Add(service.NewVPN(logger.WithGroup("vpn-service"), headscaleClient, reasonMinLength))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, &rest.VersionOpts{
 		BasePath:         service.BasePath,
 		MinClientVersion: minClientVersion.Original(),
