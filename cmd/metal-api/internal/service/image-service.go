@@ -16,6 +16,9 @@ import (
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/metal-stack/metal-lib/httperrors"
 )
 
@@ -317,10 +320,16 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 		}
 	}
 
+	var errs []error
 	err = checkImageURL(requestPayload.ID, requestPayload.URL)
 	if err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
-		return
+		errs = append(errs, err)
+		err = checkOciImageURI(requestPayload.ID, "", "", requestPayload.URL)
+		if err != nil {
+			errs = append(errs, err)
+			r.sendError(request, response, httperrors.BadRequest(errors.Join(errs...)))
+			return
+		}
 	}
 
 	img := &metal.Image{
@@ -346,15 +355,42 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 	r.send(request, response, http.StatusCreated, v1.NewImageResponse(img))
 }
 
+func checkOciImageURI(id, username, password, uri string) error {
+	ref, err := name.ParseReference(uri)
+	if err != nil {
+		return fmt.Errorf("image reference:%s could not be parsed. error:%w", uri, err)
+	}
+
+	var auth = authn.Anonymous
+	if username != "" || password != "" {
+		auth = &authn.Basic{
+			Username: username,
+			Password: password,
+		}
+	}
+
+	_, err = remote.Head(ref, remote.WithAuth(auth))
+	if err != nil {
+		return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, uri, err)
+	}
+
+	return nil
+}
+
 func checkImageURL(id, url string) error {
-	// nolint
-	res, err := http.Head(url)
+	var (
+		err error
+		res *http.Response
+	)
+
+	res, err = http.Head(url)
 	if err != nil {
 		return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, url, err)
 	}
 	if res.StatusCode >= 400 {
 		return fmt.Errorf("image:%s is not accessible under:%s status:%s", id, url, res.Status)
 	}
+
 	return nil
 }
 
@@ -411,10 +447,16 @@ func (r *imageResource) updateImage(request *restful.Request, response *restful.
 		newImage.Description = *requestPayload.Description
 	}
 	if requestPayload.URL != nil {
+		var errs []error
 		err = checkImageURL(requestPayload.ID, *requestPayload.URL)
 		if err != nil {
-			r.sendError(request, response, httperrors.BadRequest(err))
-			return
+			errs = append(errs, err)
+			err = checkOciImageURI(requestPayload.ID, "", "", *requestPayload.URL)
+			if err != nil {
+				errs = append(errs, err)
+				r.sendError(request, response, httperrors.BadRequest(errors.Join(errs...)))
+				return
+			}
 		}
 
 		newImage.URL = *requestPayload.URL
