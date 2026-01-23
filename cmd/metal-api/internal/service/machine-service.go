@@ -172,6 +172,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Doc("get consolepassword for machine by id").
 		Reads(v1.MachineConsolePasswordRequest{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Include, true).
 		Writes(v1.MachineConsolePasswordResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineConsolePasswordResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
