@@ -1004,12 +1004,9 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 	}
 
 	for i := range 100 {
-		wg.Add(1)
-
 		log := root.With("worker", i)
 
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			for {
 				machine, err := sharedDS.FindWaitingMachine(context.Background(), "project", "partition", size, nil, metal.RoleMachine)
@@ -1052,7 +1049,7 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 
 				return
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
