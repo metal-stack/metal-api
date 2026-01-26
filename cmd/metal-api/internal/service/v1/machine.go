@@ -262,7 +262,7 @@ type MachineResponse struct {
 
 type MachineConsolePasswordRequest struct {
 	ID     string `json:"id" description:"id of the machine to get the consolepassword for"`
-	Reason string `json:"reason" description:"reason why the consolepassword is requested, typically a incident number with short description"`
+	Reason string `json:"reason" description:"reason why the consolepassword is requested, typically an incident number with short description"`
 }
 
 type MachineConsolePasswordResponse struct {
