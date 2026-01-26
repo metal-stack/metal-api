@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -296,6 +298,14 @@ func init() {
 	rootCmd.Flags().String("auditing-timescaledb-user", "", "user for the auditing service")
 	rootCmd.Flags().String("auditing-timescaledb-password", "", "password for the auditing service")
 	rootCmd.Flags().String("auditing-timescaledb-retention", "", "the time until audit traces are cleaned up")
+
+	rootCmd.Flags().String("auditing-splunk-endpoint", "", "endpoint of splunk")
+	rootCmd.Flags().String("auditing-splunk-hec-token", "", "hec token for splunk")
+	rootCmd.Flags().String("auditing-splunk-source", "", "the source used for splunk")
+	rootCmd.Flags().String("auditing-splunk-source-type", "", "the source type used for splunk")
+	rootCmd.Flags().String("auditing-splunk-index", "", "the splunk index")
+	rootCmd.Flags().String("auditing-splunk-host", "", "the splunk host")
+	rootCmd.Flags().String("auditing-splunk-ca", "", "path to a splunk ca")
 
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
 	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
@@ -951,6 +961,60 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 		if viper.GetString("auditing-search-backend") == auditingBackendTimescaleDB {
 			searchBackend = backend
 		}
+	}
+
+	if viper.IsSet("auditing-splunk-endpoint") {
+		host := viper.GetString("auditing-splunk-host")
+		if host == "" {
+			host, err = os.Hostname()
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		source := moduleName
+		if viper.GetString("auditing-splunk-source") != "" {
+			source = viper.GetString("auditing-splunk-source")
+		}
+
+		splunkConfig := auditing.SplunkConfig{
+			Endpoint:   viper.GetString("auditing-splunk-endpoint"),
+			HECToken:   viper.GetString("auditing-splunk-hec-token"),
+			SourceType: viper.GetString("auditing-splunk-source-type"),
+			Index:      viper.GetString("auditing-splunk-index"),
+			Host:       host,
+		}
+		if viper.GetString("auditing-splunk-ca") != "" {
+			caCert, err := os.ReadFile(viper.GetString("auditing-splunk-ca"))
+			if err != nil {
+				return nil, nil, fmt.Errorf("unable to read ca cert: %w", err)
+			}
+
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+			splunkConfig.TlsConfig = &tls.Config{
+				RootCAs:    caCertPool,
+				MinVersion: tls.VersionTLS12,
+			}
+		}
+
+		splunkBackend, err := auditing.NewSplunk(auditing.Config{
+			Component: source,
+			Log:       log,
+		}, splunkConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		asyncSplunkBackend, err := auditing.NewAsync(splunkBackend, log, auditing.AsyncConfig{
+			AsyncRetry:   3,
+			AsyncBackoff: pointer.Pointer(1 * time.Second),
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+
+		backends = append(backends, asyncSplunkBackend)
 	}
 
 	if searchBackend == nil {
