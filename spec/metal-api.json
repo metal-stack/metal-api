@@ -2413,7 +2413,7 @@
           "type": "string"
         },
         "reason": {
-          "description": "reason why the consolepassword is requested, typically a incident number with short description",
+          "description": "reason why the consolepassword is requested, typically an incident number with short description",
           "type": "string"
         }
       },
@@ -5891,11 +5891,16 @@
         "pid": {
           "description": "project ID",
           "type": "string"
+        },
+        "reason": {
+          "description": "reason why the vpn key is requested, typically an incident number with short description",
+          "type": "string"
         }
       },
       "required": [
         "ephemeral",
-        "pid"
+        "pid",
+        "reason"
       ]
     },
     "v1.VPNResponse": {
