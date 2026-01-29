@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -320,16 +321,10 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 		}
 	}
 
-	var errs []error
-	err = checkImageURL(requestPayload.ID, requestPayload.URL)
+	err = checkImageURL(requestPayload.ID, requestPayload.URL, "", "")
 	if err != nil {
-		errs = append(errs, err)
-		err = checkOciImageURI(requestPayload.ID, "", "", requestPayload.URL)
-		if err != nil {
-			errs = append(errs, err)
-			r.sendError(request, response, httperrors.BadRequest(errors.Join(errs...)))
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
 	}
 
 	img := &metal.Image{
@@ -355,40 +350,33 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 	r.send(request, response, http.StatusCreated, v1.NewImageResponse(img))
 }
 
-func checkOciImageURI(id, username, password, uri string) error {
-	ref, err := name.ParseReference(uri)
-	if err != nil {
-		return fmt.Errorf("image reference:%s could not be parsed. error:%w", uri, err)
-	}
-
-	var auth = authn.Anonymous
-	if username != "" || password != "" {
-		auth = &authn.Basic{
-			Username: username,
-			Password: password,
+func checkImageURL(id, url, username, password string) error {
+	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+		res, err := http.Head(url)
+		if err != nil {
+			return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, url, err)
 		}
-	}
+		if res.StatusCode >= 400 {
+			return fmt.Errorf("image:%s is not accessible under:%s status:%s", id, url, res.Status)
+		}
+	} else {
+		ref, err := name.ParseReference(url)
+		if err != nil {
+			return fmt.Errorf("image reference:%s could not be parsed. error:%w", url, err)
+		}
 
-	_, err = remote.Head(ref, remote.WithAuth(auth))
-	if err != nil {
-		return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, uri, err)
-	}
+		var auth = authn.Anonymous
+		if username != "" || password != "" {
+			auth = &authn.Basic{
+				Username: username,
+				Password: password,
+			}
+		}
 
-	return nil
-}
-
-func checkImageURL(id, url string) error {
-	var (
-		err error
-		res *http.Response
-	)
-
-	res, err = http.Head(url)
-	if err != nil {
-		return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, url, err)
-	}
-	if res.StatusCode >= 400 {
-		return fmt.Errorf("image:%s is not accessible under:%s status:%s", id, url, res.Status)
+		_, err = remote.Head(ref, remote.WithAuth(auth))
+		if err != nil {
+			return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, url, err)
+		}
 	}
 
 	return nil
@@ -447,16 +435,10 @@ func (r *imageResource) updateImage(request *restful.Request, response *restful.
 		newImage.Description = *requestPayload.Description
 	}
 	if requestPayload.URL != nil {
-		var errs []error
-		err = checkImageURL(requestPayload.ID, *requestPayload.URL)
+		err = checkImageURL(requestPayload.ID, *requestPayload.URL, "", "")
 		if err != nil {
-			errs = append(errs, err)
-			err = checkOciImageURI(requestPayload.ID, "", "", *requestPayload.URL)
-			if err != nil {
-				errs = append(errs, err)
-				r.sendError(request, response, httperrors.BadRequest(errors.Join(errs...)))
-				return
-			}
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
 		}
 
 		newImage.URL = *requestPayload.URL

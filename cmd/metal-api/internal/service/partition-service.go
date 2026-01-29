@@ -175,16 +175,10 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
 	}
 
-	var errs []error
-	err = checkImageURL("image", imageURL)
+	err = checkImageURL("image", imageURL, "", "")
 	if err != nil {
-		errs = append(errs, err)
-		err = checkOciImageURI("image", "", "", imageURL)
-		if err != nil {
-			errs = append(errs, err)
-			r.sendError(request, response, httperrors.BadRequest(errors.Join(errs...)))
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
 	}
 
 	var kernelURL string
@@ -192,16 +186,10 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		kernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
 	}
 
-	errs = []error{}
-	err = checkImageURL("kernel", imageURL)
+	err = checkImageURL("kernel", kernelURL, "", "")
 	if err != nil {
-		errs = append(errs, err)
-		err = checkOciImageURI("kernel", "", "", imageURL)
-		if err != nil {
-			errs = append(errs, err)
-			r.sendError(request, response, httperrors.BadRequest(errors.Join(errs...)))
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
 	}
 
 	var commandLine string
@@ -289,8 +277,8 @@ func (r *partitionResource) deletePartition(request *restful.Request, response *
 func (r *partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
 	var (
 		requestPayload v1.PartitionUpdateRequest
-		errs           []error
 	)
+
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
@@ -318,31 +306,20 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 		newPartition.Labels = requestPayload.Labels
 	}
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
-		err = checkImageURL("image", *requestPayload.PartitionBootConfiguration.ImageURL)
+		err = checkImageURL("image", *requestPayload.PartitionBootConfiguration.ImageURL, "", "")
 		if err != nil {
-			errs = append(errs, err)
-			err = checkOciImageURI("image", "", "", *requestPayload.PartitionBootConfiguration.ImageURL)
-			if err != nil {
-				errs = append(errs, err)
-				r.sendError(request, response, httperrors.BadRequest(errors.Join(errs...)))
-				return
-			}
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
 		}
 
 		newPartition.BootConfiguration.ImageURL = *requestPayload.PartitionBootConfiguration.ImageURL
 	}
 
 	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
-		errs = []error{}
-		err = checkImageURL("kernel", *requestPayload.PartitionBootConfiguration.KernelURL)
+		err = checkImageURL("image", *requestPayload.PartitionBootConfiguration.KernelURL, "", "")
 		if err != nil {
-			errs = append(errs, err)
-			err = checkOciImageURI("kernel", "", "", *requestPayload.PartitionBootConfiguration.KernelURL)
-			if err != nil {
-				errs = append(errs, err)
-				r.sendError(request, response, httperrors.BadRequest(errors.Join(errs...)))
-				return
-			}
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
 		}
 
 		newPartition.BootConfiguration.KernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
