@@ -108,6 +108,48 @@ func TestDeleteImage(t *testing.T) {
 	require.Equal(t, testdata.Img3.Name, *result.Name)
 }
 
+func TestCheckImageURL(t *testing.T) {
+	t.Run("Invalid URL", func(t *testing.T) {
+		err := checkImageURL("testID", "http://invalid-ürl", nil)
+		require.EqualError(t, err, "image:testID is not accessible under:http://invalid-ürl error:Head \"http://invalid-%C3%BCrl\": dial tcp: lookup xn--invalid-rl-heb: no such host")
+	})
+
+	t.Run("HTTP URL with successful HEAD request", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		err := checkImageURL("testID", server.URL, nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("HTTP URL with unsuccessful HEAD request", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		}))
+		defer server.Close()
+
+		err := checkImageURL("testID", server.URL, nil)
+		require.EqualError(t, err, "image:testID is not accessible under:"+server.URL+" status:404 Not Found")
+	})
+
+	t.Run("Unsupported scheme", func(t *testing.T) {
+		err := checkImageURL("testID", "ftp://unsupported.url", nil)
+		require.EqualError(t, err, "image:testID with url:ftp://unsupported.url has unkown protocol")
+	})
+
+	t.Run("valid OCI URL", func(t *testing.T) {
+		err := checkImageURL("testID", "oci://ghcr.io/metal-stack/debian:latest", nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("OCI URL with invalid reference", func(t *testing.T) {
+		err := checkImageURL("testID", "oci://inva lid", nil)
+		require.EqualError(t, err, "image reference:oci://inva lid could not be parsed. error:could not parse reference: inva lid")
+	})
+}
+
 func TestCreateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)

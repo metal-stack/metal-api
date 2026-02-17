@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -351,12 +351,9 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 }
 
 func checkImageURL(id, inputURL string, ociCredentials authn.Authenticator) error {
-	parsedURL, err := url.Parse(inputURL)
-	if err != nil {
-		return fmt.Errorf("image:%s with url:%s could not be parsed. error:%w", id, inputURL, err)
-	}
+	parsedURL := strings.Split(inputURL, "://")
 
-	switch parsedURL.Scheme {
+	switch parsedURL[0] {
 	case "http", "https":
 		res, err := http.Head(inputURL)
 		if err != nil {
@@ -366,7 +363,7 @@ func checkImageURL(id, inputURL string, ociCredentials authn.Authenticator) erro
 			return fmt.Errorf("image:%s is not accessible under:%s status:%s", id, inputURL, res.Status)
 		}
 	case "oci":
-		ref, err := name.ParseReference(inputURL)
+		ref, err := name.ParseReference(parsedURL[1])
 		if err != nil {
 			return fmt.Errorf("image reference:%s could not be parsed. error:%w", inputURL, err)
 		}
@@ -375,12 +372,12 @@ func checkImageURL(id, inputURL string, ociCredentials authn.Authenticator) erro
 			ociCredentials = authn.Anonymous
 		}
 
-		_, err = remote.Head(ref, remote.WithAuth(ociCredentials))
+		_, err = remote.Image(ref, remote.WithAuth(ociCredentials))
 		if err != nil {
 			return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, inputURL, err)
 		}
 	default:
-		return fmt.Errorf("image:%s with url:%s has unkown protocol. error:%w", id, inputURL, err)
+		return fmt.Errorf("image:%s with url:%s has unkown protocol", id, inputURL)
 	}
 
 	return nil
