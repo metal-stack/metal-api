@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -355,6 +356,11 @@ func checkImageURL(id, inputURL string, ociCredentials authn.Authenticator) erro
 
 	switch parsedURL[0] {
 	case "http", "https":
+		_, err := url.ParseRequestURI(inputURL)
+		if err != nil {
+			return fmt.Errorf("image:%s could not be parsed. error:%w", inputURL, err)
+		}
+
 		res, err := http.Head(inputURL)
 		if err != nil {
 			return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, inputURL, err)

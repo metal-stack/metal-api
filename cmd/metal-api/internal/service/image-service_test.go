@@ -110,8 +110,8 @@ func TestDeleteImage(t *testing.T) {
 
 func TestCheckImageURL(t *testing.T) {
 	t.Run("Invalid URL", func(t *testing.T) {
-		err := checkImageURL("testID", "http://invalid-ürl", nil)
-		require.EqualError(t, err, "image:testID is not accessible under:http://invalid-ürl error:Head \"http://invalid-%C3%BCrl\": dial tcp: lookup xn--invalid-rl-heb: no such host")
+		err := checkImageURL("testID", "http://invalid url", nil)
+		require.EqualError(t, err, "image:http://invalid url could not be parsed. error:parse \"http://invalid url\": invalid character \" \" in host name")
 	})
 
 	t.Run("HTTP URL with successful HEAD request", func(t *testing.T) {
