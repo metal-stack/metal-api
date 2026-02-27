@@ -15,26 +15,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//nolint:deadcode,unused
+//nolint:unused
 type emptyBody struct{}
 
-func webRequestPut(t require.TestingT, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequestPut(t require.TestingT, service *restful.WebService, user *security.User, request any, path string, response any) int {
 	return webRequest(t, http.MethodPut, service, user, request, path, response)
 }
 
-func webRequestPost(t require.TestingT, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequestPost(t require.TestingT, service *restful.WebService, user *security.User, request any, path string, response any) int {
 	return webRequest(t, http.MethodPost, service, user, request, path, response)
 }
 
-func webRequestDelete(t require.TestingT, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequestDelete(t require.TestingT, service *restful.WebService, user *security.User, request any, path string, response any) int {
 	return webRequest(t, http.MethodDelete, service, user, request, path, response)
 }
 
-func webRequestGet(t require.TestingT, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequestGet(t require.TestingT, service *restful.WebService, user *security.User, request any, path string, response any) int {
 	return webRequest(t, http.MethodGet, service, user, request, path, response)
 }
 
-func webRequest(t require.TestingT, method string, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequest(t require.TestingT, method string, service *restful.WebService, user *security.User, request any, path string, response any) int {
 	container := restful.NewContainer().Add(service)
 
 	jsonBody, err := json.Marshal(request)
@@ -98,7 +98,7 @@ func MockAuth(user *security.User) restful.FilterFunction {
 type NopPublisher struct {
 }
 
-func (p NopPublisher) Publish(topic string, data interface{}) error {
+func (p NopPublisher) Publish(topic string, data any) error {
 	return nil
 }
 

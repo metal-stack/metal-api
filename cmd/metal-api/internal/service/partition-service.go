@@ -455,7 +455,6 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	)
 
 	for _, m := range ms {
-		m := m
 
 		ec, ok := ecsByID[m.ID]
 		if !ok {
@@ -530,7 +529,6 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 	res := []v1.PartitionCapacity{}
 	for _, pc := range pcs {
-		pc := pc
 
 		for _, cap := range pc.ServerCapacities {
 			size := sizesByID[cap.Size]

@@ -37,7 +37,7 @@ var (
 // MustRegisterMigration registers a migration and panics when a problem occurs
 func MustRegisterMigration(m Migration) {
 	if m.Version < 1 {
-		panic(fmt.Sprintf("migrations should start from version number '1', but found version %q", m.Version))
+		panic(fmt.Sprintf("migrations should start from version number '1', but found version %d", m.Version))
 	}
 	migrationRegisterLock.Lock()
 	defer migrationRegisterLock.Unlock()
@@ -127,13 +127,13 @@ func (rs *RethinkStore) Migrate(targetVersion *int, dry bool) error {
 	}
 
 	rs.log.Info("setting demoted runtime user to read only", "user", DemotedUser)
-	_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": false}).RunWrite(rs.session)
+	_, err = rs.db().Grant(DemotedUser, map[string]any{"read": true, "write": false}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		rs.log.Info("removing read only", "user", DemotedUser)
-		_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": true}).RunWrite(rs.session)
+		_, err = rs.db().Grant(DemotedUser, map[string]any{"read": true, "write": true}).RunWrite(rs.session)
 		if err != nil {
 			rs.log.Error("error giving back write permissions", "user", DemotedUser)
 		}

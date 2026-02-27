@@ -37,8 +37,6 @@ func (s *SizeSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for k, v := range s.Labels {
-		k := k
-		v := v
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("labels").Field(k).Eq(v)
 		})

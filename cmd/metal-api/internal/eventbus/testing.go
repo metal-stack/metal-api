@@ -6,7 +6,7 @@ import (
 
 type noopPublisher struct{}
 
-func (n *noopPublisher) Publish(topic string, data interface{}) error {
+func (n *noopPublisher) Publish(topic string, data any) error {
 	return nil
 }
 

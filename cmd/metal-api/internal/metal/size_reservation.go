@@ -39,7 +39,6 @@ func (rs *SizeReservations) ForPartition(partitionID string) SizeReservations {
 
 	var result SizeReservations
 	for _, r := range *rs {
-		r := r
 		if slices.Contains(r.PartitionIDs, partitionID) {
 			result = append(result, r)
 		}

@@ -2,7 +2,7 @@ package issues
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -41,7 +41,6 @@ func (i *issueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEven
 	}
 
 	for _, n := range m.Allocation.MachineNetworks {
-		n := n
 
 		if n.ASN == 0 {
 			continue
@@ -51,7 +50,6 @@ func (i *issueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEven
 	}
 
 	for _, machineFromAll := range c.Machines {
-		machineFromAll := machineFromAll
 
 		if machineFromAll.ID == m.ID {
 			continue
@@ -63,7 +61,6 @@ func (i *issueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEven
 		}
 
 		for _, n := range otherMachine.Allocation.MachineNetworks {
-			n := n
 
 			if n.ASN == 0 {
 				continue
@@ -80,15 +77,11 @@ func (i *issueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEven
 
 	var asnList []uint32
 	for asn := range machineASNs {
-		asn := asn
 		asnList = append(asnList, asn)
 	}
-	sort.Slice(asnList, func(i, j int) bool {
-		return asnList[i] < asnList[j]
-	})
+	slices.Sort(asnList)
 
 	for _, asn := range asnList {
-		asn := asn
 
 		overlappingMachines, ok := machineASNs[asn]
 		if !ok || len(overlappingMachines) == 0 {
@@ -97,7 +90,6 @@ func (i *issueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEven
 
 		var sharedIDs []string
 		for _, m := range overlappingMachines {
-			m := m
 			sharedIDs = append(sharedIDs, m.ID)
 		}
 
@@ -108,9 +100,7 @@ func (i *issueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEven
 		return false
 	}
 
-	sort.Slice(overlaps, func(i, j int) bool {
-		return overlaps[i] < overlaps[j]
-	})
+	slices.Sort(overlaps)
 
 	i.details = strings.Join(overlaps, "\n")
 

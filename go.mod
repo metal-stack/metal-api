@@ -1,6 +1,6 @@
 module github.com/metal-stack/metal-api
 
-go 1.25
+go 1.26
 
 require (
 	connectrpc.com/connect v1.19.1

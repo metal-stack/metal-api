@@ -70,7 +70,7 @@ type NopPublisher struct {
 	topic string
 }
 
-func (p NopPublisher) Publish(topic string, data interface{}) error {
+func (p NopPublisher) Publish(topic string, data any) error {
 	return nil
 }
 
