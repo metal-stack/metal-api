@@ -1,6 +1,7 @@
 package tags
 
 import (
+	"slices"
 	"sort"
 	"strings"
 )
@@ -19,12 +20,7 @@ func New(tags []string) *Tags {
 
 // Has checks whether the given tag is contained in the tags.
 func (t *Tags) Has(tag string) bool {
-	for _, t := range t.tags {
-		if t == tag {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(t.tags, tag)
 }
 
 // HasPrefix checks whether the given prefix is contained in the tags.
@@ -63,8 +59,8 @@ func (t *Tags) Remove(tag string) bool {
 func (t *Tags) Values(prefix string) []string {
 	values := []string{}
 	for _, t := range t.tags {
-		if strings.HasPrefix(t, prefix) {
-			values = append(values, strings.TrimPrefix(t, prefix))
+		if after, ok := strings.CutPrefix(t, prefix); ok {
+			values = append(values, after)
 		}
 	}
 	return values

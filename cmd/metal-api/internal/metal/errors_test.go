@@ -9,7 +9,7 @@ func TestNotFound(t *testing.T) {
 	tests := []struct {
 		name    string
 		format  string
-		args    []interface{}
+		args    []any
 		wantErr bool
 	}{
 		{

@@ -19,7 +19,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/assert"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -344,9 +343,9 @@ func Test_ListSizeReservationsUsage(t *testing.T) {
 		{
 			name: "list reservations usage",
 			req: &v1.SizeReservationListRequest{
-				SizeID:      pointer.Pointer("1"),
-				ProjectID:   pointer.Pointer("p1"),
-				PartitionID: pointer.Pointer("a"),
+				SizeID:      new("1"),
+				ProjectID:   new("p1"),
+				PartitionID: new("a"),
 			},
 			dbMockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.SizeReservations{
@@ -380,8 +379,8 @@ func Test_ListSizeReservationsUsage(t *testing.T) {
 							ID: "1",
 						},
 						Describable: v1.Describable{
-							Name:        pointer.Pointer(""),
-							Description: pointer.Pointer(""),
+							Name:        new(""),
+							Description: new(""),
 						},
 					},
 					SizeID:             "1",
@@ -446,7 +445,7 @@ func Test_ListSizeReservations(t *testing.T) {
 				{
 					Common: v1.Common{
 						Identifiable: v1.Identifiable{ID: "1"},
-						Describable:  v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Describable:  v1.Describable{Name: new(""), Description: new("")},
 					},
 					SizeID:       "1",
 					PartitionIDs: []string{"a"},
@@ -493,9 +492,9 @@ func Test_FindSizeReservationsUsage(t *testing.T) {
 		{
 			name: "find reservations",
 			req: &v1.SizeReservationListRequest{
-				SizeID:      pointer.Pointer("1"),
-				ProjectID:   pointer.Pointer("p1"),
-				PartitionID: pointer.Pointer("a"),
+				SizeID:      new("1"),
+				ProjectID:   new("p1"),
+				PartitionID: new("a"),
 			},
 			dbMockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.SizeReservations{
@@ -517,8 +516,8 @@ func Test_FindSizeReservationsUsage(t *testing.T) {
 							ID: "1",
 						},
 						Describable: v1.Describable{
-							Name:        pointer.Pointer(""),
-							Description: pointer.Pointer(""),
+							Name:        new(""),
+							Description: new(""),
 						},
 					},
 					SizeID:       "1",
@@ -583,8 +582,8 @@ func Test_GetSizeReservationsUsage(t *testing.T) {
 						ID: "1",
 					},
 					Describable: v1.Describable{
-						Name:        pointer.Pointer(""),
-						Description: pointer.Pointer(""),
+						Name:        new(""),
+						Description: new(""),
 					},
 				},
 				SizeID:       "1",
@@ -650,8 +649,8 @@ func Test_DeleteSizeReservationsUsage(t *testing.T) {
 						ID: "1",
 					},
 					Describable: v1.Describable{
-						Name:        pointer.Pointer(""),
-						Description: pointer.Pointer(""),
+						Name:        new(""),
+						Description: new(""),
 					},
 				},
 				SizeID:       "1",
@@ -703,7 +702,7 @@ func Test_CreateSizeReservationsUsage(t *testing.T) {
 						ID: "1",
 					},
 					Describable: v1.Describable{
-						Description: pointer.Pointer("a description"),
+						Description: new("a description"),
 					},
 				},
 				SizeID:       "1",
@@ -728,8 +727,8 @@ func Test_CreateSizeReservationsUsage(t *testing.T) {
 						ID: "1",
 					},
 					Describable: v1.Describable{
-						Name:        pointer.Pointer(""),
-						Description: pointer.Pointer("a description"),
+						Name:        new(""),
+						Description: new("a description"),
 					},
 				},
 				SizeID:       "1",
@@ -781,10 +780,10 @@ func Test_UpdateSizeReservationsUsage(t *testing.T) {
 			req: &v1.SizeReservationUpdateRequest{
 				Common: v1.Common{
 					Identifiable: v1.Identifiable{ID: "1"},
-					Describable:  v1.Describable{Description: pointer.Pointer("b description")},
+					Describable:  v1.Describable{Description: new("b description")},
 				},
 				PartitionIDs: []string{"b"},
-				Amount:       pointer.Pointer(4),
+				Amount:       new(4),
 				Labels:       map[string]string{"c": "d"},
 			},
 			dbMockFn: func(mock *r.Mock) {
@@ -802,8 +801,8 @@ func Test_UpdateSizeReservationsUsage(t *testing.T) {
 						ID: "1",
 					},
 					Describable: v1.Describable{
-						Name:        pointer.Pointer(""),
-						Description: pointer.Pointer("b description"),
+						Name:        new(""),
+						Description: new("b description"),
 					},
 				},
 				SizeID:       "1",

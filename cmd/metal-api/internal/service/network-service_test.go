@@ -105,7 +105,7 @@ func TestGetNetworkNotFound(t *testing.T) {
 
 func TestDeleteNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
-	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{}, nil)
+	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]any{}, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
@@ -131,7 +131,7 @@ func TestDeleteNetwork(t *testing.T) {
 
 func TestDeleteNetworkIPInUse(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
-	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{}, nil)
+	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]any{}, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, true)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
@@ -236,7 +236,7 @@ func TestSearchNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.NoError(t, err)
-	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{testdata.Nw1}, nil)
+	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]any{testdata.Nw1}, nil)
 	testdata.InitMockDBData(mock)
 	log := slog.Default()
 
@@ -502,7 +502,7 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 	}
 	for _, tt := range tests {
 		ds, mock := datastore.InitMockDB(t)
-		changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(42)}}}
+		changes := []r.ChangeResponse{{OldValue: map[string]any{"id": float64(42)}}}
 		mock.On(r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.
 			DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 

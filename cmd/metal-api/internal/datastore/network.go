@@ -106,8 +106,6 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 	}
 
 	for k, v := range p.Labels {
-		k := k
-		v := v
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("labels").Field(k).Eq(v)
 		})

@@ -54,7 +54,7 @@ func RestfulMetrics(req *restful.Request, resp *restful.Response, chain *restful
 	duration.WithLabelValues(req.SelectedRoutePath(), req.Request.Method).Observe(time.Since(n).Seconds())
 }
 
-func GrpcMetrics(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+func GrpcMetrics(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 	n := time.Now()
 	resp, err = handler(ctx, req)
 	grpcDuration.WithLabelValues(info.FullMethod).Observe(time.Since(n).Seconds())

@@ -23,7 +23,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func TestRegisterSwitch(t *testing.T) {
@@ -1995,8 +1994,8 @@ func Test_SwitchDelete(t *testing.T) {
 						ID: "switch-1",
 					},
 					Describable: v1.Describable{
-						Name:        pointer.Pointer(""),
-						Description: pointer.Pointer(""),
+						Name:        new(""),
+						Description: new(""),
 					},
 				},
 				Nics:        v1.SwitchNics{},
@@ -2046,8 +2045,8 @@ func Test_SwitchDelete(t *testing.T) {
 						ID: "switch-1",
 					},
 					Describable: v1.Describable{
-						Name:        pointer.Pointer(""),
-						Description: pointer.Pointer(""),
+						Name:        new(""),
+						Description: new(""),
 					},
 				},
 				Nics:        v1.SwitchNics{},

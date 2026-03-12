@@ -567,7 +567,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			)
 
 			for _, r := range m.Allocation.FirewallRules.Egress {
-				r := r
 				egressRules = append(egressRules, FirewallEgressRule{
 					Protocol: strings.ToLower(string(r.Protocol)),
 					Ports:    r.Ports,
@@ -576,7 +575,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				})
 			}
 			for _, r := range m.Allocation.FirewallRules.Ingress {
-				r := r
 				ingressRules = append(ingressRules, FirewallIngressRule{
 					Protocol: strings.ToLower(string(r.Protocol)),
 					Ports:    r.Ports,

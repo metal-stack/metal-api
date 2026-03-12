@@ -134,7 +134,6 @@ func EvaluateVPNConnected(log *slog.Logger, ds *datastore.RethinkStore, lister h
 
 	var errs []error
 	for _, m := range ms {
-		m := m
 		if m.Allocation == nil || m.Allocation.VPN == nil {
 			continue
 		}
