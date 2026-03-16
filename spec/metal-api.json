@@ -3844,6 +3844,14 @@
           "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
+        "nattype": {
+          "description": "apiv2 nat type",
+          "type": "string"
+        },
+        "networktype": {
+          "description": "apiv2 network type",
+          "type": "string"
+        },
         "parentnetworkid": {
           "description": "the id of the parent network",
           "type": "string"
@@ -3889,6 +3897,8 @@
         "destinationprefixes",
         "id",
         "nat",
+        "nattype",
+        "networktype",
         "prefixes",
         "privatesuper",
         "underlay"
@@ -3979,6 +3989,14 @@
           "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
+        "nattype": {
+          "description": "apiv2 nat type",
+          "type": "string"
+        },
+        "networktype": {
+          "description": "apiv2 network type",
+          "type": "string"
+        },
         "parentnetworkid": {
           "description": "the id of the parent network",
           "type": "string"
@@ -4011,6 +4029,8 @@
       "required": [
         "destinationprefixes",
         "nat",
+        "nattype",
+        "networktype",
         "prefixes",
         "privatesuper",
         "underlay"
@@ -4078,6 +4098,14 @@
           "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
+        "nattype": {
+          "description": "apiv2 nat type",
+          "type": "string"
+        },
+        "networktype": {
+          "description": "apiv2 network type",
+          "type": "string"
+        },
         "parentnetworkid": {
           "description": "the id of the parent network",
           "type": "string"
@@ -4128,6 +4156,8 @@
         "destinationprefixes",
         "id",
         "nat",
+        "nattype",
+        "networktype",
         "prefixes",
         "privatesuper",
         "underlay",
