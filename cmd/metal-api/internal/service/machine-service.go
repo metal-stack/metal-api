@@ -1714,6 +1714,9 @@ func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer 
 		Underlay:            n.networkType.Underlay,
 		Nat:                 n.network.Nat,
 		Vrf:                 n.network.Vrf,
+		ProjectID:           n.network.ProjectID,
+		NetworkTypeV2:       pointer.SafeDeref(n.network.NetworkType),
+		NATTypeV2:           pointer.SafeDeref(n.network.NATType),
 	}
 
 	return &machineNetwork, nil
