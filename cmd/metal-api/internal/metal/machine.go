@@ -378,20 +378,23 @@ func (ms Machines) WithRole(role Role) Machines {
 
 // MachineNetwork stores the Network details of the machine
 type MachineNetwork struct {
-	NetworkID           string        `rethinkdb:"networkid" json:"networkid"`
-	Prefixes            []string      `rethinkdb:"prefixes" json:"prefixes"`
-	IPs                 []string      `rethinkdb:"ips" json:"ips"`
-	DestinationPrefixes []string      `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
-	Vrf                 uint          `rethinkdb:"vrf" json:"vrf"`
-	PrivatePrimary      bool          `rethinkdb:"privateprimary" json:"privateprimary"`
-	Private             bool          `rethinkdb:"private" json:"private"`
-	ASN                 uint32        `rethinkdb:"asn" json:"asn"`
-	Nat                 bool          `rethinkdb:"nat" json:"nat"`
-	Underlay            bool          `rethinkdb:"underlay" json:"underlay"`
-	Shared              bool          `rethinkdb:"shared" json:"shared"`
-	ProjectID           string        `rethinkdb:"projectid" json:"projectid"`
-	NetworkTypeV2       NetworkTypeV2 `rethinkdb:"networktype" json:"networktype"`
-	NATTypeV2           NATType       `rethinkdb:"nattype" json:"nattype"`
+	NetworkID           string   `rethinkdb:"networkid" json:"networkid"`
+	Prefixes            []string `rethinkdb:"prefixes" json:"prefixes"`
+	IPs                 []string `rethinkdb:"ips" json:"ips"`
+	DestinationPrefixes []string `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+	Vrf                 uint     `rethinkdb:"vrf" json:"vrf"`
+	PrivatePrimary      bool     `rethinkdb:"privateprimary" json:"privateprimary"`
+	Private             bool     `rethinkdb:"private" json:"private"`
+	ASN                 uint32   `rethinkdb:"asn" json:"asn"`
+	Nat                 bool     `rethinkdb:"nat" json:"nat"`
+	Underlay            bool     `rethinkdb:"underlay" json:"underlay"`
+	Shared              bool     `rethinkdb:"shared" json:"shared"`
+	// The following 3 properties are persisted only for new machines, existing machine allocations will be updated
+	// This required to enable forward compatibility to apiv2
+	// TODO carry over these properties to metal-apiserver as well
+	ProjectID     string        `rethinkdb:"projectid" json:"projectid"`
+	NetworkTypeV2 NetworkTypeV2 `rethinkdb:"networktype" json:"networktype"`
+	NATTypeV2     NATType       `rethinkdb:"nattype" json:"nattype"`
 }
 
 // NetworkType represents the type of a network
