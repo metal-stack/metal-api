@@ -97,11 +97,16 @@ func (rs *RethinkStore) SearchSwitches(q *SwitchSearchQuery, ss *metal.Switches)
 	return rs.searchEntities(q.generateTerm(rs), ss)
 }
 
-// SearchSwitchesConnectedToMachine searches switches that are connected to the given machine.
+// SearchSwitchesConnectedToMachine searches switches that are connected to the given machine in the machine's rack.
 func (rs *RethinkStore) SearchSwitchesConnectedToMachine(m *metal.Machine) (metal.Switches, error) {
+	return rs.SearchSwitchesConnectedToMachineInRack(m, &m.RackID)
+}
+
+// SearchSwitchesConnectedToMachineInRack search for machine connections in a specific rack or in all racks if rack == nil.
+func (rs *RethinkStore) SearchSwitchesConnectedToMachineInRack(m *metal.Machine, rack *string) (metal.Switches, error) {
 	switches := metal.Switches{}
 
-	err := rs.SearchSwitches(&SwitchSearchQuery{RackID: &m.RackID}, &switches)
+	err := rs.SearchSwitches(&SwitchSearchQuery{RackID: rack}, &switches)
 	if err != nil {
 		return nil, err
 	}

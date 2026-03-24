@@ -1860,7 +1860,7 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 		return
 	}
 
-	switches, err := r.ds.SearchSwitchesConnectedToMachine(m)
+	switches, err := r.ds.SearchSwitchesConnectedToMachineInRack(m, nil)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
