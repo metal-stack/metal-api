@@ -111,7 +111,7 @@ func TestDeleteImage(t *testing.T) {
 func TestCheckImageURL(t *testing.T) {
 	t.Run("Invalid URL", func(t *testing.T) {
 		err := checkImageURL("testID", "http://invalid url", nil)
-		require.EqualError(t, err, "image:http://invalid url could not be parsed. error:parse \"http://invalid url\": invalid character \" \" in host name")
+		require.EqualError(t, err, "inputURL: \"http://invalid url\" could not be parsed, error: parse \"http://invalid url\": invalid character \" \" in host name")
 	})
 
 	t.Run("HTTP URL with successful HEAD request", func(t *testing.T) {
@@ -131,12 +131,12 @@ func TestCheckImageURL(t *testing.T) {
 		defer server.Close()
 
 		err := checkImageURL("testID", server.URL, nil)
-		require.EqualError(t, err, "image:testID is not accessible under:"+server.URL+" status:404 Not Found")
+		require.EqualError(t, err, "image:\"testID\" is not accessible under:"+server.URL+", status:404 Not Found")
 	})
 
 	t.Run("Unsupported scheme", func(t *testing.T) {
 		err := checkImageURL("testID", "ftp://unsupported.url", nil)
-		require.EqualError(t, err, "image:testID with url:ftp://unsupported.url has unkown protocol")
+		require.EqualError(t, err, "image: \"testID\" with url: ftp://unsupported.url has unknown protocol")
 	})
 
 	t.Run("valid OCI URL", func(t *testing.T) {
@@ -146,7 +146,7 @@ func TestCheckImageURL(t *testing.T) {
 
 	t.Run("OCI URL with invalid reference", func(t *testing.T) {
 		err := checkImageURL("testID", "oci://inva lid", nil)
-		require.EqualError(t, err, "image reference:oci://inva lid could not be parsed. error:could not parse reference: inva lid")
+		require.EqualError(t, err, "inputURL: \"oci://inva lid\" could not be parsed, error: parse \"oci://inva lid\": invalid character \" \" in host name")
 	})
 }
 
@@ -244,7 +244,7 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err)
-	require.Equal(t, "image:image-1 is not accessible under:http://images.metal-stack.io/this-file-does-not-exist status:404 Not Found", result.Message)
+	require.Equal(t, "image:\"image-1\" is not accessible under:http://images.metal-stack.io/this-file-does-not-exist, status:404 Not Found", result.Message)
 }
 
 func TestCreateImageWithClassification(t *testing.T) {

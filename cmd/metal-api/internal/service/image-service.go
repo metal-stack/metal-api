@@ -352,26 +352,25 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 }
 
 func checkImageURL(id, inputURL string, ociCredentials authn.Authenticator) error {
-	parsedURL := strings.Split(inputURL, "://")
+	parsedURL, err := url.Parse(inputURL)
+	if err != nil {
+		return fmt.Errorf("inputURL: %q could not be parsed, error: %w", inputURL, err)
+	}
 
-	switch parsedURL[0] {
+	switch parsedURL.Scheme {
 	case "http", "https":
-		_, err := url.ParseRequestURI(inputURL)
+		res, err := http.Head(parsedURL.String())
 		if err != nil {
-			return fmt.Errorf("image:%s could not be parsed. error:%w", inputURL, err)
-		}
-
-		res, err := http.Head(inputURL)
-		if err != nil {
-			return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, inputURL, err)
+			return fmt.Errorf("image: %q is not accessible under:%s, error: %w", id, inputURL, err)
 		}
 		if res.StatusCode >= 400 {
-			return fmt.Errorf("image:%s is not accessible under:%s status:%s", id, inputURL, res.Status)
+			return fmt.Errorf("image:%q is not accessible under:%s, status:%s", id, inputURL, res.Status)
 		}
 	case "oci":
-		ref, err := name.ParseReference(parsedURL[1])
+		parsedURLWithoutScheme := strings.TrimPrefix(parsedURL.String(), "oci://")
+		ref, err := name.ParseReference(parsedURLWithoutScheme)
 		if err != nil {
-			return fmt.Errorf("image reference:%s could not be parsed. error:%w", inputURL, err)
+			return fmt.Errorf("image reference: %q could not be parsed, error: %w", inputURL, err)
 		}
 
 		if ociCredentials == nil {
@@ -380,10 +379,10 @@ func checkImageURL(id, inputURL string, ociCredentials authn.Authenticator) erro
 
 		_, err = remote.Image(ref, remote.WithAuth(ociCredentials))
 		if err != nil {
-			return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, inputURL, err)
+			return fmt.Errorf("image: %q is not accessible under: %s, error: %w", id, inputURL, err)
 		}
 	default:
-		return fmt.Errorf("image:%s with url:%s has unkown protocol", id, inputURL)
+		return fmt.Errorf("image: %q with url: %s has unknown protocol", id, inputURL)
 	}
 
 	return nil
