@@ -175,7 +175,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
 	}
 
-	err = checkImageURL("image", imageURL)
+	err = checkImageURL("image", imageURL, nil)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -186,7 +186,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		kernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
 	}
 
-	err = checkImageURL("kernel", kernelURL)
+	err = checkImageURL("kernel", kernelURL, nil)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -275,7 +275,10 @@ func (r *partitionResource) deletePartition(request *restful.Request, response *
 }
 
 func (r *partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.PartitionUpdateRequest
+	var (
+		requestPayload v1.PartitionUpdateRequest
+	)
+
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
@@ -303,7 +306,7 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 		newPartition.Labels = requestPayload.Labels
 	}
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
-		err = checkImageURL("image", *requestPayload.PartitionBootConfiguration.ImageURL)
+		err = checkImageURL("image", *requestPayload.PartitionBootConfiguration.ImageURL, nil)
 		if err != nil {
 			r.sendError(request, response, httperrors.BadRequest(err))
 			return
@@ -313,11 +316,12 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 
 	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
-		err = checkImageURL("kernel", *requestPayload.PartitionBootConfiguration.KernelURL)
+		err = checkImageURL("kernel", *requestPayload.PartitionBootConfiguration.KernelURL, nil)
 		if err != nil {
 			r.sendError(request, response, httperrors.BadRequest(err))
 			return
 		}
+
 		newPartition.BootConfiguration.KernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
 	}
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
