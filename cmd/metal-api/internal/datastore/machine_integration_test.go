@@ -612,7 +612,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "search by state value reserved",
+			name: "search by state value tainted",
 			q: &MachineSearchQuery{
 				StateValue: pointer.Pointer(string(metal.TaintedState)),
 			},
