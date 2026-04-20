@@ -233,7 +233,7 @@ func TestSetMachineState(t *testing.T) {
 	container := restful.NewContainer().Add(machineservice)
 
 	stateRequest := v1.MachineState{
-		Value:       string(metal.ReservedState),
+		Value:       string(metal.TaintedState),
 		Description: "blubber",
 	}
 	js, err := json.Marshal(stateRequest)
@@ -253,7 +253,7 @@ func TestSetMachineState(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, "1", result.ID)
-	require.Equal(t, string(metal.ReservedState), result.State.Value)
+	require.Equal(t, string(metal.TaintedState), result.State.Value)
 	require.Equal(t, "blubber", result.State.Description)
 	require.Equal(t, "anonymous@metal-stack.io", result.State.Issuer)
 }

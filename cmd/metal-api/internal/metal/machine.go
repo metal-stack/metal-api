@@ -29,7 +29,10 @@ const (
 	// AvailableState describes a machine state where a machine is available for an allocation
 	AvailableState MState = ""
 	// ReservedState describes a machine state where a machine is not being considered for random allocation
+	// Deprecated: use TaintedState instead
 	ReservedState MState = "RESERVED"
+	// TaintedState describes a machine state where a machine is not being considered for random allocation
+	TaintedState MState = "TAINTED"
 	// LockedState describes a machine state where a machine cannot be deleted or allocated anymore
 	LockedState MState = "LOCKED"
 )
@@ -43,7 +46,7 @@ var (
 
 var (
 	// AllStates contains all possible values of a machine state
-	AllStates = []MState{AvailableState, ReservedState, LockedState}
+	AllStates = []MState{AvailableState, ReservedState, TaintedState, LockedState}
 	// AllRoles contains all possible values of a role
 	AllRoles = map[Role]bool{
 		RoleMachine:  true,
@@ -67,7 +70,9 @@ func MachineStateFrom(name string) (MState, error) {
 	case string(AvailableState):
 		return AvailableState, nil
 	case string(ReservedState):
-		return ReservedState, nil
+		return TaintedState, nil
+	case string(TaintedState):
+		return TaintedState, nil
 	case string(LockedState):
 		return LockedState, nil
 	default:

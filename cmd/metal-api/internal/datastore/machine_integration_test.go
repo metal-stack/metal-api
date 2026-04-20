@@ -614,16 +614,16 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by state value reserved",
 			q: &MachineSearchQuery{
-				StateValue: pointer.Pointer(string(metal.ReservedState)),
+				StateValue: pointer.Pointer(string(metal.TaintedState)),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, State: metal.MachineState{Value: metal.AvailableState}},
-				{Base: metal.Base{ID: "2"}, State: metal.MachineState{Value: metal.ReservedState}},
+				{Base: metal.Base{ID: "2"}, State: metal.MachineState{Value: metal.TaintedState}},
 				{Base: metal.Base{ID: "3"}, State: metal.MachineState{Value: metal.AvailableState}},
 				{Base: metal.Base{ID: "4"}, State: metal.MachineState{Value: metal.LockedState}},
 			},
 			want: []*metal.Machine{
-				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, State: metal.MachineState{Value: metal.ReservedState}}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, State: metal.MachineState{Value: metal.TaintedState}}),
 			},
 			wantErr: nil,
 		},
@@ -634,7 +634,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, State: metal.MachineState{Value: metal.AvailableState}},
-				{Base: metal.Base{ID: "2"}, State: metal.MachineState{Value: metal.ReservedState}},
+				{Base: metal.Base{ID: "2"}, State: metal.MachineState{Value: metal.TaintedState}},
 				{Base: metal.Base{ID: "3"}, State: metal.MachineState{Value: metal.AvailableState}},
 				{Base: metal.Base{ID: "4"}, State: metal.MachineState{Value: metal.LockedState}},
 			},
