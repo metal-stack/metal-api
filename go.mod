@@ -20,7 +20,7 @@ require (
 	github.com/looplab/fsm v1.0.3
 	github.com/metal-stack/go-ipam v1.14.13
 	github.com/metal-stack/masterdata-api v0.12.0
-	github.com/metal-stack/metal-lib v0.24.0
+	github.com/metal-stack/metal-lib v0.24.2-0.20260420080500-bcff434b1dd8
 	github.com/metal-stack/security v0.9.6
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
@@ -33,10 +33,12 @@ require (
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.48.0
 	golang.org/x/sync v0.19.0
-	google.golang.org/grpc v1.79.1
+	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
+
+require github.com/lopezator/migrator v0.3.1 // indirect
 
 // Newer versions do not export base entities which are used to composite other entities.
 // This breaks metalctl and friends
@@ -117,7 +119,6 @@ require (
 	github.com/lestrrat-go/jwx/v3 v3.0.13 // indirect
 	github.com/lestrrat-go/option/v2 v2.0.0 // indirect
 	github.com/lib/pq v1.11.2 // indirect
-	github.com/lopezator/migrator v0.3.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20250821153705-5981dea3221d // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

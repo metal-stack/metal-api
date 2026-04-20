@@ -12,7 +12,7 @@ import (
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/httperrors"
 )
 
@@ -65,7 +65,7 @@ func (r *tenantResource) webService() *restful.WebService {
 		Operation("findTenants").
 		Doc("get all tenants that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.TenantFindRequest{}).
 		Writes([]v1.TenantResponse{}).
 		Returns(http.StatusOK, "OK", []v1.TenantResponse{}).

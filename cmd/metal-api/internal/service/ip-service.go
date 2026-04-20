@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	"connectrpc.com/connect"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/tags"
-	"github.com/metal-stack/metal-lib/auditing"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
@@ -87,7 +87,7 @@ func (r *ipResource) webService() *restful.WebService {
 		Operation("findIPs").
 		Doc("get all ips that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.IPFindRequest{}).
 		Writes([]v1.IPResponse{}).
 		Returns(http.StatusOK, "OK", []v1.IPResponse{}).
