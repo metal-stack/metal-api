@@ -18,7 +18,6 @@ func init() {
 			}
 
 			for _, m := range machines {
-				m := m
 
 				if m.Allocation == nil {
 					continue

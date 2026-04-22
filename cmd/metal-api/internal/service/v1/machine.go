@@ -82,6 +82,14 @@ type MachineNetwork struct {
 	//
 	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
 	Underlay bool `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
+
+	// The following type are used to get forward compatibility with apiv2
+	// ProjectID is required to detect the new networktype
+	ProjectID string `json:"projectid" description:"project of this network, empty string if not project scoped"`
+	// NetworkTypeV2 is the apiv2 networktype
+	NetworkTypeV2 metal.NetworkTypeV2 `json:"networktypev2"`
+	// NatTypeV2 is the apiv2 nattype
+	NATTypeV2 metal.NATType `json:"nattypev2"`
 }
 
 type MachineHardwareBase struct {
@@ -555,6 +563,10 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				// FIXME: Both following fields are deprecated and for backward compatibility reasons only
 				Private:  nt.Private,
 				Underlay: nt.Underlay,
+
+				ProjectID:     nw.ProjectID,
+				NetworkTypeV2: nw.NetworkTypeV2,
+				NATTypeV2:     nw.NATTypeV2,
 			}
 			networks = append(networks, network)
 		}
@@ -567,7 +579,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			)
 
 			for _, r := range m.Allocation.FirewallRules.Egress {
-				r := r
 				egressRules = append(egressRules, FirewallEgressRule{
 					Protocol: strings.ToLower(string(r.Protocol)),
 					Ports:    r.Ports,
@@ -576,7 +587,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				})
 			}
 			for _, r := range m.Allocation.FirewallRules.Ingress {
-				r := r
 				ingressRules = append(ingressRules, FirewallIngressRule{
 					Protocol: strings.ToLower(string(r.Protocol)),
 					Ports:    r.Ports,

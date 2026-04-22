@@ -25,6 +25,8 @@ type NetworkImmutable struct {
 	VrfShared                  *bool                   `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)" optional:"true"`
 	ParentNetworkID            *string                 `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
 	AdditionalAnnouncableCIDRs []string                `json:"additionalAnnouncableCIDRs,omitempty" description:"list of cidrs which are added to the route maps per tenant private network, these are typically pod- and service cidrs, can only be set for private super networks"`
+	NetworkType                *metal.NetworkTypeV2    `json:"networktype" description:"apiv2 network type"`
+	NATType                    *metal.NATType          `json:"nattype" description:"apiv2 nat type"`
 }
 
 type NetworkConsumption struct {
@@ -133,6 +135,8 @@ func NewNetworkResponse(network *metal.Network, consumption *NetworkConsumption)
 			Vrf:                        &network.Vrf,
 			ParentNetworkID:            parentNetworkID,
 			AdditionalAnnouncableCIDRs: network.AdditionalAnnouncableCIDRs,
+			NetworkType:                network.NetworkType,
+			NATType:                    network.NATType,
 		},
 		Consumption: *consumption,
 		Timestamps: Timestamps{

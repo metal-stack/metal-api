@@ -13,7 +13,7 @@ var (
 )
 
 // NotFound creates a new notfound error with a given error message.
-func NotFound(format string, args ...interface{}) error {
+func NotFound(format string, args ...any) error {
 	return fmt.Errorf("%w %s", errNotFound, fmt.Sprintf(format, args...))
 }
 
@@ -23,7 +23,7 @@ func IsNotFound(e error) bool {
 }
 
 // Conflict creates a new conflict error with a given error message.
-func Conflict(format string, args ...interface{}) error {
+func Conflict(format string, args ...any) error {
 	return fmt.Errorf("%w %s", errConflict, fmt.Sprintf(format, args...))
 }
 
@@ -33,7 +33,7 @@ func IsConflict(e error) bool {
 }
 
 // Internal creates a new Internal error with a given error message and the original error.
-func Internal(format string, args ...interface{}) error {
+func Internal(format string, args ...any) error {
 	return fmt.Errorf("%w %s", errInternal, fmt.Sprintf(format, args...))
 }
 

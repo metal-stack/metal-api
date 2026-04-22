@@ -92,7 +92,7 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 					mock.On(r.DB("mockdb").Table(ip.String()).Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(nil, tt.err)
 				} else {
 					mock.On(r.DB("mockdb").Table(ip.String()).Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(r.
-						WriteResponse{Changes: []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
+						WriteResponse{Changes: []r.ChangeResponse{{OldValue: map[string]any{"id": float64(
 						tt.value)}}}}, tt.err)
 				}
 			}
@@ -114,7 +114,7 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 	rs, mock := InitMockDB(t)
 	ip := rs.GetVRFPool()
-	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(rs.VRFPoolRangeMin)}}}
+	changes := []r.ChangeResponse{{OldValue: map[string]any{"id": float64(rs.VRFPoolRangeMin)}}}
 	mock.On(r.DB("mockdb").Table(ip.String()).Limit(1).Delete(r.
 		DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
@@ -153,7 +153,7 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 			ip := rs.GetVRFPool()
 
 			if tt.requiresMock {
-				changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
+				changes := []r.ChangeResponse{{OldValue: map[string]any{"id": float64(
 					tt.value)}}}
 				mock.On(r.DB("mockdb").Table(ip.String()).Get(tt.value).Delete(r.
 					DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, tt.err)
@@ -223,7 +223,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 			if tt.requiresMock {
 				var changes []r.ChangeResponse
 				if tt.tableChanges {
-					changes = []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
+					changes = []r.ChangeResponse{{OldValue: map[string]any{"id": float64(
 						tt.value)}}}
 				}
 				mock.On(term.Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes},

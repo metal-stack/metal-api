@@ -18,10 +18,10 @@ import (
 )
 
 type emptyPublisher struct {
-	doPublish func(topic string, data interface{}) error
+	doPublish func(topic string, data any) error
 }
 
-func (p *emptyPublisher) Publish(topic string, data interface{}) error {
+func (p *emptyPublisher) Publish(topic string, data any) error {
 	if p.doPublish != nil {
 		return p.doPublish(topic, data)
 	}
@@ -231,7 +231,6 @@ func TestBootService_Report(t *testing.T) {
 	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{testdata.Switch1}, nil)
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			b := &BootService{
 				log:              log,

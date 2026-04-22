@@ -3258,12 +3258,18 @@
           "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
         },
+        "nattypev2": {
+          "type": "string"
+        },
         "networkid": {
           "description": "the networkID of the allocated machine in this vrf",
           "type": "string"
         },
         "networktype": {
           "description": "the network type, types can be looked up in the network package of metal-lib",
+          "type": "string"
+        },
+        "networktypev2": {
           "type": "string"
         },
         "prefixes": {
@@ -3276,6 +3282,10 @@
         "private": {
           "description": "indicates whether this network is the private network of this machine",
           "type": "boolean"
+        },
+        "projectid": {
+          "description": "project of this network, empty string if not project scoped",
+          "type": "string"
         },
         "underlay": {
           "description": "if set to true, this network can be used for underlay communication",
@@ -3292,10 +3302,13 @@
         "destinationprefixes",
         "ips",
         "nat",
+        "nattypev2",
         "networkid",
         "networktype",
+        "networktypev2",
         "prefixes",
         "private",
+        "projectid",
         "underlay",
         "vrf"
       ]
@@ -3831,6 +3844,14 @@
           "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
+        "nattype": {
+          "description": "apiv2 nat type",
+          "type": "string"
+        },
+        "networktype": {
+          "description": "apiv2 network type",
+          "type": "string"
+        },
         "parentnetworkid": {
           "description": "the id of the parent network",
           "type": "string"
@@ -3876,6 +3897,8 @@
         "destinationprefixes",
         "id",
         "nat",
+        "nattype",
+        "networktype",
         "prefixes",
         "privatesuper",
         "underlay"
@@ -3966,6 +3989,14 @@
           "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
+        "nattype": {
+          "description": "apiv2 nat type",
+          "type": "string"
+        },
+        "networktype": {
+          "description": "apiv2 network type",
+          "type": "string"
+        },
         "parentnetworkid": {
           "description": "the id of the parent network",
           "type": "string"
@@ -3998,6 +4029,8 @@
       "required": [
         "destinationprefixes",
         "nat",
+        "nattype",
+        "networktype",
         "prefixes",
         "privatesuper",
         "underlay"
@@ -4065,6 +4098,14 @@
           "description": "if set to true, packets leaving this ipv4 network get masqueraded behind interface ip",
           "type": "boolean"
         },
+        "nattype": {
+          "description": "apiv2 nat type",
+          "type": "string"
+        },
+        "networktype": {
+          "description": "apiv2 network type",
+          "type": "string"
+        },
         "parentnetworkid": {
           "description": "the id of the parent network",
           "type": "string"
@@ -4115,6 +4156,8 @@
         "destinationprefixes",
         "id",
         "nat",
+        "nattype",
+        "networktype",
         "prefixes",
         "privatesuper",
         "underlay",

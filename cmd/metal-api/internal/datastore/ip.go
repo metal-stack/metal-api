@@ -68,7 +68,6 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) (*r.Term, error) {
 	}
 
 	for _, t := range p.Tags {
-		t := t
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("tags").Contains(r.Expr(t))
 		})

@@ -110,7 +110,7 @@ func TestMigrations_Between(t *testing.T) {
 			},
 			args: args{
 				current: 0,
-				target:  intPtr(2),
+				target:  new(2),
 			},
 			want: []Migration{
 				{
@@ -142,7 +142,7 @@ func TestMigrations_Between(t *testing.T) {
 			},
 			args: args{
 				current: 0,
-				target:  intPtr(3),
+				target:  new(3),
 			},
 			want:    nil,
 			wantErr: true,
@@ -161,8 +161,4 @@ func TestMigrations_Between(t *testing.T) {
 			}
 		})
 	}
-}
-
-func intPtr(i int) *int {
-	return &i
 }

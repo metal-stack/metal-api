@@ -769,7 +769,7 @@ func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []a
 
 	var releaseVersion *string
 	if viper.IsSet("release-version") {
-		releaseVersion = pointer.Pointer(viper.GetString("release-version"))
+		releaseVersion = new(viper.GetString("release-version"))
 	}
 
 	restful.DefaultContainer.Add(service.NewAudit(logger.WithGroup("audit-service"), searchAuditBackend))
@@ -865,10 +865,10 @@ func dumpSwaggerJSON() {
 	//
 	// unfortunately, gorestful does not support injecting the type, therefore we need to forcefully
 	// add the definition into the spec definition
-	customGoType := map[string]interface{}{
-		"x-go-type": map[string]interface{}{
+	customGoType := map[string]any{
+		"x-go-type": map[string]any{
 			"type": "HTTPErrorResponse",
-			"import": map[string]interface{}{
+			"import": map[string]any{
 				"package": "github.com/metal-stack/metal-lib/httperrors",
 			},
 		},

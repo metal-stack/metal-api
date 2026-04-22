@@ -36,7 +36,6 @@ func (i *issueNonDistinctBMCIP) Evaluate(m metal.Machine, ec metal.ProvisioningE
 	)
 
 	for _, machineFromAll := range c.Machines {
-		machineFromAll := machineFromAll
 
 		if machineFromAll.ID == m.ID {
 			continue

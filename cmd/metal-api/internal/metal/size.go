@@ -276,7 +276,6 @@ func (s *Size) Validate(partitions PartitionMap) error {
 // Overlaps returns nil if Size does not overlap with any other size, otherwise returns overlapping Size
 func (s *Size) Overlaps(ss *Sizes) *Size {
 	for _, so := range *ss {
-		so := so
 		if s.ID == so.ID {
 			continue
 		}

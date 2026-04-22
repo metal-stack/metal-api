@@ -132,7 +132,6 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			c := &FilesystemLayoutConstraints{
 				Sizes:  tt.c.Sizes,
@@ -179,7 +178,7 @@ func TestFilesystemLayouts_From(t *testing.T) {
 				size:  s1,
 				image: i1,
 			},
-			want:    strPtr("default"),
+			want:    new("default"),
 			wantErr: false,
 		},
 		{
@@ -204,7 +203,7 @@ func TestFilesystemLayouts_From(t *testing.T) {
 				size:  s1,
 				image: i3,
 			},
-			want:    strPtr("firewall"),
+			want:    new("firewall"),
 			wantErr: false,
 		},
 		{
@@ -259,7 +258,6 @@ func TestFilesystemLayouts_From(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.fls.From(tt.args.size, tt.args.image)
 			if (err != nil) != tt.wantErr {
@@ -277,10 +275,6 @@ func TestFilesystemLayouts_From(t *testing.T) {
 			}
 		})
 	}
-}
-
-func strPtr(s string) *string {
-	return &s
 }
 
 func TestFilesystemLayout_Matches(t *testing.T) {
@@ -339,7 +333,6 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			fl := &FilesystemLayout{
 				Disks: tt.fields.Disks,
@@ -379,7 +372,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "valid layout",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"ubuntu": "*"}},
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: EXT4}, {Path: strPtr("/tmp"), Device: "tmpfs", Format: TMPFS}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/sda1", Format: EXT4}, {Path: new("/tmp"), Device: "tmpfs", Format: TMPFS}},
 				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}}},
 			},
 			wantErr: false,
@@ -389,7 +382,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "invalid layout, wildcard image",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"*": ""}},
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/sda1", Format: VFAT}},
 				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}}},
 			},
 			wantErr:   true,
@@ -400,7 +393,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "invalid layout, wildcard size",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large*"}, Images: map[string]string{"debian": "*"}},
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/sda1", Format: VFAT}},
 				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}}},
 			},
 			wantErr:   true,
@@ -411,7 +404,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "invalid layout, duplicate size",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-large", "c1-xlarge"}, Images: map[string]string{"debian": "*"}},
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/sda1", Format: VFAT}},
 				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}}},
 			},
 			wantErr:   true,
@@ -421,7 +414,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-5",
 			name: "invalid layout /dev/sda2 is missing",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}, {Path: strPtr("/"), Device: "/dev/sda2", Format: EXT4}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/sda1", Format: VFAT}, {Path: new("/"), Device: "/dev/sda2", Format: EXT4}},
 				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}}},
 			},
 			wantErr:   true,
@@ -431,7 +424,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-6",
 			name: "invalid layout wrong Format",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "xfs"}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/sda1", Format: "xfs"}},
 				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}}},
 			},
 			wantErr:   true,
@@ -441,7 +434,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-7",
 			name: "invalid layout wrong GPTType",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "vfat"}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/sda1", Format: "vfat"}},
 				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1, GPTType: &GPTInvalid}}}},
 			},
 			wantErr:   true,
@@ -451,7 +444,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-8",
 			name: "valid raid layout",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/md1", Format: VFAT}},
 				Disks: []Disk{
 					{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}},
 					{Device: "/dev/sdb", Partitions: []DiskPartition{{Number: 1}}},
@@ -466,7 +459,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-9",
 			name: "invalid raid layout wrong level",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/md1", Format: VFAT}},
 				Disks: []Disk{
 					{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}},
 					{Device: "/dev/sdb", Partitions: []DiskPartition{{Number: 1}}},
@@ -482,7 +475,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-10",
 			name: "invalid layout raid device missing",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/md1"}},
 				Disks: []Disk{
 					{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}},
 					{Device: "/dev/sdb", Partitions: []DiskPartition{{Number: 1}}},
@@ -495,7 +488,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-11",
 			name: "invalid layout device of raid missing",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/md1"}},
 				Disks: []Disk{
 					{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}},
 					{Device: "/dev/sdb", Partitions: []DiskPartition{{Number: 1}}},
@@ -511,7 +504,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-12",
 			name: "valid lvm layout",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
 				Disks: []Disk{
 					{Device: "/dev/sda"},
 					{Device: "/dev/sdb"},
@@ -529,7 +522,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-13",
 			name: "valid lvm layout, variable size",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}, {Path: strPtr("/var"), Device: "/dev/vgroot/var", Format: EXT4}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}, {Path: new("/var"), Device: "/dev/vgroot/var", Format: EXT4}},
 				Disks: []Disk{
 					{Device: "/dev/sda"},
 					{Device: "/dev/sdb"},
@@ -548,7 +541,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-14",
 			name: "invalid lvm layout",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vg00/boot", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/vg00/boot", Format: VFAT}},
 				Disks: []Disk{
 					{Device: "/dev/sda"},
 					{Device: "/dev/sdb"},
@@ -567,7 +560,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-15",
 			name: "invalid lvm layout, variable size not the last one",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
 				Disks: []Disk{
 					{Device: "/dev/sda"},
 					{Device: "/dev/sdb"},
@@ -588,7 +581,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-16",
 			name: "invalid lvm layout, raid is configured but only one device",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
 				Disks: []Disk{
 					{Device: "/dev/sda"},
 					{Device: "/dev/sdb"},
@@ -607,7 +600,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-17",
 			name: "invalid lvm layout, stripe is configured but only one device",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
 				Disks: []Disk{
 					{Device: "/dev/sda"},
 					{Device: "/dev/sdb"},
@@ -626,7 +619,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			id:   "fsl-18",
 			name: "valid lvm layout, linear is configured but only one device",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Filesystems: []Filesystem{{Path: new("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
 				Disks: []Disk{
 					{Device: "/dev/sda"},
 					{Device: "/dev/sdb"},
@@ -646,7 +639,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			fields: fields{
 				Filesystems: []Filesystem{
 					{
-						Path:   strPtr("/boot/efi"),
+						Path:   new("/boot/efi"),
 						Device: "/dev/sda1",
 						Format: VFAT,
 						CreateOptions: []string{
@@ -667,7 +660,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			fields: fields{
 				Filesystems: []Filesystem{
 					{
-						Path:   strPtr("/boot/efi"),
+						Path:   new("/boot/efi"),
 						Device: "/dev/sda1",
 						Format: VFAT,
 						CreateOptions: []string{
@@ -684,7 +677,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			f := &FilesystemLayout{
 				Base:           Base{ID: tt.id},
@@ -752,7 +744,6 @@ func TestDisk_validate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			d := Disk{
 				Device:          tt.fields.Device,
@@ -826,7 +817,6 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.fls.Validate()
 			if (err != nil) != tt.wantErr {
@@ -875,7 +865,6 @@ func Test_convertToOpAndVersion(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1, err := convertToOpAndVersion(tt.versionconstraint)
 			if (err != nil) != tt.wantErr {
@@ -933,7 +922,6 @@ func Test_hasCollisions(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			err := hasCollisions(tt.versionConstraints)
 			if (err != nil) != tt.wantErr {
@@ -971,7 +959,6 @@ func TestToFormat(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ToFormat(tt.format)
 			if (err != nil) != tt.wantErr {
@@ -1012,7 +999,6 @@ func TestToGPTType(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ToGPTType(tt.gpttyp)
 			if (err != nil) != tt.wantErr {
@@ -1053,7 +1039,6 @@ func TestToRaidLevel(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ToRaidLevel(tt.level)
 			if (err != nil) != tt.wantErr {
@@ -1094,7 +1079,6 @@ func TestToLVMType(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ToLVMType(tt.lvmtyp)
 			if (err != nil) != tt.wantErr {
