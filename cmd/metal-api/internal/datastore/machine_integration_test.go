@@ -614,7 +614,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by state value tainted",
 			q: &MachineSearchQuery{
-				StateValue: pointer.Pointer(string(metal.TaintedState)),
+				StateValue: new(string(metal.TaintedState)),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, State: metal.MachineState{Value: metal.AvailableState}},
