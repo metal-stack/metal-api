@@ -12,7 +12,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -102,7 +102,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		Operation("suggest").
 		Doc("from a given machine id returns the appropriate size").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.SizeSuggestRequest{}).
 		Returns(http.StatusOK, "OK", []v1.SizeConstraint{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -114,7 +114,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		Operation("listSizeReservations").
 		Doc("get all size reservations").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Writes([]v1.SizeReservationResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -124,7 +124,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		Operation("findSizeReservations").
 		Doc("get all size reservations").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.SizeReservationListRequest{}).
 		Writes([]v1.SizeReservationResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
@@ -175,7 +175,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		Operation("sizeReservationsUsage").
 		Doc("get all size reservations").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.SizeReservationListRequest{}).
 		Writes([]v1.SizeReservationUsageResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SizeReservationUsageResponse{}).

@@ -6,6 +6,7 @@ import (
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -43,7 +44,7 @@ func (r *auditResource) webService() *restful.WebService {
 		Operation("findAuditTraces").
 		Doc("find all audit traces that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.AuditFindRequest{}).
 		Writes([]v1.AuditResponse{}).
 		Returns(http.StatusOK, "OK", []v1.AuditResponse{}).

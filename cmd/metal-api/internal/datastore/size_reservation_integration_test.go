@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -105,7 +104,7 @@ func TestRethinkStore_SearchSizeReservations(t *testing.T) {
 		{
 			name: "empty result",
 			q: &SizeReservationSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.SizeReservation{
 				{Base: metal.Base{ID: "1"}},
@@ -116,7 +115,7 @@ func TestRethinkStore_SearchSizeReservations(t *testing.T) {
 		{
 			name: "search by id",
 			q: &SizeReservationSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.SizeReservation{
 				{Base: metal.Base{ID: "1"}},
@@ -131,7 +130,7 @@ func TestRethinkStore_SearchSizeReservations(t *testing.T) {
 		{
 			name: "search by name",
 			q: &SizeReservationSearchQuery{
-				Name: pointer.Pointer("b"),
+				Name: new("b"),
 			},
 			mock: []*metal.SizeReservation{
 				{Base: metal.Base{ID: "1", Name: "a"}},
@@ -146,7 +145,7 @@ func TestRethinkStore_SearchSizeReservations(t *testing.T) {
 		{
 			name: "search by size",
 			q: &SizeReservationSearchQuery{
-				SizeID: pointer.Pointer("size-a"),
+				SizeID: new("size-a"),
 			},
 			mock: []*metal.SizeReservation{
 				{Base: metal.Base{ID: "1"}, SizeID: "size-a"},
@@ -179,7 +178,7 @@ func TestRethinkStore_SearchSizeReservations(t *testing.T) {
 		{
 			name: "search by partition",
 			q: &SizeReservationSearchQuery{
-				Partition: pointer.Pointer("b"),
+				Partition: new("b"),
 			},
 			mock: []*metal.SizeReservation{
 				{Base: metal.Base{ID: "1"}, PartitionIDs: []string{"b"}},
@@ -195,7 +194,7 @@ func TestRethinkStore_SearchSizeReservations(t *testing.T) {
 		{
 			name: "search by project",
 			q: &SizeReservationSearchQuery{
-				Project: pointer.Pointer("3"),
+				Project: new("3"),
 			},
 			mock: []*metal.SizeReservation{
 				{Base: metal.Base{ID: "1"}, ProjectID: "1"},

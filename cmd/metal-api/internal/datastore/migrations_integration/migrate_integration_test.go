@@ -421,3 +421,47 @@ func Test_MigrationNetworkType(t *testing.T) {
 	require.Equal(t, metal.NoneNATType, *partitionStorage.NATType)
 	require.Equal(t, metal.ChildSharedNetworkType, *partitionStorage.NetworkType)
 }
+
+func Test_MigrationReserverToTainted(t *testing.T) {
+	container, c, err := test.StartRethink(t)
+	require.NoError(t, err)
+	defer func() {
+		_ = container.Terminate(context.Background())
+	}()
+
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs.VRFPoolRangeMin = 10000
+	rs.VRFPoolRangeMax = 10010
+	rs.ASNPoolRangeMin = 10000
+	rs.ASNPoolRangeMax = 10010
+
+	err = rs.Connect()
+	require.NoError(t, err)
+	err = rs.Initialize()
+	require.NoError(t, err)
+
+	mss := []*metal.Machine{
+		{Base: metal.Base{ID: "machine-1"}, State: metal.MachineState{Value: metal.ReservedState}},
+		{Base: metal.Base{ID: "machine-2"}, State: metal.MachineState{Value: metal.AvailableState}},
+	}
+	for _, ms := range mss {
+		err := rs.CreateMachine(ms)
+		require.NoError(t, err)
+	}
+
+	err = rs.Migrate(nil, false)
+	require.NoError(t, err)
+
+	ms1, err := rs.FindMachineByID("machine-1")
+	require.NoError(t, err)
+	require.NotNil(t, ms1)
+	require.Equal(t, metal.TaintedState, ms1.State.Value)
+
+	ms2, err := rs.FindMachineByID("machine-2")
+	require.NoError(t, err)
+	require.NotNil(t, ms2)
+	require.Equal(t, metal.AvailableState, ms2.State.Value)
+
+}

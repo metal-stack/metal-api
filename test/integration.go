@@ -131,8 +131,8 @@ func StartNsqd(t *testing.T, log *slog.Logger) (testcontainers.Container, bus.Pu
 	consumer, err := bus.NewConsumer(log, nil)
 	require.NoError(t, err)
 
-	tcpAddress := fmt.Sprintf("%s:%d", ip, tcpPort.Int())
-	httpAddress := fmt.Sprintf("%s:%d", ip, httpPort.Int())
+	tcpAddress := fmt.Sprintf("%s:%d", ip, tcpPort.Num())
+	httpAddress := fmt.Sprintf("%s:%d", ip, httpPort.Num())
 
 	consumer.With(bus.NSQDs(tcpAddress))
 

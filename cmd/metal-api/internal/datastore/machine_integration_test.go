@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -173,7 +172,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "empty result",
 			q: &MachineSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}},
@@ -184,7 +183,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by id",
 			q: &MachineSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}},
@@ -199,7 +198,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by name",
 			q: &MachineSearchQuery{
-				Name: pointer.Pointer("b"),
+				Name: new("b"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1", Name: "a"}},
@@ -214,7 +213,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by partition",
 			q: &MachineSearchQuery{
-				PartitionID: pointer.Pointer("b"),
+				PartitionID: new("b"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, PartitionID: "a"},
@@ -229,7 +228,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by size",
 			q: &MachineSearchQuery{
-				SizeID: pointer.Pointer("b"),
+				SizeID: new("b"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, SizeID: "a"},
@@ -245,7 +244,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by rack",
 			q: &MachineSearchQuery{
-				RackID: pointer.Pointer("b"),
+				RackID: new("b"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, RackID: "a"},
@@ -276,7 +275,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by allocation name",
 			q: &MachineSearchQuery{
-				AllocationName: pointer.Pointer("b-name"),
+				AllocationName: new("b-name"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{Name: "a-name"}},
@@ -291,7 +290,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by allocation project",
 			q: &MachineSearchQuery{
-				AllocationProject: pointer.Pointer("a-project"),
+				AllocationProject: new("a-project"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{Project: "a-project"}},
@@ -306,7 +305,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by allocation image id",
 			q: &MachineSearchQuery{
-				AllocationImageID: pointer.Pointer("ubuntu"),
+				AllocationImageID: new("ubuntu"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{ImageID: "ubuntu"}},
@@ -322,7 +321,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by allocation hostname",
 			q: &MachineSearchQuery{
-				AllocationHostname: pointer.Pointer("host-c"),
+				AllocationHostname: new("host-c"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{Hostname: "host-a"}},
@@ -337,7 +336,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by allocation role",
 			q: &MachineSearchQuery{
-				AllocationRole: pointer.Pointer(metal.RoleMachine),
+				AllocationRole: new(metal.RoleMachine),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{Role: metal.RoleFirewall}},
@@ -355,7 +354,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by allocation succeeded",
 			q: &MachineSearchQuery{
-				AllocationSucceeded: pointer.Pointer(true),
+				AllocationSucceeded: new(true),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, Allocation: &metal.MachineAllocation{Succeeded: false}},
@@ -476,7 +475,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by hardware memory",
 			q: &MachineSearchQuery{
-				HardwareMemory: pointer.Pointer(int64(1000)),
+				HardwareMemory: new(int64(1000)),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, Hardware: metal.MachineHardware{Memory: 1000}},
@@ -630,7 +629,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by state value available",
 			q: &MachineSearchQuery{
-				StateValue: pointer.Pointer(string(metal.AvailableState)),
+				StateValue: new(string(metal.AvailableState)),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, State: metal.MachineState{Value: metal.AvailableState}},
@@ -647,7 +646,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by ipmi address",
 			q: &MachineSearchQuery{
-				IpmiAddress: pointer.Pointer("1.1.1.2"),
+				IpmiAddress: new("1.1.1.2"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Address: "1.1.1.1"}},
@@ -662,7 +661,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by ipmi mac",
 			q: &MachineSearchQuery{
-				IpmiMacAddress: pointer.Pointer("mac-b"),
+				IpmiMacAddress: new("mac-b"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{MacAddress: "mac-a"}},
@@ -677,7 +676,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by ipmi user",
 			q: &MachineSearchQuery{
-				IpmiUser: pointer.Pointer("metal"),
+				IpmiUser: new("metal"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{User: "metal"}},
@@ -693,7 +692,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by ipmi interface",
 			q: &MachineSearchQuery{
-				IpmiInterface: pointer.Pointer("lanplus"),
+				IpmiInterface: new("lanplus"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Interface: "lanplus"}},
@@ -709,7 +708,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by fru chassis part number",
 			q: &MachineSearchQuery{
-				FruChassisPartNumber: pointer.Pointer("b-number"),
+				FruChassisPartNumber: new("b-number"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Fru: metal.Fru{ChassisPartNumber: "a-number"}}},
@@ -724,7 +723,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by fru chassis part serial",
 			q: &MachineSearchQuery{
-				FruChassisPartSerial: pointer.Pointer("b-serial"),
+				FruChassisPartSerial: new("b-serial"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Fru: metal.Fru{ChassisPartSerial: "a-serial"}}},
@@ -739,7 +738,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by fru board mfg",
 			q: &MachineSearchQuery{
-				FruBoardMfg: pointer.Pointer("b"),
+				FruBoardMfg: new("b"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Fru: metal.Fru{BoardMfg: "a"}}},
@@ -754,7 +753,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by fru board mfg serial",
 			q: &MachineSearchQuery{
-				FruBoardMfgSerial: pointer.Pointer("b"),
+				FruBoardMfgSerial: new("b"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Fru: metal.Fru{BoardMfgSerial: "a"}}},
@@ -769,7 +768,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by fru board part number",
 			q: &MachineSearchQuery{
-				FruBoardPartNumber: pointer.Pointer("b-number"),
+				FruBoardPartNumber: new("b-number"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Fru: metal.Fru{BoardPartNumber: "a-number"}}},
@@ -784,7 +783,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by fru product manufacturer",
 			q: &MachineSearchQuery{
-				FruProductManufacturer: pointer.Pointer("b"),
+				FruProductManufacturer: new("b"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Fru: metal.Fru{ProductManufacturer: "a"}}},
@@ -799,7 +798,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by fru product part number",
 			q: &MachineSearchQuery{
-				FruProductPartNumber: pointer.Pointer("b-number"),
+				FruProductPartNumber: new("b-number"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Fru: metal.Fru{ProductPartNumber: "a-number"}}},
@@ -814,7 +813,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 		{
 			name: "search by fru product part serial",
 			q: &MachineSearchQuery{
-				FruProductSerial: pointer.Pointer("b-serial"),
+				FruProductSerial: new("b-serial"),
 			},
 			mock: []*metal.Machine{
 				{Base: metal.Base{ID: "1"}, IPMI: metal.IPMI{Fru: metal.Fru{ProductSerial: "a-serial"}}},

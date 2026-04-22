@@ -21,7 +21,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/httperrors"
 )
 
@@ -78,7 +78,7 @@ func (r *networkResource) webService() *restful.WebService {
 		Operation("findNetworks").
 		Doc("get all networks that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.NetworkFindRequest{}).
 		Writes([]v1.NetworkResponse{}).
 		Returns(http.StatusOK, "OK", []v1.NetworkResponse{}).
