@@ -13,10 +13,10 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/auditing"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/httperrors"
 )
 
@@ -70,7 +70,7 @@ func (r *projectResource) webService() *restful.WebService {
 		Operation("findProjects").
 		Doc("get all projects that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.ProjectFindRequest{}).
 		Writes([]v1.ProjectResponse{}).
 		Returns(http.StatusOK, "OK", []v1.ProjectResponse{}).

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -103,7 +102,7 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 		{
 			name: "empty result",
 			q: &SwitchSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Switch{
 				{Base: metal.Base{ID: "1"}},
@@ -114,7 +113,7 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 		{
 			name: "search by id",
 			q: &SwitchSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Switch{
 				{Base: metal.Base{ID: "1"}},
@@ -129,7 +128,7 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 		{
 			name: "search by partition",
 			q: &SwitchSearchQuery{
-				PartitionID: pointer.Pointer("b"),
+				PartitionID: new("b"),
 			},
 			mock: []*metal.Switch{
 				{Base: metal.Base{ID: "1"}, PartitionID: "a"},
@@ -146,7 +145,7 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 		{
 			name: "search by rack",
 			q: &SwitchSearchQuery{
-				RackID: pointer.Pointer("b"),
+				RackID: new("b"),
 			},
 			mock: []*metal.Switch{
 				{Base: metal.Base{ID: "1"}, RackID: "a"},
@@ -161,7 +160,7 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 		{
 			name: "search by os vendor",
 			q: &SwitchSearchQuery{
-				OSVendor: pointer.Pointer("sonic"),
+				OSVendor: new("sonic"),
 			},
 			mock: []*metal.Switch{
 				{Base: metal.Base{ID: "1"}, OS: &metal.SwitchOS{Vendor: "cumulus"}},
@@ -177,7 +176,7 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 		{
 			name: "search by os version",
 			q: &SwitchSearchQuery{
-				OSVersion: pointer.Pointer("1.2.3"),
+				OSVersion: new("1.2.3"),
 			},
 			mock: []*metal.Switch{
 				{Base: metal.Base{ID: "1"}, OS: &metal.SwitchOS{Version: "1.2.1"}},

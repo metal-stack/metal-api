@@ -19,7 +19,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/httperrors"
 )
 
@@ -71,7 +71,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Operation("findSwitches").
 		Doc("get all switches that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.SwitchFindRequest{}).
 		Writes([]v1.SwitchResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SwitchResponse{}).
@@ -126,7 +126,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Operation("notifySwitch").
 		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.SwitchNotifyRequest{}).
 		Returns(http.StatusOK, "OK", v1.SwitchNotifyResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))

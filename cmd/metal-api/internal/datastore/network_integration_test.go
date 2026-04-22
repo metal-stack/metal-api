@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -111,7 +110,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "empty result",
 			q: &NetworkSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}},
@@ -122,7 +121,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by id",
 			q: &NetworkSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}},
@@ -137,7 +136,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by name",
 			q: &NetworkSearchQuery{
-				Name: pointer.Pointer("b"),
+				Name: new("b"),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1", Name: "a"}},
@@ -152,7 +151,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by partition",
 			q: &NetworkSearchQuery{
-				PartitionID: pointer.Pointer("b"),
+				PartitionID: new("b"),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}, PartitionID: "a"},
@@ -167,7 +166,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by project",
 			q: &NetworkSearchQuery{
-				ProjectID: pointer.Pointer("b"),
+				ProjectID: new("b"),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}, ProjectID: "a"},
@@ -212,7 +211,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by nat",
 			q: &NetworkSearchQuery{
-				Nat: pointer.Pointer(true),
+				Nat: new(true),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}, Nat: false},
@@ -227,7 +226,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by private super",
 			q: &NetworkSearchQuery{
-				PrivateSuper: pointer.Pointer(true),
+				PrivateSuper: new(true),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}, PrivateSuper: false},
@@ -242,7 +241,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by underlay",
 			q: &NetworkSearchQuery{
-				Underlay: pointer.Pointer(false),
+				Underlay: new(false),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}, Underlay: false},
@@ -258,7 +257,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by vrf",
 			q: &NetworkSearchQuery{
-				Vrf: pointer.Pointer(int64(1)),
+				Vrf: new(int64(1)),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}, Vrf: 0},
@@ -273,7 +272,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by parent network id",
 			q: &NetworkSearchQuery{
-				ParentNetworkID: pointer.Pointer("parent"),
+				ParentNetworkID: new("parent"),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}, ParentNetworkID: "0"},
@@ -303,7 +302,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by ipv4 addressfamily",
 			q: &NetworkSearchQuery{
-				AddressFamily: pointer.Pointer(string(metal.IPv4AddressFamily)),
+				AddressFamily: new(string(metal.IPv4AddressFamily)),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}, Prefixes: metal.Prefixes{{IP: "1.2.3.4", Length: "32"}}},
@@ -317,7 +316,7 @@ func TestRethinkStore_SearchNetworks(t *testing.T) {
 		{
 			name: "search by ipv6 addressfamily",
 			q: &NetworkSearchQuery{
-				AddressFamily: pointer.Pointer(string(metal.IPv6AddressFamily)),
+				AddressFamily: new(string(metal.IPv6AddressFamily)),
 			},
 			mock: []*metal.Network{
 				{Base: metal.Base{ID: "1"}, Prefixes: metal.Prefixes{{IP: "1.2.3.4", Length: "32"}}},
