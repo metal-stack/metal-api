@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -174,7 +174,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Doc("get consolepassword for machine by id").
 		Reads(v1.MachineConsolePasswordRequest{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Include, true).
+		Metadata(auditinghttp.Include, true).
 		Writes(v1.MachineConsolePasswordResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineConsolePasswordResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -193,7 +193,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findMachines").
 		Doc("find machines by multiple criteria").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
@@ -256,7 +256,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("listIssues").
 		Doc("returns the list of issues that exist in the API").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Writes([]v1.MachineIssue{}).
 		Returns(http.StatusOK, "OK", []v1.MachineIssue{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -297,7 +297,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findIPMIMachines").
 		Doc("returns machines including the ipmi connection data").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineIPMIResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineIPMIResponse{}).

@@ -29,6 +29,9 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
+	auditingsplunk "github.com/metal-stack/metal-lib/auditing/splunk"
+	auditingtimescaledb "github.com/metal-stack/metal-lib/auditing/timescaledb"
 	"github.com/metal-stack/metal-lib/rest"
 
 	nsq2 "github.com/nsqio/go-nsq"
@@ -806,14 +809,14 @@ func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []a
 	}
 
 	for _, backend := range allAuditBackends {
-		filterOpt := auditing.NewHttpFilterErrorCallback(func(err error, response *restful.Response) {
+		filterOpt := auditinghttp.NewHttpFilterErrorCallback(func(err error, response *restful.Response) {
 			httperr := httperrors.InternalServerError(err)
 			if err := response.WriteHeaderAndEntity(httperr.StatusCode, httperr); err != nil {
 				logger.Error("failed to send response", "error", err)
 			}
 		})
 
-		httpFilter, err := auditing.HttpFilter(backend, logger.WithGroup("audit-middleware"), filterOpt)
+		httpFilter, err := auditinghttp.HttpFilter(backend, logger.WithGroup("audit-middleware"), filterOpt)
 		if err != nil {
 			log.Fatalf("unable to create http filter for auditing: %s", err)
 		}
@@ -943,7 +946,7 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 	}
 
 	if viper.IsSet("auditing-timescaledb-host") {
-		backend, err := auditing.NewTimescaleDB(c, auditing.TimescaleDbConfig{
+		backend, err := auditingtimescaledb.NewTimescaleDB(c, auditingtimescaledb.TimescaleDbConfig{
 			Host:      viper.GetString("auditing-timescaledb-host"),
 			Port:      viper.GetString("auditing-timescaledb-port"),
 			DB:        viper.GetString("auditing-timescaledb-db"),
@@ -977,7 +980,7 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 			source = viper.GetString("auditing-splunk-source")
 		}
 
-		splunkConfig := auditing.SplunkConfig{
+		splunkConfig := auditingsplunk.SplunkConfig{
 			Endpoint:   viper.GetString("auditing-splunk-endpoint"),
 			HECToken:   viper.GetString("auditing-splunk-hec-token"),
 			SourceType: viper.GetString("auditing-splunk-source-type"),
@@ -998,7 +1001,7 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 			}
 		}
 
-		splunkBackend, err := auditing.NewSplunk(auditing.Config{
+		splunkBackend, err := auditingsplunk.NewSplunk(auditing.Config{
 			Component: source,
 			Log:       log,
 		}, splunkConfig)
@@ -1008,7 +1011,7 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 
 		asyncSplunkBackend, err := auditing.NewAsync(splunkBackend, log, auditing.AsyncConfig{
 			AsyncRetry:   3,
-			AsyncBackoff: pointer.Pointer(1 * time.Second),
+			AsyncBackoff: new(1 * time.Second),
 		})
 		if err != nil {
 			return nil, nil, err
