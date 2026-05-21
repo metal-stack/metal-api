@@ -20,7 +20,7 @@ require (
 	github.com/looplab/fsm v1.0.3
 	github.com/metal-stack/go-ipam v1.14.13
 	github.com/metal-stack/masterdata-api v0.12.0
-	github.com/metal-stack/metal-lib v0.25.1-0.20260521071434-f45b720e0a71
+	github.com/metal-stack/metal-lib v0.25.1
 	github.com/metal-stack/security v0.9.6
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
