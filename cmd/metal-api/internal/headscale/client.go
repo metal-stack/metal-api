@@ -74,14 +74,22 @@ func (h *HeadscaleClient) GetControlPlaneAddress() string {
 }
 
 func (h *HeadscaleClient) UserExists(ctx context.Context, name string) bool {
-	req := &headscalev1.GetUserRequest{
+	req := &headscalev1.ListUsersRequest{
 		Name: name,
 	}
-	if _, err := h.client.GetUser(ctx, req); err != nil {
+	resp, err := h.client.ListUsers(ctx, req)
+	if err != nil {
 		return false
 	}
 
-	return true
+	// Should only return one user.
+	for _, user := range resp.Users {
+		if user.Name == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (h *HeadscaleClient) CreateUser(ctx context.Context, name string) error {
@@ -98,8 +106,20 @@ func (h *HeadscaleClient) CreateUser(ctx context.Context, name string) error {
 }
 
 func (h *HeadscaleClient) CreatePreAuthKey(ctx context.Context, user string, expiration time.Time, isEphemeral bool) (key string, err error) {
+
+	userResp, err := h.client.ListUsers(ctx, &headscalev1.ListUsersRequest{
+		Name: user,
+	})
+	if err != nil {
+		return "", fmt.Errorf("unable to fetch vpn user with id:%s error:%w", user, err)
+	}
+	if len(userResp.GetUsers()) != 1 {
+		return "", fmt.Errorf("unable to fetch single vpn user with id:%s, got:%d", user, len(userResp.GetUsers()))
+	}
+	headscaleUser := userResp.GetUsers()[0]
+
 	req := &headscalev1.CreatePreAuthKeyRequest{
-		User:       user,
+		User:       headscaleUser.Id,
 		Expiration: timestamppb.New(expiration),
 		Ephemeral:  isEphemeral,
 	}
