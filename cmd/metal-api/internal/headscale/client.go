@@ -74,7 +74,7 @@ func (h *HeadscaleClient) GetControlPlaneAddress() string {
 }
 
 func (h *HeadscaleClient) UserExists(ctx context.Context, name string) bool {
-	_, exists := h.GetUser(ctx, name)
+	_, exists := h.getUser(ctx, name)
 
 	return exists
 }
@@ -93,7 +93,7 @@ func (h *HeadscaleClient) CreateUser(ctx context.Context, name string) error {
 }
 
 func (h *HeadscaleClient) CreatePreAuthKey(ctx context.Context, user string, expiration time.Time, isEphemeral bool) (key string, err error) {
-	u, exists := h.GetUser(ctx, user)
+	u, exists := h.getUser(ctx, user)
 	if !exists {
 		return "", fmt.Errorf("user %q does not exist", user)
 	}
@@ -155,7 +155,7 @@ func (h *HeadscaleClient) getNode(ctx context.Context, machineID, projectID stri
 	return nil, nil
 }
 
-func (h *HeadscaleClient) GetUser(ctx context.Context, name string) (*headscalev1.User, bool) {
+func (h *HeadscaleClient) getUser(ctx context.Context, name string) (*headscalev1.User, bool) {
 	resp, err := h.client.ListUsers(ctx, &headscalev1.ListUsersRequest{
 		Name: name,
 	})
