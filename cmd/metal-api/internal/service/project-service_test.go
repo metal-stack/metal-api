@@ -58,23 +58,23 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 }
 
 // nolint:unused
-func (m *MockedProjectService) list(user *security.User, resp interface{}) int {
+func (m *MockedProjectService) list(user *security.User, resp any) int {
 	return webRequestGet(m.t, m.ws, user, user, "/v1/project", resp)
 }
 
-func (m *MockedProjectService) get(id string, user *security.User, resp interface{}) int {
+func (m *MockedProjectService) get(id string, user *security.User, resp any) int {
 	return webRequestGet(m.t, m.ws, user, user, "/v1/project/"+id, resp)
 }
 
-func (m *MockedProjectService) delete(id string, user *security.User, resp interface{}) int {
+func (m *MockedProjectService) delete(id string, user *security.User, resp any) int {
 	return webRequestDelete(m.t, m.ws, user, user, "/v1/project/"+id, resp)
 }
 
-func (m *MockedProjectService) create(pcr *mdmv1.ProjectCreateRequest, user *security.User, resp interface{}) int {
+func (m *MockedProjectService) create(pcr *mdmv1.ProjectCreateRequest, user *security.User, resp any) int {
 	return webRequestPut(m.t, m.ws, user, pcr, "/v1/project", resp)
 }
 
-func (m *MockedProjectService) update(pcr *mdmv1.ProjectUpdateRequest, user *security.User, resp interface{}) int {
+func (m *MockedProjectService) update(pcr *mdmv1.ProjectUpdateRequest, user *security.User, resp any) int {
 	return webRequestPost(m.t, m.ws, user, pcr, "/v1/project", resp)
 }
 

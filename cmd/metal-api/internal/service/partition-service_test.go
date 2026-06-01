@@ -21,7 +21,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -371,7 +370,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -394,7 +393,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -417,7 +416,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -435,8 +434,8 @@ func TestPartitionCapacity(t *testing.T) {
 		{
 			name: "filter considers all machines",
 			pcr: &v1.PartitionCapacityRequest{
-				ID:   pointer.Pointer("partition-a"),
-				Size: pointer.Pointer("size-a"),
+				ID:   new("partition-a"),
+				Size: new("size-a"),
 			},
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
@@ -451,7 +450,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -481,7 +480,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -504,7 +503,7 @@ func TestPartitionCapacity(t *testing.T) {
 				},
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-b"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-b"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -528,7 +527,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -553,7 +552,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -579,7 +578,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -606,7 +605,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -630,7 +629,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -664,7 +663,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -707,7 +706,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -746,7 +745,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -786,7 +785,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -832,7 +831,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{
@@ -853,7 +852,7 @@ func TestPartitionCapacity(t *testing.T) {
 		{
 			name: "evaluate capacity for specific project",
 			pcr: &v1.PartitionCapacityRequest{
-				Project: pointer.Pointer("project-123"),
+				Project: new("project-123"),
 			},
 			mockFn: func(mock *r.Mock) {
 				m1 := machineTpl("1", "partition-a", "size-a", "project-123")
@@ -876,7 +875,7 @@ func TestPartitionCapacity(t *testing.T) {
 			want: []*v1.PartitionCapacity{
 				{
 					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")},
+						Identifiable: v1.Identifiable{ID: "partition-a"}, Describable: v1.Describable{Name: new(""), Description: new("")},
 					},
 					ServerCapacities: v1.ServerCapacities{
 						{

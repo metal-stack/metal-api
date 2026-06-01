@@ -1,5 +1,4 @@
 //go:build integration
-// +build integration
 
 package datastore
 
@@ -97,16 +96,14 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 	var wg sync.WaitGroup
 
 	for i := rs.VRFPoolRangeMin; i <= rs.VRFPoolRangeMax; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			got, err := pool.AcquireRandomUniqueInteger()
 			if err != nil {
 				t.Fail()
 			}
 			assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
 			assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
-		}()
+		})
 	}
 
 	wg.Wait()

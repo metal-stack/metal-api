@@ -28,10 +28,10 @@ const (
 )
 
 type emptyPublisher struct {
-	doPublish func(topic string, data interface{}) error
+	doPublish func(topic string, data any) error
 }
 
-func (p *emptyPublisher) Publish(topic string, data interface{}) error {
+func (p *emptyPublisher) Publish(topic string, data any) error {
 	if p.doPublish != nil {
 		return p.doPublish(topic, data)
 	}
@@ -168,7 +168,7 @@ func TestMachineFindIPMI(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			ds, mock := datastore.InitMockDB(t)
-			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*tt.machine}, nil)
+			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]any{*tt.machine}, nil)
 			testdata.InitMockDBData(mock)
 
 			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
@@ -358,7 +358,7 @@ func TestFreeMachine(t *testing.T) {
 	pub := &emptyPublisher{}
 	events := []string{"1-machine", "1-machine", "releaseMachineNetworks", "1-switch"}
 	eventidx := 0
-	pub.doPublish = func(topic string, data interface{}) error {
+	pub.doPublish = func(topic string, data any) error {
 		require.Equal(t, events[eventidx], topic)
 		eventidx++
 		if eventidx == 2 {
@@ -391,7 +391,7 @@ func TestFreeMachine(t *testing.T) {
 
 func TestSearchMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
-	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
+	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]any{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
 	log := slog.Default()
 
@@ -479,7 +479,7 @@ func TestOnMachine(t *testing.T) {
 			testdata.InitMockDBData(mock)
 
 			pub := &emptyPublisher{}
-			pub.doPublish = func(topic string, data interface{}) error {
+			pub.doPublish = func(topic string, data any) error {
 				require.Equal(t, "1-machine", topic)
 				dv := data.(metal.MachineEvent)
 				require.Equal(t, tt.cmd, dv.Cmd.Command)
@@ -781,7 +781,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 
 	type mock struct {
 		term     r.Term
-		response interface{}
+		response any
 		err      error
 	}
 	tests := []struct {

@@ -97,7 +97,7 @@ func (b *BootService) initWaitEndpoint() error {
 	channel := fmt.Sprintf("alloc-%s#ephemeral", uuid.NewString())
 	return b.consumer.With(bus.LogLevel(bus.Warning)).
 		MustRegister(metal.TopicAllocation.Name, channel).
-		Consume(metal.AllocationEvent{}, func(message interface{}) error {
+		Consume(metal.AllocationEvent{}, func(message any) error {
 			evt := message.(*metal.AllocationEvent)
 			b.log.Debug("got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
 			b.handleAllocation(evt.MachineID)

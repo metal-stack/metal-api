@@ -21,9 +21,8 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 type networkResource struct {
@@ -79,7 +78,7 @@ func (r *networkResource) webService() *restful.WebService {
 		Operation("findNetworks").
 		Doc("get all networks that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.NetworkFindRequest{}).
 		Writes([]v1.NetworkResponse{}).
 		Returns(http.StatusOK, "OK", []v1.NetworkResponse{}).
@@ -365,7 +364,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 			var nw metal.Network
 			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{
 				PartitionID:  &partition.ID,
-				PrivateSuper: pointer.Pointer(true),
+				PrivateSuper: new(true),
 			}, &nw)
 			if err != nil && !metal.IsNotFound(err) {
 				r.sendError(request, response, defaultError(err))
@@ -378,7 +377,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		}
 
 		if underlay {
-			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: pointer.Pointer(true)}, &metal.Network{})
+			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: new(true)}, &metal.Network{})
 			if err != nil {
 				if !metal.IsNotFound(err) {
 					r.sendError(request, response, defaultError(err))
@@ -606,7 +605,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 
 	err = r.ds.FindNetwork(&datastore.NetworkSearchQuery{
 		PartitionID:  &partition.ID,
-		PrivateSuper: pointer.Pointer(true),
+		PrivateSuper: new(true),
 	}, &superNetwork)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))

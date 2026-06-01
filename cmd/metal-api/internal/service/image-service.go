@@ -11,7 +11,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	metalcommon "github.com/metal-stack/metal-lib/pkg/metal"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -89,7 +89,7 @@ func (ir *imageResource) webService() *restful.WebService {
 		Operation("findImages").
 		Doc("get all images that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Param(ws.QueryParameter("show-usage", "include image usage into response").DataType("boolean").DefaultValue("false")).
 		Reads(v1.ImageFindRequest{}).
 		Writes([]v1.ImageResponse{}).

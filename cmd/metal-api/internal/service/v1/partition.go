@@ -152,7 +152,6 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 
 func (s ServerCapacities) FindBySize(size string) *ServerCapacity {
 	for _, sc := range s {
-		sc := sc
 		if sc.Size == size {
 			return sc
 		}

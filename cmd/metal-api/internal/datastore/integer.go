@@ -217,7 +217,7 @@ func (ip *IntegerPool) genericAcquire(term *r.Term) (uint, error) {
 		return 0, metal.Conflict("integer is already acquired by another")
 	}
 
-	result := uint(res.Changes[0].OldValue.(map[string]interface{})["id"].(float64))
+	result := uint(res.Changes[0].OldValue.(map[string]any)["id"].(float64))
 	return result, nil
 }
 

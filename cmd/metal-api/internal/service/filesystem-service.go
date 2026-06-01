@@ -8,7 +8,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -93,7 +93,7 @@ func (r *filesystemResource) webService() *restful.WebService {
 		Operation("tryFilesystemLayout").
 		Doc("try to detect a filesystemlayout based on given size and image.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.FilesystemLayoutTryRequest{}).
 		Returns(http.StatusOK, "OK", v1.FilesystemLayoutResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -103,7 +103,7 @@ func (r *filesystemResource) webService() *restful.WebService {
 		Operation("matchFilesystemLayout").
 		Doc("check if the given machine id satisfies the disk requirements of the filesystemlayout in question").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.FilesystemLayoutMatchRequest{}).
 		Returns(http.StatusOK, "OK", v1.FilesystemLayoutResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))

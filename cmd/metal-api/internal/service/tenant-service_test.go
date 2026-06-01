@@ -35,11 +35,11 @@ func NewMockedTenantService(t *testing.T, tenantServiceMock func(mock *mdmv1mock
 }
 
 // nolint:unused
-func (m *MockedTenantService) list(user *security.User, resp interface{}) int {
+func (m *MockedTenantService) list(user *security.User, resp any) int {
 	return webRequestGet(m.t, m.ws, user, user, "/v1/tenant", resp)
 }
 
-func (m *MockedTenantService) get(id string, user *security.User, resp interface{}) int {
+func (m *MockedTenantService) get(id string, user *security.User, resp any) int {
 	return webRequestGet(m.t, m.ws, user, user, "/v1/tenant/"+id, resp)
 }
 
@@ -85,9 +85,7 @@ func Test_tenantResource_getTenant(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		for _, user := range tt.userScenarios {
-			user := user
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedTenantService(t, tt.tenantServiceMock)
@@ -146,9 +144,7 @@ func Test_tenantResource_listTenants(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		for _, user := range tt.userScenarios {
-			user := user
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedTenantService(t, tt.tenantServiceMock)

@@ -19,9 +19,8 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 type switchResource struct {
@@ -72,7 +71,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Operation("findSwitches").
 		Doc("get all switches that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.SwitchFindRequest{}).
 		Writes([]v1.SwitchResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SwitchResponse{}).
@@ -127,7 +126,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Operation("notifySwitch").
 		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.SwitchNotifyRequest{}).
 		Returns(http.StatusOK, "OK", v1.SwitchNotifyResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -746,7 +745,7 @@ func (r *switchResource) replaceSwitch(old, new *metal.Switch) error {
 // findTwinSwitch finds the neighboring twin of a switch for the given partition and rack
 func (r *switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch, error) {
 	var rackSwitches metal.Switches
-	err := r.ds.SearchSwitches(&datastore.SwitchSearchQuery{RackID: pointer.Pointer(newSwitch.RackID)}, &rackSwitches)
+	err := r.ds.SearchSwitches(&datastore.SwitchSearchQuery{RackID: new(newSwitch.RackID)}, &rackSwitches)
 	if err != nil {
 		return nil, fmt.Errorf("could not search switches in rack: %v", newSwitch.RackID)
 	}

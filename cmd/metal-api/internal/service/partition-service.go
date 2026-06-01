@@ -9,7 +9,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -105,7 +105,7 @@ func (r *partitionResource) webService() *restful.WebService {
 		Operation("partitionCapacity").
 		Doc("get partition capacity").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.PartitionCapacityRequest{}).
 		Writes([]v1.PartitionCapacity{}).
 		Returns(http.StatusOK, "OK", []v1.PartitionCapacity{}).
@@ -455,7 +455,6 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	)
 
 	for _, m := range ms {
-		m := m
 
 		ec, ok := ecsByID[m.ID]
 		if !ok {
@@ -530,7 +529,6 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 	res := []v1.PartitionCapacity{}
 	for _, pc := range pcs {
-		pc := pc
 
 		for _, cap := range pc.ServerCapacities {
 			size := sizesByID[cap.Size]

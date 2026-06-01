@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -14,7 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
-	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -172,6 +174,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Doc("get consolepassword for machine by id").
 		Reads(v1.MachineConsolePasswordRequest{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditinghttp.Include, true).
 		Writes(v1.MachineConsolePasswordResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineConsolePasswordResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -190,7 +193,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findMachines").
 		Doc("find machines by multiple criteria").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
@@ -253,7 +256,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("listIssues").
 		Doc("returns the list of issues that exist in the API").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Writes([]v1.MachineIssue{}).
 		Returns(http.StatusOK, "OK", []v1.MachineIssue{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -294,7 +297,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findIPMIMachines").
 		Doc("returns machines including the ipmi connection data").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		Metadata(auditinghttp.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineIPMIResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineIPMIResponse{}).
@@ -514,7 +517,6 @@ func (r *machineResource) listIssues(request *restful.Request, response *restful
 
 	var issueResponse []v1.MachineIssue
 	for _, issue := range issues {
-		issue := issue
 
 		issueResponse = append(issueResponse, v1.MachineIssue{
 			ID:          string(issue.Type),
@@ -555,7 +557,6 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 
 	if len(requestPayload.Omit) > 0 {
 		for _, o := range requestPayload.Omit {
-			o := o
 
 			_, err := issues.NewIssueFromType(o)
 			if err != nil {
@@ -569,7 +570,6 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 
 	if len(requestPayload.Only) > 0 {
 		for _, o := range requestPayload.Only {
-			o := o
 
 			_, err := issues.NewIssueFromType(o)
 			if err != nil {
@@ -612,14 +612,12 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 
 	var issueResponse []*v1.MachineIssueResponse
 	for _, machineWithIssues := range machinesWithIssues.ToList() {
-		machineWithIssues := machineWithIssues
 
 		entry := &v1.MachineIssueResponse{
 			MachineID: machineWithIssues.Machine.ID,
 		}
 
 		for _, issue := range machineWithIssues.Issues {
-			issue := issue
 
 			entry.Issues = append(entry.Issues, string(issue.Type))
 		}
@@ -1055,7 +1053,6 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 
 		if firewallRequest.FirewallRules != nil {
 			for _, ruleSpec := range firewallRequest.FirewallRules.Egress {
-				ruleSpec := ruleSpec
 
 				if ruleSpec.Protocol == "" {
 					ruleSpec.Protocol = string(metal.ProtocolTCP)
@@ -1081,7 +1078,6 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 			}
 
 			for _, ruleSpec := range firewallRequest.FirewallRules.Ingress {
-				ruleSpec := ruleSpec
 
 				if ruleSpec.Protocol == "" {
 					ruleSpec.Protocol = string(metal.ProtocolTCP)
@@ -1718,6 +1714,9 @@ func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer 
 		Underlay:            n.networkType.Underlay,
 		Nat:                 n.network.Nat,
 		Vrf:                 n.network.Vrf,
+		ProjectID:           n.network.ProjectID,
+		NetworkTypeV2:       pointer.SafeDeref(n.network.NetworkType),
+		NATTypeV2:           pointer.SafeDeref(n.network.NATType),
 	}
 
 	return &machineNetwork, nil
@@ -1744,13 +1743,9 @@ func makeMachineTags(m *metal.Machine, userTags []string) []string {
 			actualUserTags = append(actualUserTags, tag)
 		}
 	}
-	for k, v := range userLabels {
-		labels[k] = v
-	}
+	maps.Copy(labels, userLabels)
 
-	for k, v := range makeMachineSystemLabels(m) {
-		labels[k] = v
-	}
+	maps.Copy(labels, makeMachineSystemLabels(m))
 
 	tags := actualUserTags
 	for k, v := range labels {
@@ -1859,7 +1854,7 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 		return
 	}
 
-	switches, err := r.ds.SearchSwitchesConnectedToMachine(m)
+	switches, err := r.ds.SearchSwitchesConnectedToMachineInRack(m, nil)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -1875,9 +1870,7 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 		newIP := old
 		newIP.MachineConnections = metal.ConnectionMap{}
 
-		for id, connection := range old.MachineConnections {
-			newIP.MachineConnections[id] = connection
-		}
+		maps.Copy(newIP.MachineConnections, old.MachineConnections)
 		delete(newIP.MachineConnections, m.ID)
 
 		err = r.ds.UpdateSwitch(&old, &newIP)
@@ -2218,13 +2211,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 		return
 	}
 
-	notAvailable := true
-	for _, rev := range rr {
-		if rev == p.Revision {
-			notAvailable = false
-			break
-		}
-	}
+	notAvailable := !slices.Contains(rr, p.Revision)
 	if notAvailable {
 		r.sendError(request, response, defaultError(fmt.Errorf("machine's %s firmware in version %s is not available", p.Kind, p.Revision)))
 		return

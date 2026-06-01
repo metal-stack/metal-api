@@ -389,6 +389,12 @@ type MachineNetwork struct {
 	Nat                 bool     `rethinkdb:"nat" json:"nat"`
 	Underlay            bool     `rethinkdb:"underlay" json:"underlay"`
 	Shared              bool     `rethinkdb:"shared" json:"shared"`
+	// The following 3 properties are persisted only for new machines, existing machine allocations will be updated
+	// This required to enable forward compatibility to apiv2
+	// TODO carry over these properties to metal-apiserver as well
+	ProjectID     string        `rethinkdb:"projectid" json:"projectid"`
+	NetworkTypeV2 NetworkTypeV2 `rethinkdb:"networktype" json:"networktype"`
+	NATTypeV2     NATType       `rethinkdb:"nattype" json:"nattype"`
 }
 
 // NetworkType represents the type of a network

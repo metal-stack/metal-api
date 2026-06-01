@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -285,10 +287,8 @@ func insertRevisions(path string, revisions map[string]map[string][]string, vend
 		boardMap = make(map[string][]string)
 		revisions[f.Vendor] = boardMap
 	}
-	for _, rev := range boardMap[f.Board] {
-		if rev == f.Revision {
-			return
-		}
+	if slices.Contains(boardMap[f.Board], f.Revision) {
+		return
 	}
 	boardMap[f.Board] = append(boardMap[f.Board], f.Revision)
 }
@@ -345,9 +345,7 @@ func mapToFirmwareResponse(m map[string]map[string]map[string][]string) *v1.Firm
 			resp.Revisions[k].VendorRevisions[v] = v1.BoardRevisions{
 				BoardRevisions: make(map[string][]string),
 			}
-			for b, rr := range bb {
-				resp.Revisions[k].VendorRevisions[v].BoardRevisions[b] = rr
-			}
+			maps.Copy(resp.Revisions[k].VendorRevisions[v].BoardRevisions, bb)
 		}
 	}
 	return resp

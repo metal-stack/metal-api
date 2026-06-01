@@ -108,7 +108,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, tag := range p.Tags {
-		tag := tag
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("tags").Contains(r.Expr(tag))
 		})
@@ -151,7 +150,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, id := range p.NetworkIDs {
-		id := id
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("networkid")
@@ -160,7 +158,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, prefix := range p.NetworkPrefixes {
-		prefix := prefix
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Contains(func(nw r.Term) r.Term {
 				return nw.Field("prefixes").Contains(r.Expr(prefix))
@@ -169,7 +166,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, ip := range p.NetworkIPs {
-		ip := ip
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Contains(func(nw r.Term) r.Term {
 				return nw.Field("ips").Contains(r.Expr(ip))
@@ -178,7 +174,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, destPrefix := range p.NetworkDestinationPrefixes {
-		destPrefix := destPrefix
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Contains(func(nw r.Term) r.Term {
 				return nw.Field("destinationprefixes").Contains(r.Expr(destPrefix))
@@ -187,7 +182,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, vrf := range p.NetworkVrfs {
-		vrf := vrf
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Contains(func(nw r.Term) r.Term {
 				return nw.Field("vrf").Eq(r.Expr(vrf))
@@ -196,7 +190,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, asn := range p.NetworkASNs {
-		asn := asn
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("asn")
@@ -211,7 +204,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, mac := range p.NicsMacAddresses {
-		mac := mac
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("macAddress")
@@ -220,7 +212,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, name := range p.NicsNames {
-		name := name
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("name")
@@ -229,7 +220,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, vrf := range p.NicsVrfs {
-		vrf := vrf
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("vrf")
@@ -238,7 +228,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, mac := range p.NicsNeighborMacAddresses {
-		mac := mac
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Contains(func(nic r.Term) r.Term {
 				return nic.Field("neighbors").Contains(func(neigh r.Term) r.Term {
@@ -249,7 +238,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, name := range p.NicsNeighborNames {
-		name := name
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Contains(func(nic r.Term) r.Term {
 				return nic.Field("neighbors").Contains(func(neigh r.Term) r.Term {
@@ -260,7 +248,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, vrf := range p.NicsNeighborVrfs {
-		vrf := vrf
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Contains(func(nic r.Term) r.Term {
 				return nic.Field("neighbors").Contains(func(neigh r.Term) r.Term {
@@ -271,7 +258,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, name := range p.DiskNames {
-		name := name
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("block_devices").Map(func(bd r.Term) r.Term {
 				return bd.Field("name")
@@ -280,7 +266,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, size := range p.DiskSizes {
-		size := size
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("block_devices").Map(func(bd r.Term) r.Term {
 				return bd.Field("size")
@@ -424,7 +409,7 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 // but current implementation should have a slightly better readability.
 func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, partitionid string, size metal.Size, placementTags []string, role metal.Role) (*metal.Machine, error) {
 	q := *rs.machineTable()
-	q = q.Filter(map[string]interface{}{
+	q = q.Filter(map[string]any{
 		"allocation":  nil,
 		"partitionid": partitionid,
 		"sizeid":      size.ID,

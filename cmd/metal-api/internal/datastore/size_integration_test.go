@@ -1,5 +1,4 @@
 //go:build integration
-// +build integration
 
 package datastore
 
@@ -7,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -106,7 +104,7 @@ func TestRethinkStore_SearchSizes(t *testing.T) {
 		{
 			name: "empty result",
 			q: &SizeSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Size{
 				{Base: metal.Base{ID: "1"}},
@@ -117,7 +115,7 @@ func TestRethinkStore_SearchSizes(t *testing.T) {
 		{
 			name: "search by id",
 			q: &SizeSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Size{
 				{Base: metal.Base{ID: "1"}},
@@ -132,7 +130,7 @@ func TestRethinkStore_SearchSizes(t *testing.T) {
 		{
 			name: "search by name",
 			q: &SizeSearchQuery{
-				Name: pointer.Pointer("b"),
+				Name: new("b"),
 			},
 			mock: []*metal.Size{
 				{Base: metal.Base{ID: "1", Name: "a"}},

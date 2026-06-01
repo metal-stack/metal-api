@@ -23,18 +23,21 @@ import (
 type vpnResource struct {
 	webResource
 	headscaleClient *headscale.HeadscaleClient
+	reasonMinLength uint
 }
 
 // NewVPN returns a webservice for VPN specific endpoints.
 func NewVPN(
 	log *slog.Logger,
 	headscaleClient *headscale.HeadscaleClient,
+	reasonMinLength uint,
 ) *restful.WebService {
 	r := vpnResource{
 		webResource: webResource{
 			log: log,
 		},
 		headscaleClient: headscaleClient,
+		reasonMinLength: reasonMinLength,
 	}
 
 	return r.webService()
@@ -71,6 +74,11 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	var requestPayload v1.VPNRequest
 	if err := request.ReadEntity(&requestPayload); err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	if uint(len(requestPayload.Reason)) < r.reasonMinLength {
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("reason must be at least %d characters long", r.reasonMinLength)))
 		return
 	}
 
@@ -126,7 +134,6 @@ func EvaluateVPNConnected(log *slog.Logger, ds *datastore.RethinkStore, lister h
 
 	var errs []error
 	for _, m := range ms {
-		m := m
 		if m.Allocation == nil || m.Allocation.VPN == nil {
 			continue
 		}

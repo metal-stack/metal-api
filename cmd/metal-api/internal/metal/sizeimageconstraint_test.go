@@ -66,7 +66,6 @@ func TestSizeImageConstraint_matches(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			sc := &SizeImageConstraint{
 				Base:   tt.fields.Base,
@@ -179,7 +178,6 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.scs.Matches(tt.args.size, tt.args.image)
 			if tt.wantErr == nil && got != nil || got == nil && tt.wantErr != nil {
@@ -267,7 +265,6 @@ func TestSizeImageConstraints_Validate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.scs.Validate(); (err != nil) != tt.wantErr {
 				t.Errorf("SizeImageConstraints.Validate() error = %v, wantErr %v", err, tt.wantErr)

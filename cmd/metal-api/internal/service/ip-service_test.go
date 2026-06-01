@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-lib/bus"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -295,7 +294,7 @@ func TestAllocateIP(t *testing.T) {
 					NetworkID: testdata.NwIPAM.ID,
 					Type:      metal.Ephemeral,
 				},
-				AddressFamily: pointer.Pointer(metal.IPv4AddressFamily),
+				AddressFamily: new(metal.IPv4AddressFamily),
 			},
 			wantedIP:     "10.0.0.3",
 			wantedType:   metal.Ephemeral,
@@ -310,7 +309,7 @@ func TestAllocateIP(t *testing.T) {
 					NetworkID: testdata.NwIPAM.ID,
 					Type:      metal.Ephemeral,
 				},
-				AddressFamily: pointer.Pointer(metal.IPv6AddressFamily),
+				AddressFamily: new(metal.IPv6AddressFamily),
 			},
 			wantedStatus: http.StatusBadRequest,
 			wantErr:      errors.New("there is no prefix for the given addressfamily:IPv6 present in network:4"),

@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,6 +29,9 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/auditing"
+	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
+	auditingsplunk "github.com/metal-stack/metal-lib/auditing/splunk"
+	auditingtimescaledb "github.com/metal-stack/metal-lib/auditing/timescaledb"
 	"github.com/metal-stack/metal-lib/rest"
 
 	nsq2 "github.com/nsqio/go-nsq"
@@ -296,6 +301,14 @@ func init() {
 	rootCmd.Flags().String("auditing-timescaledb-user", "", "user for the auditing service")
 	rootCmd.Flags().String("auditing-timescaledb-password", "", "password for the auditing service")
 	rootCmd.Flags().String("auditing-timescaledb-retention", "", "the time until audit traces are cleaned up")
+
+	rootCmd.Flags().String("auditing-splunk-endpoint", "", "endpoint of splunk")
+	rootCmd.Flags().String("auditing-splunk-hec-token", "", "hec token for splunk")
+	rootCmd.Flags().String("auditing-splunk-source", "", "the source used for splunk")
+	rootCmd.Flags().String("auditing-splunk-source-type", "", "the source type used for splunk")
+	rootCmd.Flags().String("auditing-splunk-index", "", "the splunk index")
+	rootCmd.Flags().String("auditing-splunk-host", "", "the splunk host")
+	rootCmd.Flags().String("auditing-splunk-ca", "", "path to a splunk ca")
 
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
 	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
@@ -759,7 +772,7 @@ func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []a
 
 	var releaseVersion *string
 	if viper.IsSet("release-version") {
-		releaseVersion = pointer.Pointer(viper.GetString("release-version"))
+		releaseVersion = new(viper.GetString("release-version"))
 	}
 
 	restful.DefaultContainer.Add(service.NewAudit(logger.WithGroup("audit-service"), searchAuditBackend))
@@ -778,7 +791,7 @@ func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []a
 	restful.DefaultContainer.Add(service.NewFilesystemLayout(logger.WithGroup("filesystem-layout-service"), ds))
 	restful.DefaultContainer.Add(service.NewSwitch(logger.WithGroup("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
-	restful.DefaultContainer.Add(service.NewVPN(logger.WithGroup("vpn-service"), headscaleClient))
+	restful.DefaultContainer.Add(service.NewVPN(logger.WithGroup("vpn-service"), headscaleClient, reasonMinLength))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, &rest.VersionOpts{
 		BasePath:         service.BasePath,
 		MinClientVersion: minClientVersion.Original(),
@@ -796,14 +809,14 @@ func initRestServices(searchAuditBackend auditing.Auditing, allAuditBackends []a
 	}
 
 	for _, backend := range allAuditBackends {
-		filterOpt := auditing.NewHttpFilterErrorCallback(func(err error, response *restful.Response) {
+		filterOpt := auditinghttp.NewHttpFilterErrorCallback(func(err error, response *restful.Response) {
 			httperr := httperrors.InternalServerError(err)
 			if err := response.WriteHeaderAndEntity(httperr.StatusCode, httperr); err != nil {
 				logger.Error("failed to send response", "error", err)
 			}
 		})
 
-		httpFilter, err := auditing.HttpFilter(backend, logger.WithGroup("audit-middleware"), filterOpt)
+		httpFilter, err := auditinghttp.HttpFilter(backend, logger.WithGroup("audit-middleware"), filterOpt)
 		if err != nil {
 			log.Fatalf("unable to create http filter for auditing: %s", err)
 		}
@@ -855,10 +868,10 @@ func dumpSwaggerJSON() {
 	//
 	// unfortunately, gorestful does not support injecting the type, therefore we need to forcefully
 	// add the definition into the spec definition
-	customGoType := map[string]interface{}{
-		"x-go-type": map[string]interface{}{
+	customGoType := map[string]any{
+		"x-go-type": map[string]any{
 			"type": "HTTPErrorResponse",
-			"import": map[string]interface{}{
+			"import": map[string]any{
 				"package": "github.com/metal-stack/metal-lib/httperrors",
 			},
 		},
@@ -933,7 +946,7 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 	}
 
 	if viper.IsSet("auditing-timescaledb-host") {
-		backend, err := auditing.NewTimescaleDB(c, auditing.TimescaleDbConfig{
+		backend, err := auditingtimescaledb.NewTimescaleDB(c, auditingtimescaledb.TimescaleDbConfig{
 			Host:      viper.GetString("auditing-timescaledb-host"),
 			Port:      viper.GetString("auditing-timescaledb-port"),
 			DB:        viper.GetString("auditing-timescaledb-db"),
@@ -951,6 +964,60 @@ func createAuditingClient(log *slog.Logger) (searchBackend auditing.Auditing, ba
 		if viper.GetString("auditing-search-backend") == auditingBackendTimescaleDB {
 			searchBackend = backend
 		}
+	}
+
+	if viper.IsSet("auditing-splunk-endpoint") {
+		host := viper.GetString("auditing-splunk-host")
+		if host == "" {
+			host, err = os.Hostname()
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		source := moduleName
+		if viper.GetString("auditing-splunk-source") != "" {
+			source = viper.GetString("auditing-splunk-source")
+		}
+
+		splunkConfig := auditingsplunk.SplunkConfig{
+			Endpoint:   viper.GetString("auditing-splunk-endpoint"),
+			HECToken:   viper.GetString("auditing-splunk-hec-token"),
+			SourceType: viper.GetString("auditing-splunk-source-type"),
+			Index:      viper.GetString("auditing-splunk-index"),
+			Host:       host,
+		}
+		if viper.GetString("auditing-splunk-ca") != "" {
+			caCert, err := os.ReadFile(viper.GetString("auditing-splunk-ca"))
+			if err != nil {
+				return nil, nil, fmt.Errorf("unable to read ca cert: %w", err)
+			}
+
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+			splunkConfig.TlsConfig = &tls.Config{
+				RootCAs:    caCertPool,
+				MinVersion: tls.VersionTLS12,
+			}
+		}
+
+		splunkBackend, err := auditingsplunk.NewSplunk(auditing.Config{
+			Component: source,
+			Log:       log,
+		}, splunkConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		asyncSplunkBackend, err := auditing.NewAsync(splunkBackend, log, auditing.AsyncConfig{
+			AsyncRetry:   3,
+			AsyncBackoff: new(1 * time.Second),
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+
+		backends = append(backends, asyncSplunkBackend)
 	}
 
 	if searchBackend == nil {

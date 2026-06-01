@@ -1,5 +1,4 @@
 //go:build integration
-// +build integration
 
 package datastore
 
@@ -7,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -101,7 +99,7 @@ func TestRethinkStore_SearchImages(t *testing.T) {
 		{
 			name: "empty result",
 			q: &ImageSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Image{
 				{Base: metal.Base{ID: "1"}},
@@ -112,7 +110,7 @@ func TestRethinkStore_SearchImages(t *testing.T) {
 		{
 			name: "search by id",
 			q: &ImageSearchQuery{
-				ID: pointer.Pointer("2"),
+				ID: new("2"),
 			},
 			mock: []*metal.Image{
 				{Base: metal.Base{ID: "1"}},
@@ -127,7 +125,7 @@ func TestRethinkStore_SearchImages(t *testing.T) {
 		{
 			name: "search by name",
 			q: &ImageSearchQuery{
-				Name: pointer.Pointer("b"),
+				Name: new("b"),
 			},
 			mock: []*metal.Image{
 				{Base: metal.Base{ID: "1", Name: "a"}},
@@ -173,7 +171,7 @@ func TestRethinkStore_SearchImages(t *testing.T) {
 		{
 			name: "search by os",
 			q: &ImageSearchQuery{
-				OS: pointer.Pointer("ubuntu"),
+				OS: new("ubuntu"),
 			},
 			mock: []*metal.Image{
 				{Base: metal.Base{ID: "1"}, OS: "debian"},
@@ -188,7 +186,7 @@ func TestRethinkStore_SearchImages(t *testing.T) {
 		{
 			name: "search by version",
 			q: &ImageSearchQuery{
-				Version: pointer.Pointer("v2"),
+				Version: new("v2"),
 			},
 			mock: []*metal.Image{
 				{Base: metal.Base{ID: "1"}, Version: "v2"},
@@ -204,7 +202,7 @@ func TestRethinkStore_SearchImages(t *testing.T) {
 		{
 			name: "search by classification",
 			q: &ImageSearchQuery{
-				Classification: pointer.Pointer(string(metal.ClassificationPreview)),
+				Classification: new(string(metal.ClassificationPreview)),
 			},
 			mock: []*metal.Image{
 				{Base: metal.Base{ID: "1"}, Classification: metal.ClassificationPreview},
