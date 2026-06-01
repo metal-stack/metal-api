@@ -1221,14 +1221,16 @@ func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.Ret
 	// Check if more machine would be allocated than project quota permits
 	if p.GetProject() != nil && p.GetProject().GetQuotas() != nil && p.GetProject().GetQuotas().GetMachine() != nil {
 		mq := p.GetProject().GetQuotas().GetMachine()
-		maxMachines := mq.GetQuota().GetValue()
-		var actualMachines metal.Machines
-		err := ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID, AllocationRole: &metal.RoleFirewall}, &actualMachines)
-		if err != nil {
-			return nil, err
-		}
-		if len(actualMachines) >= int(maxMachines) {
-			return nil, fmt.Errorf("project quota for machines reached max:%d", maxMachines)
+		if mq.GetQuota() != nil {
+			maxMachines := mq.GetQuota().GetValue()
+			var actualMachines metal.Machines
+			err := ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID, AllocationRole: &metal.RoleFirewall}, &actualMachines)
+			if err != nil {
+				return nil, err
+			}
+			if len(actualMachines) >= int(maxMachines) {
+				return nil, fmt.Errorf("project quota for machines reached max:%d", maxMachines)
+			}
 		}
 	}
 
