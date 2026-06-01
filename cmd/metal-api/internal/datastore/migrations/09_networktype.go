@@ -3,8 +3,6 @@ package migrations
 import (
 	"slices"
 
-	"github.com/metal-stack/metal-lib/pkg/pointer"
-
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
@@ -48,37 +46,37 @@ func init() {
 
 			// now convert all networks
 			for _, old := range nws {
-				new := old
+				newNetwork := old
 
 				// assume external network by default
-				new.NetworkType = pointer.Pointer(metal.ExternalNetworkType)
+				newNetwork.NetworkType = new(metal.ExternalNetworkType)
 
 				if old.Shared && old.ParentNetworkID != "" {
-					new.NetworkType = pointer.Pointer(metal.ChildSharedNetworkType)
+					newNetwork.NetworkType = new(metal.ChildSharedNetworkType)
 				}
 				if old.Shared && old.ParentNetworkID == "" {
-					new.NetworkType = pointer.Pointer(metal.ExternalNetworkType)
+					newNetwork.NetworkType = new(metal.ExternalNetworkType)
 				}
 				if !old.Shared && old.ParentNetworkID != "" && !slices.Contains(sharedVrfs, old.Vrf) {
-					new.NetworkType = pointer.Pointer(metal.ChildNetworkType)
+					newNetwork.NetworkType = new(metal.ChildNetworkType)
 				}
 				if old.ProjectID == "" && old.ParentNetworkID == "" && !slices.Contains(sharedVrfs, old.Vrf) {
-					new.NetworkType = pointer.Pointer(metal.ExternalNetworkType)
+					newNetwork.NetworkType = new(metal.ExternalNetworkType)
 				}
 				if old.PrivateSuper {
-					new.NetworkType = pointer.Pointer(metal.SuperNetworkType)
+					newNetwork.NetworkType = new(metal.SuperNetworkType)
 				}
 				if old.Underlay {
-					new.NetworkType = pointer.Pointer(metal.UnderlayNetworkType)
+					newNetwork.NetworkType = new(metal.UnderlayNetworkType)
 				}
 
 				if old.Nat {
-					new.NATType = pointer.Pointer(metal.IPv4MasqueradeNATType)
+					newNetwork.NATType = new(metal.IPv4MasqueradeNATType)
 				} else {
-					new.NATType = pointer.Pointer(metal.NoneNATType)
+					newNetwork.NATType = new(metal.NoneNATType)
 				}
 
-				err := ds.UpdateNetwork(&old, &new)
+				err := ds.UpdateNetwork(&old, &newNetwork)
 				if err != nil {
 					return err
 				}

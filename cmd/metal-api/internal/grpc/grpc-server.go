@@ -30,6 +30,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/auditing"
+	auditinggrpc "github.com/metal-stack/metal-lib/auditing/grpc"
 	"github.com/metal-stack/metal-lib/bus"
 )
 
@@ -132,11 +133,11 @@ func Run(cfg *ServerConfig) error {
 		}
 
 		for _, backend := range cfg.Auditing {
-			auditStreamInterceptor, err := auditing.StreamServerInterceptor(backend, log.WithGroup("auditing-grpc"), shouldAudit)
+			auditStreamInterceptor, err := auditinggrpc.StreamServerInterceptor(backend, log.WithGroup("auditing-grpc"), shouldAudit)
 			if err != nil {
 				return err
 			}
-			auditUnaryInterceptor, err := auditing.UnaryServerInterceptor(backend, log.WithGroup("auditing-grpc"), shouldAudit)
+			auditUnaryInterceptor, err := auditinggrpc.UnaryServerInterceptor(backend, log.WithGroup("auditing-grpc"), shouldAudit)
 			if err != nil {
 				return err
 			}
