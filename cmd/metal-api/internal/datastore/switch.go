@@ -192,6 +192,7 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 	// We detect the rackID of a machine by connections to leaf switches
 	m.RackID = s1.RackID
 	m.PartitionID = s1.PartitionID
+	m.RoomID = s1.RoomID
 
 	byNicName, err := s2.MachineConnections.ByNicName()
 	if err != nil {
