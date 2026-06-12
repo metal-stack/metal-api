@@ -157,6 +157,21 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 			},
 			wantErr: nil,
 		},
+				{
+			name: "search by room",
+			q: &SwitchSearchQuery{
+				RoomID: new("b"),
+			},
+			mock: []*metal.Switch{
+				{Base: metal.Base{ID: "1"}, RoomID: "a"},
+				{Base: metal.Base{ID: "2"}, RoomID: "b"},
+				{Base: metal.Base{ID: "3"}, RoomID: "c"},
+			},
+			want: []*metal.Switch{
+				tt.defaultBody(&metal.Switch{Base: metal.Base{ID: "2"}, RoomID: "b"}),
+			},
+			wantErr: nil,
+		},
 		{
 			name: "search by os vendor",
 			q: &SwitchSearchQuery{
@@ -311,6 +326,7 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 				Base:   metal.Base{ID: "1"},
 				Nics:   metal.Nics{},
 				RackID: "abc",
+				RoomID: "room-abc",
 			},
 		},
 	}
