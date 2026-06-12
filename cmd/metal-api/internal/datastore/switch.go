@@ -13,6 +13,7 @@ type SwitchSearchQuery struct {
 	Name        *string `json:"name" optional:"true"`
 	PartitionID *string `json:"partitionid" optional:"true"`
 	RackID      *string `json:"rackid" optional:"true"`
+	RoomID      *string `json:"roomid" optional:"true"`
 	OSVendor    *string `json:"osvendor" optional:"true"`
 	OSVersion   *string `json:"osversion" optional:"true"`
 }
@@ -42,6 +43,12 @@ func (p *SwitchSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.RackID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("rackid").Eq(*p.RackID)
+		})
+	}
+
+	if p.RoomID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("roomid").Eq(*p.RoomID)
 		})
 	}
 

@@ -591,6 +591,7 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 			s.Description = *requestPayload.Description
 		}
 		s.RackID = spec.RackID
+		s.RoomID = spec.RoomID
 		s.PartitionID = spec.PartitionID
 		if spec.OS != nil {
 			if s.OS == nil {

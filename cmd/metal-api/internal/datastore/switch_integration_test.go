@@ -305,6 +305,7 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 			},
 			mutateFn: func(s *metal.Switch) {
 				s.RackID = "abc"
+				s.RoomID = "room-abc"
 			},
 			want: &metal.Switch{
 				Base:   metal.Base{ID: "1"},
