@@ -224,6 +224,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 
 	testPartitionID := "test-partition"
 	testRackID := "test-rack"
+	testRoomID := "test-room"
 
 	cumulus1 := metal.Switch{
 		Base: metal.Base{
