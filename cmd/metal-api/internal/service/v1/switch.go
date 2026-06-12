@@ -268,6 +268,7 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		},
 		PartitionID:        r.PartitionID,
 		RackID:             r.RackID,
+		RoomID:             r.RoomID,
 		MachineConnections: make(metal.ConnectionMap),
 		Nics:               nics,
 		OS:                 os,
