@@ -21,6 +21,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 )
 
 type switchResource struct {
@@ -937,32 +938,6 @@ func (r *switchResource) adjustMachineConnections(oldConnections metal.Connectio
 	return nil
 }
 
-// updateMachineRoom updates the room ID for all machines connected to the switch
-func (r *switchResource) updateMachineRoom(sw *metal.Switch, newRoomID string) error {
-	for machineID := range sw.MachineConnections {
-		m, err := r.ds.FindMachineByID(machineID)
-		if err != nil {
-			return fmt.Errorf("failed to find machine %s connected to switch %s: %w", machineID, sw.ID, err)
-		}
-
-		if m.RoomID == newRoomID {
-			continue
-		}
-
-		newMachine := *m
-		newMachine.RoomID = newRoomID
-
-		err = r.ds.UpdateMachine(m, &newMachine)
-		if err != nil {
-			return fmt.Errorf("failed to update room for machine %s from %s to %s: %w", machineID, m.RoomID, newRoomID, err)
-		}
-
-		r.log.Info("updated machine room", "machine_id", machineID, "old_room", m.RoomID, "new_room", newRoomID, "switch_id", sw.ID)
-	}
-
-	return nil
-}
-
 func adjustMachineNics(nics metal.Nics, connections metal.Connections, nicMap metal.NicMap) (metal.Nics, error) {
 	newNics := make(metal.Nics, 0)
 
@@ -1380,4 +1355,46 @@ func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore) (metal.PartitionM
 		return nil, nil, nil, fmt.Errorf("networks could not be listed: %w", err)
 	}
 	return p.ByID(), nws.ByID(), ips.ByProjectID(), nil
+}
+
+// updateMachineRoom updates the room ID for all machines connected to the switch
+func (r *switchResource) updateMachineRoom(sw *metal.Switch, newRoomID string) error {
+	for machineID := range sw.MachineConnections {
+		m, err := r.ds.FindMachineByID(machineID)
+		if err != nil {
+			return fmt.Errorf("failed to find machine %s connected to switch %s: %w", machineID, sw.ID, err)
+		}
+
+		if m.RoomID == newRoomID {
+			continue
+		}
+
+		newMachine := *m
+		newMachine.RoomID = newRoomID
+		newMachine.Tags = updateMachineRoomTag(newMachine.Tags, newRoomID)
+
+		err = r.ds.UpdateMachine(m, &newMachine)
+		if err != nil {
+			return fmt.Errorf("failed to update room for machine %s from %s to %s: %w", machineID, m.RoomID, newRoomID, err)
+		}
+
+		r.log.Info("updated machine room", "machine_id", machineID, "old_room", m.RoomID, "new_room", newRoomID, "switch_id", sw.ID)
+	}
+
+	return nil
+}
+
+// updateMachineRoomTag returns the updated list of tags for a machine after a room change.
+func updateMachineRoomTag(tags []string, newRoomID string) []string {
+	// Remove existing MachineRoom tag if present
+	newTags := []string{}
+	for _, t := range tags {
+		if !strings.HasPrefix(t, tag.MachineRoom) {
+			newTags = append(newTags, t)
+		}
+	}
+
+	newTags = append(newTags, fmt.Sprintf("%s=%s", tag.MachineRoom, newRoomID))
+
+	return newTags
 }
