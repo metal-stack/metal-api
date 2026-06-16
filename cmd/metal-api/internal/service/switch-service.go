@@ -591,6 +591,13 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 			s.Description = *requestPayload.Description
 		}
 		s.RackID = spec.RackID
+		if spec.RoomID != "" && spec.RoomID != old.RoomID {
+			err = r.updateMachineRoom(s, spec.RoomID)
+			if err != nil {
+				r.sendError(request, response, defaultError(err))
+				return
+			}
+		}
 		s.RoomID = spec.RoomID
 		s.PartitionID = spec.PartitionID
 		if spec.OS != nil {
@@ -927,6 +934,32 @@ func (r *switchResource) adjustMachineConnections(oldConnections metal.Connectio
 			return err
 		}
 	}
+	return nil
+}
+
+// updateMachineRoom updates the room ID for all machines connected to the switch
+func (r *switchResource) updateMachineRoom(sw *metal.Switch, newRoomID string) error {
+	for machineID := range sw.MachineConnections {
+		m, err := r.ds.FindMachineByID(machineID)
+		if err != nil {
+			return fmt.Errorf("failed to find machine %s connected to switch %s: %w", machineID, sw.ID, err)
+		}
+
+		if m.RoomID == newRoomID {
+			continue
+		}
+
+		newMachine := *m
+		newMachine.RoomID = newRoomID
+
+		err = r.ds.UpdateMachine(m, &newMachine)
+		if err != nil {
+			return fmt.Errorf("failed to update room for machine %s from %s to %s: %w", machineID, m.RoomID, newRoomID, err)
+		}
+
+		r.log.Info("updated machine room", "machine_id", machineID, "old_room", m.RoomID, "new_room", newRoomID, "switch_id", sw.ID)
+	}
+
 	return nil
 }
 

@@ -2186,3 +2186,208 @@ func TestCompactCidrs(t *testing.T) {
 
 	require.ElementsMatch(t, compactedCidrs, compacted)
 }
+
+func TestUpdateMachineRoom(t *testing.T) {
+	tests := []struct {
+		name        string
+		switchID    string
+		oldRoomID   string
+		newRoomID   string
+		machines    map[string]*metal.Machine
+		connections metal.ConnectionMap
+		wantErr     bool
+		errMsg      string
+	}{
+		{
+			name:      "successfully add room to machines connected to switch",
+			switchID:  "switch-1",
+			oldRoomID: "room-a",
+			newRoomID: "room-b",
+			machines: map[string]*metal.Machine{
+				"machine-1": {
+					Base: metal.Base{ID: "machine-1"},
+					RoomID: "room-a",
+				},
+				"machine-2": {
+					Base: metal.Base{ID: "machine-2"},
+					RoomID: "room-a",
+				},
+				"machine-3": {
+					Base: metal.Base{ID: "machine-3"},
+					RoomID: "room-a",
+				},
+			},
+			connections: metal.ConnectionMap{
+				"machine-1": metal.Connections{
+					{
+						Nic: metal.Nic{
+							Name: "swp1",
+						},
+						MachineID: "machine-1",
+					},
+				},
+				"machine-2": metal.Connections{
+					{
+						Nic: metal.Nic{
+							Name: "swp2",
+						},
+						MachineID: "machine-2",
+					},
+				},
+				"machine-3": metal.Connections{
+					{
+						Nic: metal.Nic{
+							Name: "swp3",
+						},
+						MachineID: "machine-3",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:      "skip machines that already have the new room",
+			switchID:  "switch-2",
+			oldRoomID: "room-a",
+			newRoomID: "room-b",
+			machines: map[string]*metal.Machine{
+				"machine-1": {
+					Base: metal.Base{ID: "machine-1"},
+				},
+				"machine-2": {
+					Base: metal.Base{ID: "machine-2"},
+					RoomID: "room-b", // Already has new room
+				},
+			},
+			connections: metal.ConnectionMap{
+				"machine-1": metal.Connections{
+					{
+						Nic: metal.Nic{
+							Name: "swp1",
+						},
+						MachineID: "machine-1",
+					},
+				},
+				"machine-2": metal.Connections{
+					{
+						Nic: metal.Nic{
+							Name: "swp2",
+						},
+						MachineID: "machine-2",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:      "handle switch with no machine connections",
+			switchID:  "switch-3",
+			oldRoomID: "room-a",
+			newRoomID: "room-b",
+			machines:  map[string]*metal.Machine{},
+			connections: metal.ConnectionMap{
+				// No connections
+			},
+			wantErr: false,
+		},
+		{
+			name:      "update roomid on machines",
+			switchID:  "switch-5",
+			oldRoomID: "room-a",
+			newRoomID: "room-b",
+			machines: map[string]*metal.Machine{
+				"machine-1": {
+					Base: metal.Base{ID: "machine-1"},
+					RoomID: "room-a",
+				},
+				"machine-2": {
+					Base: metal.Base{ID: "machine-2"},
+					RoomID: "room-a",
+				},
+			},
+			connections: metal.ConnectionMap{
+				"machine-1": metal.Connections{
+					{
+						Nic: metal.Nic{
+							Name: "swp1",
+						},
+						MachineID: "machine-1",
+					},
+				},
+				"machine-2": metal.Connections{
+					{
+						Nic: metal.Nic{
+							Name: "swp2",
+						},
+						MachineID: "machine-2",
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ds, mock := datastore.InitMockDB(t)
+
+			// Setup mock expectations for finding machines
+			// First, set expectations for machines that exist
+			for machineID, machine := range tt.machines {
+				mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(machine, nil)
+			}
+
+			// Setup mock expectations for updating machines
+			updatedMachines := make(map[string]*metal.Machine)
+			for machineID, machine := range tt.machines {
+				// Only expect update calls for machines that need room change
+				if machine.RoomID != tt.newRoomID {
+					// Create the expected updated machine
+					updatedMachine := *machine
+					updatedMachine.RoomID = tt.newRoomID
+					updatedMachines[machineID] = &updatedMachine
+
+					// UpdateMachine uses a complex query with Branch for optimistic locking
+					mock.On(r.DB("mockdb").Table("machine").Get(machineID).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+				}
+			}
+
+			// Create switch resource
+			sw := &metal.Switch{
+				Base: metal.Base{
+					ID: tt.switchID,
+				},
+				RoomID:            tt.oldRoomID,
+				MachineConnections: tt.connections,
+			}
+
+			// Create switch resource instance
+			r := &switchResource{
+				webResource: webResource{
+					log: slog.Default(),
+					ds:  ds,
+				},
+			}
+
+			// Call the function
+			err := r.updateMachineRoom(sw, tt.newRoomID)
+
+			// Verify results
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				require.NoError(t, err)
+
+				// Verify that the expected machines were updated with the correct room ID
+				for machineID, expectedMachine := range updatedMachines {
+					require.Equal(t, expectedMachine.RoomID, tt.newRoomID,
+						"machine %s should have room ID %s", machineID, tt.newRoomID)
+				}
+			}
+
+			// Verify all mock expectations were met
+			mock.AssertExpectations(t)
+		})
+	}
+}
