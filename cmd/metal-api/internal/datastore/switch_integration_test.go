@@ -157,7 +157,7 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 			},
 			wantErr: nil,
 		},
-				{
+		{
 			name: "search by room",
 			q: &SwitchSearchQuery{
 				RoomID: new("b"),
