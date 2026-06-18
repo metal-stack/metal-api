@@ -2,6 +2,7 @@ package headscale
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -24,6 +25,8 @@ type HeadscaleClient struct {
 	conn   *grpc.ClientConn
 	logger *slog.Logger
 }
+
+var notFoundError error = errors.New("user not found")
 
 func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *slog.Logger) (client *HeadscaleClient, err error) {
 	if addr != "" || apiKey != "" {
@@ -74,10 +77,15 @@ func (h *HeadscaleClient) GetControlPlaneAddress() string {
 	return h.controlPlaneAddress
 }
 
-func (h *HeadscaleClient) UserExists(ctx context.Context, name string) bool {
-	_, exists := h.getUser(ctx, name)
-
-	return exists
+func (h *HeadscaleClient) UserExists(ctx context.Context, name string) (bool, error) {
+	_, err := h.getUser(ctx, name)
+	if errors.Is(err, notFoundError) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (h *HeadscaleClient) CreateUser(ctx context.Context, name string) error {
@@ -94,9 +102,9 @@ func (h *HeadscaleClient) CreateUser(ctx context.Context, name string) error {
 }
 
 func (h *HeadscaleClient) CreatePreAuthKey(ctx context.Context, user string, expiration time.Time, isEphemeral bool) (key string, err error) {
-	u, exists := h.getUser(ctx, user)
-	if !exists {
-		return "", fmt.Errorf("user %q does not exist", user)
+	u, err := h.getUser(ctx, user)
+	if err != nil {
+		return "", err
 	}
 
 	req := &headscalev1.CreatePreAuthKeyRequest{
@@ -104,8 +112,7 @@ func (h *HeadscaleClient) CreatePreAuthKey(ctx context.Context, user string, exp
 		Expiration: timestamppb.New(expiration),
 		Ephemeral:  isEphemeral,
 	}
-	h.logger.Info("create pre auth key", "request", req)
-	spew.Dump(req)
+	spew.Dump(u)
 	resp, err := h.client.CreatePreAuthKey(ctx, req)
 	if err != nil || resp == nil || resp.PreAuthKey == nil {
 		return "", fmt.Errorf("failed to create new Auth Key: %w", err)
@@ -158,27 +165,21 @@ func (h *HeadscaleClient) getNode(ctx context.Context, machineID, projectID stri
 	return nil, nil
 }
 
-func (h *HeadscaleClient) getUser(ctx context.Context, name string) (*headscalev1.User, bool) {
+func (h *HeadscaleClient) getUser(ctx context.Context, name string) (*headscalev1.User, error) {
 	resp, err := h.client.ListUsers(ctx, &headscalev1.ListUsersRequest{
 		Name: name,
 	})
 	if err != nil {
-		return nil, false
+		return nil, err
 	}
-
-	var headscaleUser *headscalev1.User
 
 	for _, user := range resp.Users {
 		if user.Name == name {
-			headscaleUser = user
+			return user, nil
 		}
 	}
 
-	if headscaleUser == nil {
-		return nil, false
-	}
-
-	return headscaleUser, true
+	return nil, notFoundError
 }
 
 // Close client
