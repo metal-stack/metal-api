@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"github.com/juanfont/headscale/hscontrol/db"
 	"google.golang.org/grpc"
@@ -103,6 +104,8 @@ func (h *HeadscaleClient) CreatePreAuthKey(ctx context.Context, user string, exp
 		Expiration: timestamppb.New(expiration),
 		Ephemeral:  isEphemeral,
 	}
+	h.logger.Info("create pre auth key", "request", req)
+	spew.Dump(req)
 	resp, err := h.client.CreatePreAuthKey(ctx, req)
 	if err != nil || resp == nil || resp.PreAuthKey == nil {
 		return "", fmt.Errorf("failed to create new Auth Key: %w", err)
