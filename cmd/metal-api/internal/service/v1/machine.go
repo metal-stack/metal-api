@@ -662,6 +662,11 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 	if ec != nil {
 		liveliness = string(ec.Liveliness)
 	}
+	stateValue := string(m.State.Value)
+	if m.State.Value == metal.TaintedState {
+		// Do not break clients, in apiv2 we return tainted
+		stateValue = string(metal.ReservedState)
+	}
 
 	return &MachineResponse{
 		Common: Common{
@@ -686,7 +691,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Date:    m.BIOS.Date,
 			},
 			State: MachineState{
-				Value:              string(m.State.Value),
+				Value:              stateValue,
 				Description:        m.State.Description,
 				Issuer:             m.State.Issuer,
 				MetalHammerVersion: m.State.MetalHammerVersion,
