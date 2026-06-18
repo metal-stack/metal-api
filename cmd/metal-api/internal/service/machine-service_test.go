@@ -233,7 +233,7 @@ func TestSetMachineState(t *testing.T) {
 	container := restful.NewContainer().Add(machineservice)
 
 	stateRequest := v1.MachineState{
-		Value:       string(metal.ReservedState),
+		Value:       string(metal.TaintedState),
 		Description: "blubber",
 	}
 	js, err := json.Marshal(stateRequest)
