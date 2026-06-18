@@ -253,7 +253,7 @@ func TestSetMachineState(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, "1", result.ID)
-	require.Equal(t, string(metal.TaintedState), result.State.Value)
+	require.Equal(t, string(metal.ReservedState), result.State.Value)
 	require.Equal(t, "blubber", result.State.Description)
 	require.Equal(t, "anonymous@metal-stack.io", result.State.Issuer)
 }

@@ -422,7 +422,7 @@ func Test_MigrationNetworkType(t *testing.T) {
 	require.Equal(t, metal.ChildSharedNetworkType, *partitionStorage.NetworkType)
 }
 
-func Test_MigrationReserverToTainted(t *testing.T) {
+func Test_MigrationReservedToTainted(t *testing.T) {
 	container, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 	defer func() {
