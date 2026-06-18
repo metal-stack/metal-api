@@ -113,6 +113,7 @@ func (h *HeadscaleClient) CreatePreAuthKey(ctx context.Context, user string, exp
 		Ephemeral:  isEphemeral,
 	}
 	spew.Dump(u)
+	h.logger.Info("##############", "user id", u.Id, "req", req)
 	resp, err := h.client.CreatePreAuthKey(ctx, req)
 	if err != nil || resp == nil || resp.PreAuthKey == nil {
 		return "", fmt.Errorf("failed to create new Auth Key: %w", err)
@@ -169,6 +170,7 @@ func (h *HeadscaleClient) getUser(ctx context.Context, name string) (*headscalev
 	resp, err := h.client.ListUsers(ctx, &headscalev1.ListUsersRequest{
 		Name: name,
 	})
+	spew.Dump(resp)
 	if err != nil {
 		return nil, err
 	}
