@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"github.com/juanfont/headscale/hscontrol/db"
 	"google.golang.org/grpc"
@@ -107,14 +106,11 @@ func (h *HeadscaleClient) CreatePreAuthKey(ctx context.Context, user string, exp
 		return "", err
 	}
 
-	req := &headscalev1.CreatePreAuthKeyRequest{
+	resp, err := h.client.CreatePreAuthKey(ctx, &headscalev1.CreatePreAuthKeyRequest{
 		User:       u.Id,
 		Expiration: timestamppb.New(expiration),
 		Ephemeral:  isEphemeral,
-	}
-	spew.Dump(u)
-	h.logger.Info("##############", "user id", u.Id, "req", req)
-	resp, err := h.client.CreatePreAuthKey(ctx, req)
+	})
 	if err != nil || resp == nil || resp.PreAuthKey == nil {
 		return "", fmt.Errorf("failed to create new Auth Key: %w", err)
 	}
@@ -170,7 +166,6 @@ func (h *HeadscaleClient) getUser(ctx context.Context, name string) (*headscalev
 	resp, err := h.client.ListUsers(ctx, &headscalev1.ListUsersRequest{
 		Name: name,
 	})
-	spew.Dump(resp)
 	if err != nil {
 		return nil, err
 	}
