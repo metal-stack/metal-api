@@ -585,11 +585,11 @@ func initIpam() {
 	ipamer = ipam.New(ipamService)
 
 	err := retry.Do(func() error {
-		version, err := ipamService.Version(context.Background(), connect.NewRequest(&apiv1.VersionRequest{}))
+		version, err := ipamService.Version(context.Background(), &apiv1.VersionRequest{})
 		if err != nil {
 			return err
 		}
-		logger.Info("connected to ipam service", "version", version.Msg)
+		logger.Info("connected to ipam service", "version", version)
 		return nil
 	})
 
