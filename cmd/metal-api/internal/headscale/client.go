@@ -95,9 +95,9 @@ func (h *HeadscaleClient) CreateUser(ctx context.Context, name string) error {
 		// Importing the error from "github.com/juanfont/headscale/hscontrol/db" would pull
 		// the whole headscale dependencies and the resulting binary would be ~10Mb bigger
 		if strings.Contains(err.Error(), "user already exists") || strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			return fmt.Errorf("failed to create new VPN user: %w", err)
+			return nil
 		}
-		return nil
+		return fmt.Errorf("failed to create new VPN user: %w", err)
 	}
 
 	return nil
