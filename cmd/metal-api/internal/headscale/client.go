@@ -9,7 +9,6 @@ import (
 	"time"
 
 	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
-	"github.com/juanfont/headscale/hscontrol/db"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -92,9 +91,13 @@ func (h *HeadscaleClient) CreateUser(ctx context.Context, name string) error {
 		Name: name,
 	}
 	_, err := h.client.CreateUser(ctx, req)
-	// TODO: this error check is pretty rough, but it's not easily possible to compare the proto error directly :/
-	if err != nil && !strings.Contains(err.Error(), db.ErrUserExists.Error()) {
-		return fmt.Errorf("failed to create new VPN user: %w", err)
+	if err != nil {
+		// Importing the error from "github.com/juanfont/headscale/hscontrol/db" would pull
+		// the whole headscale dependencies and the resulting binary would be ~10Mb bigger
+		if strings.Contains(err.Error(), "user already exists") || strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return fmt.Errorf("failed to create new VPN user: %w", err)
+		}
+		return nil
 	}
 
 	return nil
