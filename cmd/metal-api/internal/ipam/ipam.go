@@ -46,15 +46,15 @@ func New(ip apiv1connect.IpamServiceClient) IPAMer {
 
 // AllocateChildPrefix creates a child prefix from a parent prefix in the IPAM.
 func (i *ipam) AllocateChildPrefix(ctx context.Context, parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error) {
-	ipamPrefix, err := i.ip.AcquireChildPrefix(ctx, connect.NewRequest(&apiv1.AcquireChildPrefixRequest{
+	ipamPrefix, err := i.ip.AcquireChildPrefix(ctx, &apiv1.AcquireChildPrefixRequest{
 		Cidr:   parentPrefix.String(),
 		Length: uint32(childLength),
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating new prefix from:%s in ipam: %w", parentPrefix.String(), err)
 	}
 
-	prefix, _, err := metal.NewPrefixFromCIDR(ipamPrefix.Msg.Prefix.Cidr)
+	prefix, _, err := metal.NewPrefixFromCIDR(ipamPrefix.Prefix.Cidr)
 	if err != nil {
 		return nil, fmt.Errorf("error creating prefix from ipam prefix: %w", err)
 	}
@@ -64,9 +64,9 @@ func (i *ipam) AllocateChildPrefix(ctx context.Context, parentPrefix metal.Prefi
 
 // ReleaseChildPrefix release a child prefix from a parent prefix in the IPAM.
 func (i *ipam) ReleaseChildPrefix(ctx context.Context, childPrefix metal.Prefix) error {
-	_, err := i.ip.ReleaseChildPrefix(ctx, connect.NewRequest(&apiv1.ReleaseChildPrefixRequest{
+	_, err := i.ip.ReleaseChildPrefix(ctx, &apiv1.ReleaseChildPrefixRequest{
 		Cidr: childPrefix.String(),
-	}))
+	})
 	if err != nil {
 		return fmt.Errorf("error releasing child prefix in ipam: %w", err)
 	}
@@ -76,9 +76,9 @@ func (i *ipam) ReleaseChildPrefix(ctx context.Context, childPrefix metal.Prefix)
 
 // CreatePrefix creates a prefix in the IPAM.
 func (i *ipam) CreatePrefix(ctx context.Context, prefix metal.Prefix) error {
-	_, err := i.ip.CreatePrefix(ctx, connect.NewRequest(&apiv1.CreatePrefixRequest{
+	_, err := i.ip.CreatePrefix(ctx, &apiv1.CreatePrefixRequest{
 		Cidr: prefix.String(),
-	}))
+	})
 	if err != nil {
 		return fmt.Errorf("unable to create prefix in ipam: %w", err)
 	}
@@ -87,9 +87,9 @@ func (i *ipam) CreatePrefix(ctx context.Context, prefix metal.Prefix) error {
 
 // DeletePrefix remove a prefix in the IPAM.
 func (i *ipam) DeletePrefix(ctx context.Context, prefix metal.Prefix) error {
-	_, err := i.ip.DeletePrefix(ctx, connect.NewRequest(&apiv1.DeletePrefixRequest{
+	_, err := i.ip.DeletePrefix(ctx, &apiv1.DeletePrefixRequest{
 		Cidr: prefix.String(),
-	}))
+	})
 	if err != nil {
 		return err
 	}
@@ -98,10 +98,10 @@ func (i *ipam) DeletePrefix(ctx context.Context, prefix metal.Prefix) error {
 
 // AllocateIP an ip in the IPAM and returns the allocated IP as a string.
 func (i *ipam) AllocateIP(ctx context.Context, prefix metal.Prefix) (string, error) {
-	ipamIP, err := i.ip.AcquireIP(ctx, connect.NewRequest(&apiv1.AcquireIPRequest{
+	ipamIP, err := i.ip.AcquireIP(ctx, &apiv1.AcquireIPRequest{
 		PrefixCidr: prefix.String(),
 		Ip:         nil,
-	}))
+	})
 	if err != nil {
 		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %w", prefix.String(), err)
 	}
@@ -109,15 +109,15 @@ func (i *ipam) AllocateIP(ctx context.Context, prefix metal.Prefix) (string, err
 		return "", fmt.Errorf("cannot find free ip to allocate in ipam: %s", prefix.String())
 	}
 
-	return ipamIP.Msg.Ip.Ip, nil
+	return ipamIP.Ip.Ip, nil
 }
 
 // AllocateSpecificIP a specific ip in the IPAM and returns the allocated IP as a string.
 func (i *ipam) AllocateSpecificIP(ctx context.Context, prefix metal.Prefix, specificIP string) (string, error) {
-	ipamIP, err := i.ip.AcquireIP(ctx, connect.NewRequest(&apiv1.AcquireIPRequest{
+	ipamIP, err := i.ip.AcquireIP(ctx, &apiv1.AcquireIPRequest{
 		PrefixCidr: prefix.String(),
 		Ip:         &specificIP,
-	}))
+	})
 	if err != nil {
 		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %w", prefix.String(), err)
 	}
@@ -125,15 +125,15 @@ func (i *ipam) AllocateSpecificIP(ctx context.Context, prefix metal.Prefix, spec
 		return "", fmt.Errorf("cannot find free ip to allocate in ipam: %s", prefix.String())
 	}
 
-	return ipamIP.Msg.Ip.Ip, nil
+	return ipamIP.Ip.Ip, nil
 }
 
 // ReleaseIP an ip in the IPAM.
 func (i *ipam) ReleaseIP(ctx context.Context, ip metal.IP) error {
-	_, err := i.ip.ReleaseIP(ctx, connect.NewRequest(&apiv1.ReleaseIPRequest{
+	_, err := i.ip.ReleaseIP(ctx, &apiv1.ReleaseIPRequest{
 		PrefixCidr: ip.ParentPrefixCidr,
 		Ip:         ip.IPAddress,
-	}))
+	})
 	var connectErr *connect.Error
 	if errors.As(err, &connectErr) {
 		if connectErr.Code() == connect.CodeNotFound {
@@ -148,20 +148,20 @@ func (i *ipam) ReleaseIP(ctx context.Context, ip metal.IP) error {
 
 // PrefixUsage calculates the IP and Prefix Usage
 func (i *ipam) PrefixUsage(ctx context.Context, cidr string) (*metal.NetworkUsage, error) {
-	usage, err := i.ip.PrefixUsage(ctx, connect.NewRequest(&apiv1.PrefixUsageRequest{
+	usage, err := i.ip.PrefixUsage(ctx, &apiv1.PrefixUsageRequest{
 		Cidr: cidr,
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("prefix usage for cidr:%s not found %w", cidr, err)
 	}
 
 	return &metal.NetworkUsage{
-		AvailableIPs: usage.Msg.AvailableIps,
-		UsedIPs:      usage.Msg.AcquiredIps,
+		AvailableIPs: usage.AvailableIps,
+		UsedIPs:      usage.AcquiredIps,
 		// FIXME add usage.AvailablePrefixList as already done here
 		// https://github.com/metal-stack/metal-api/pull/152/files#diff-fe05f7f1480be933b5c482b74af28c8b9ca7ef2591f8341eb6e6663cbaeda7baR828
-		AvailablePrefixes: usage.Msg.AvailableSmallestPrefixes,
-		UsedPrefixes:      usage.Msg.AcquiredPrefixes,
+		AvailablePrefixes: usage.AvailableSmallestPrefixes,
+		UsedPrefixes:      usage.AcquiredPrefixes,
 	}, nil
 }
 
@@ -175,7 +175,7 @@ func (i *ipam) ServiceName() string {
 }
 
 func (i *ipam) Check(ctx context.Context) (healthstatus.HealthResult, error) {
-	resp, err := i.ip.Version(ctx, connect.NewRequest(&apiv1.VersionRequest{}))
+	resp, err := i.ip.Version(ctx, &apiv1.VersionRequest{})
 
 	if err != nil {
 		return healthstatus.HealthResult{
@@ -185,6 +185,6 @@ func (i *ipam) Check(ctx context.Context) (healthstatus.HealthResult, error) {
 
 	return healthstatus.HealthResult{
 		Status:  healthstatus.HealthStatusHealthy,
-		Message: fmt.Sprintf("connected to ipam service version:%q", resp.Msg.Revision),
+		Message: fmt.Sprintf("connected to ipam service version:%q", resp.Revision),
 	}, nil
 }
