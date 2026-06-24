@@ -16,12 +16,12 @@ import (
 	restful "github.com/emicklei/go-restful/v3"
 	"go4.org/netipx"
 
+	"github.com/metal-stack/api/go/tag"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	auditinghttp "github.com/metal-stack/metal-lib/auditing/http"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 )
 
 type switchResource struct {
