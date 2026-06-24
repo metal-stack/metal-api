@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
+	"github.com/metal-stack/api/go/tag"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -115,6 +116,125 @@ func TestRegisterExistingSwitch(t *testing.T) {
 	require.Empty(t, result.Connections)
 	// con := result.Connections[0]
 	// require.Equal(t, testdata.Switch2.MachineConnections["1"][0].Nic.MacAddress, con.Nic.MacAddress)
+}
+
+func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	log := slog.Default()
+
+	// Create test machines connected to the switch
+	oldRoomID := "room-a"
+	newRoomID := "room-b"
+	switchID := "switch-room-test"
+
+	machine1 := &metal.Machine{
+		Base:   metal.Base{ID: "machine-1"},
+		Tags:   []string{"tag1=value1", tag.MachineRoom + "=" + oldRoomID},
+		RoomID: oldRoomID,
+	}
+	machine2 := &metal.Machine{
+		Base:   metal.Base{ID: "machine-2"},
+		Tags:   []string{"tag2=value2", tag.MachineRoom + "=" + oldRoomID},
+		RoomID: oldRoomID,
+	}
+
+	// Create existing switch with old room ID and machine connections
+	existingSwitch := &metal.Switch{
+		Base: metal.Base{
+			ID: switchID,
+		},
+		PartitionID: "1",
+		RackID:      "1",
+		RoomID:      oldRoomID,
+		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+		MachineConnections: metal.ConnectionMap{
+			"machine-1": metal.Connections{
+				{
+					Nic: metal.Nic{
+						Name: "swp1",
+					},
+					MachineID: "machine-1",
+				},
+			},
+			"machine-2": metal.Connections{
+				{
+					Nic: metal.Nic{
+						Name: "swp2",
+					},
+					MachineID: "machine-2",
+				},
+			},
+		},
+	}
+
+	// Create partition for the switch
+	partition := &metal.Partition{
+		Base: metal.Base{
+			ID: "1",
+		},
+	}
+
+	// Setup mock expectations
+	mock.On(r.DB("mockdb").Table("partition").Get("1")).Return(partition, nil)
+	mock.On(r.DB("mockdb").Table("switch").Get(switchID)).Return(existingSwitch, nil)
+	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return(metal.Machines{}, nil)
+	mock.On(r.DB("mockdb").Table("machine").Get("machine-1")).Return(machine1, nil)
+	mock.On(r.DB("mockdb").Table("machine").Get("machine-2")).Return(machine2, nil)
+	mock.On(r.DB("mockdb").Table("machine").Get("machine-1").Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("machine").Get("machine-2").Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("switch").Get(switchID).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("ip")).Return(metal.IPs{}, nil)
+	mock.On(r.DB("mockdb").Table("network")).Return(metal.Networks{}, nil)
+	mock.On(r.DB("mockdb").Table("switchstatus").Get(switchID)).Return(nil, nil)
+
+	switchservice := NewSwitch(log, ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	// Register the switch with a new room ID
+	createRequest := v1.SwitchRegisterRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: switchID,
+			},
+		},
+		PartitionID: "1",
+		SwitchBase: v1.SwitchBase{
+			RackID: "1",
+			RoomID: newRoomID,
+			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+		},
+	}
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/switch/register", body)
+	req.Header.Add("Content-Type", "application/json")
+	container = injectEditor(log, container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.SwitchResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, newRoomID, result.RoomID)
+
+	// Verify that machine connections are present in the response
+	require.Len(t, result.Connections, 2)
+
+	// Verify the machine IDs in the connections
+	machineIDs := make([]string, len(result.Connections))
+	for i, conn := range result.Connections {
+		machineIDs[i] = conn.MachineID
+	}
+	require.Contains(t, machineIDs, "machine-1")
+	require.Contains(t, machineIDs, "machine-2")
+
+	// Verify all mock expectations were met
+	mock.AssertExpectations(t)
 }
 
 func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {

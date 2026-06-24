@@ -15,6 +15,7 @@ const RecentProvisioningEventsLimit = 20
 type MachineBase struct {
 	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" optional:"true"`
 	RackID                   string                          `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" optional:"true"`
+	RoomID                   string                          `json:"roomid" description:"the room assigned to this machine" readOnly:"true" optional:"true"`
 	Size                     *SizeResponse                   `json:"size" description:"the size of this machine" readOnly:"true" optional:"true"`
 	Hardware                 MachineHardware                 `json:"hardware" description:"the hardware of this machine"`
 	BIOS                     MachineBIOS                     `json:"bios" description:"bios information of this machine"`
@@ -682,6 +683,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Size:       NewSizeResponse(s),
 			Allocation: allocation,
 			RackID:     m.RackID,
+			RoomID:     m.RoomID,
 			Hardware:   hardware,
 			BIOS: MachineBIOS{
 				Version: m.BIOS.Version,

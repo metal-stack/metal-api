@@ -20,6 +20,7 @@ type MachineSearchQuery struct {
 	PartitionID *string  `json:"partition_id" optional:"true"`
 	SizeID      *string  `json:"sizeid" optional:"true"`
 	RackID      *string  `json:"rackid" optional:"true"`
+	RoomID      *string  `json:"roomid" optional:"true"`
 	Tags        []string `json:"tags" optional:"true"`
 
 	// allocation
@@ -104,6 +105,12 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.RackID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("rackid").Eq(*p.RackID)
+		})
+	}
+
+	if p.RoomID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("roomid").Eq(*p.RoomID)
 		})
 	}
 

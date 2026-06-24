@@ -26,9 +26,9 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/metal-stack/api/go/tag"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -1769,6 +1769,9 @@ func makeMachineSystemLabels(m *metal.Machine) map[string]string {
 	}
 	if m.RackID != "" {
 		labels[tag.MachineRack] = m.RackID
+	}
+	if m.RoomID != "" {
+		labels[tag.MachineRoom] = m.RoomID
 	}
 	if m.IPMI.Fru.ChassisPartSerial != "" {
 		labels[tag.MachineChassis] = m.IPMI.Fru.ChassisPartSerial
