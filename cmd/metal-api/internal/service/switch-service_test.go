@@ -1525,7 +1525,7 @@ func Test_updateSwitchNics(t *testing.T) {
 				t.Errorf("updateSwitchNics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got.ByIdentifier(), tt.want.ByIdentifier()) {
+			if !reflect.DeepEqual(got.ByName(), tt.want.ByName()) {
 				t.Errorf("updateSwitchNics() = %v, want %v", got, tt.want)
 			}
 		})

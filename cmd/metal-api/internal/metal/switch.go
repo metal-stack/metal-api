@@ -144,7 +144,7 @@ func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
 	}
 
 	nics := Nics{}
-	for k, old := range s.Nics.ByIdentifier() {
+	for k, old := range s.Nics.ByName() {
 		e := old
 		if _, ok := affected[k]; ok {
 			e.Vrf = vrf
@@ -227,7 +227,7 @@ func (s *Switch) MapPortNames(targetOS SwitchOSVendor) (map[string]string, error
 func (s *Switch) getPhysicalMachineConnections(machine *Machine) Connections {
 	connections := make(Connections, 0)
 	for _, machineNic := range machine.Hardware.Nics {
-		neighMap := machineNic.Neighbors.FilterByHostname(s.Name).ByIdentifier()
+		neighMap := machineNic.Neighbors.FilterByHostname(s.Name).ByName()
 
 		for _, switchNic := range s.Nics {
 			if _, has := neighMap[switchNic.GetIdentifier()]; has {

@@ -572,13 +572,13 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 			return
 		}
 
-		uniqueNewNics := spec.Nics.ByIdentifier()
+		uniqueNewNics := spec.Nics.ByName()
 		if len(requestPayload.Nics) != len(uniqueNewNics) {
-			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate identifier found in nics")))
+			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate name found in nics")))
 			return
 		}
 
-		nics, err := updateSwitchNics(old.Nics.ByIdentifier(), uniqueNewNics, old.MachineConnections)
+		nics, err := updateSwitchNics(old.Nics.ByName(), uniqueNewNics, old.MachineConnections)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -976,8 +976,8 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 	for _, nicThatGetsLost := range nicsThatGetLost {
 		for machineID, connections := range currentConnections {
 			for _, c := range connections {
-				if c.Nic.GetIdentifier() == nicThatGetsLost.GetIdentifier() {
-					return nil, fmt.Errorf("nic with identifier %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.GetIdentifier(), machineID)
+				if c.Nic.Name == nicThatGetsLost.Name {
+					return nil, fmt.Errorf("nic %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.Name, machineID)
 				}
 			}
 		}
