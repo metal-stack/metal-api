@@ -1196,10 +1196,9 @@ func (r *switchResource) makeSwitchNics(s *metal.Switch, nws metal.NetworkMap, i
 			BGPPortState: n.BGPPortState,
 		}
 		if n.State != nil {
+			nic.Actual = v1.SwitchPortStatus(n.State.Actual)
 			if n.State.Desired != nil {
-				nic.Actual = v1.SwitchPortStatus(*n.State.Desired)
-			} else {
-				nic.Actual = v1.SwitchPortStatus(n.State.Actual)
+				nic.AdminStatus = new(v1.SwitchPortStatus(*n.State.Desired))
 			}
 		}
 		nics = append(nics, nic)
