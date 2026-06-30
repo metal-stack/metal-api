@@ -374,6 +374,7 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 // toggleSwitchPort handles a request to toggle the state of a port on a switch. It reads the request body, finds the switch, updates its NIC state if needed, and returns the updated switch on success.
 // If the given port is not found or the given status is not concrete, a 400 error is returned. Another requirement is that there must be a machine connected to the port.
 func (r *switchResource) toggleSwitchPort(request *restful.Request, response *restful.Response) {
+	r.log.Debug("toggle switch port", "request", request)
 	var requestPayload v1.SwitchPortToggleRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
@@ -439,6 +440,7 @@ func (r *switchResource) toggleSwitchPort(request *restful.Request, response *re
 	}
 
 	if updated {
+		r.log.Debug("toggle switch port update switch", "new nics", newSwitch.Nics)
 		if err := r.ds.UpdateSwitch(oldSwitch, &newSwitch); err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
