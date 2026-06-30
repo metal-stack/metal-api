@@ -136,46 +136,7 @@ func TestNicState_WantState(t *testing.T) {
 		changed bool
 	}{
 		{
-			name: "up to desired down",
-			nic: &NicState{
-				Desired: nil,
-				Actual:  down,
-			},
-			arg: up,
-			want: NicState{
-				Desired: &up,
-				Actual:  down,
-			},
-			changed: true,
-		},
-		{
-			name: "up to up with empty desired",
-			nic: &NicState{
-				Desired: nil,
-				Actual:  up,
-			},
-			arg: up,
-			want: NicState{
-				Desired: nil,
-				Actual:  up,
-			},
-			changed: false,
-		},
-		{
-			name: "up to up with other desired",
-			nic: &NicState{
-				Desired: &down,
-				Actual:  up,
-			},
-			arg: up,
-			want: NicState{
-				Desired: nil,
-				Actual:  up,
-			},
-			changed: true,
-		},
-		{
-			name: "nil to up",
+			name: "current is nil",
 			nic:  nil,
 			arg:  up,
 			want: NicState{
@@ -185,54 +146,80 @@ func TestNicState_WantState(t *testing.T) {
 			changed: true,
 		},
 		{
-			name: "different actual with same desired",
+			name: "current desired is nil, new desired matches current actual",
 			nic: &NicState{
-				Desired: &down,
-				Actual:  up,
+				Desired: nil,
+				Actual:  down,
 			},
 			arg: down,
 			want: NicState{
 				Desired: &down,
-				Actual:  up,
+				Actual:  down,
 			},
 			changed: false,
 		},
 		{
-			name: "different actual with other desired",
+			name: "current desired is nil, new desired differs from current actual",
 			nic: &NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			arg: up,
+			want: NicState{
 				Desired: &up,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "new desired differs from current desired and actual",
+			nic: &NicState{
+				Desired: &down,
+				Actual:  down,
+			},
+			arg: up,
+			want: NicState{
+				Desired: &up,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "new desired differs from current desired",
+			nic: &NicState{
+				Desired: &down,
 				Actual:  up,
 			},
-			arg: down,
+			arg: up,
 			want: NicState{
-				Desired: &down,
+				Desired: &up,
 				Actual:  up,
 			},
 			changed: true,
 		},
 		{
-			name: "different actual with empty desired",
+			name: "new desired matches current desired but differs from current actual",
 			nic: &NicState{
-				Desired: nil,
-				Actual:  up,
+				Desired: &up,
+				Actual:  down,
 			},
-			arg: down,
+			arg: up,
 			want: NicState{
-				Desired: &down,
-				Actual:  up,
+				Desired: &up,
+				Actual:  down,
 			},
-			changed: true,
+			changed: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			got, got1 := tt.nic.WantState(tt.arg)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NicState.WantState() got = %+v, want %+v", got, tt.want)
+			got, changed := tt.nic.WantState(tt.arg)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("NicState.WantState() diff = %s", diff)
 			}
-			if got1 != tt.changed {
-				t.Errorf("NicState.WantState() got1 = %v, want %v", got1, tt.changed)
+			if changed != tt.changed {
+				t.Errorf("NicState.WantState() changed = %v, want %v", changed, tt.changed)
 			}
 		})
 	}

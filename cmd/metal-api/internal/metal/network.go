@@ -7,8 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/samber/lo"
 )
 
 // SwitchPortStatus is a type alias for a string that represents the status of a switch port.
@@ -135,8 +133,6 @@ func (ns *NicState) SetState(s SwitchPortStatus) (NicState, bool) {
 
 // WantState sets the desired state for the NIC. It returns a new NicState
 // struct with the desired state set and a bool indicating if the state changed.
-// If the current state already matches the desired state, it returns a state
-// with a cleared desired field.
 func (ns *NicState) WantState(s SwitchPortStatus) (NicState, bool) {
 	if ns == nil {
 		return NicState{
@@ -144,10 +140,18 @@ func (ns *NicState) WantState(s SwitchPortStatus) (NicState, bool) {
 			Desired: &s,
 		}, true
 	}
+	if ns.Desired == nil {
+		changed := s != ns.Actual
+		return NicState{
+			Desired: &s,
+			Actual:  ns.Actual,
+		}, changed
+	}
+	changed := s != *ns.Desired
 	return NicState{
-		Actual:  ns.Actual,
 		Desired: &s,
-	}, lo.FromPtr(ns.Desired) != s
+		Actual:  ns.Actual,
+	}, changed
 }
 
 // GetIdentifier returns the identifier of a nic.
