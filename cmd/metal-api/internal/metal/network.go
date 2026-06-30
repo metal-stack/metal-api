@@ -144,18 +144,6 @@ func (ns *NicState) WantState(s SwitchPortStatus) (NicState, bool) {
 			Desired: &s,
 		}, true
 	}
-	if ns.Actual == s {
-		// we want a state we already have
-		if ns.Desired != nil {
-			return NicState{
-				Actual:  s,
-				Desired: nil,
-			}, true
-		}
-		return *ns, false
-	}
-	// return a new state with the desired state set and a bool indicating a state change
-	// only if the desired state is different from the current one
 	return NicState{
 		Actual:  ns.Actual,
 		Desired: &s,
