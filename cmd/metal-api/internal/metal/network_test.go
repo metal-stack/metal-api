@@ -231,96 +231,109 @@ func TestNicState_SetState(t *testing.T) {
 	unknown := SwitchPortStatusUnknown
 
 	tests := []struct {
-		name    string
-		nic     *NicState
-		arg     SwitchPortStatus
-		want    NicState
-		changed bool
+		name        string
+		ns          *NicState
+		status      SwitchPortStatus
+		want        NicState
+		wantChanged bool
 	}{
 		{
-			name: "different actual with empty desired",
-			nic: &NicState{
+			name:   "state is nil",
+			ns:     nil,
+			status: down,
+			want: NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			wantChanged: true,
+		},
+		{
+			name: "desired is nil and actual unchanged",
+			ns: &NicState{
 				Desired: nil,
 				Actual:  up,
 			},
-			arg: down,
+			status: up,
 			want: NicState{
 				Desired: nil,
-				Actual:  down,
-			},
-			changed: true,
-		},
-		{
-			name: "different actual with same state in desired",
-			nic: &NicState{
-				Desired: &down,
 				Actual:  up,
 			},
-			arg: down,
-			want: NicState{
-				Desired: nil,
-				Actual:  down,
-			},
-			changed: true,
+			wantChanged: false,
 		},
 		{
-			name: "different actual with other state in desired",
-			nic: &NicState{
-				Desired: &unknown,
+			name: "desired is nil and actual changes",
+			ns: &NicState{
+				Desired: nil,
 				Actual:  up,
 			},
-			arg: down,
-			want: NicState{
-				Desired: &unknown,
-				Actual:  down,
-			},
-			changed: true,
-		},
-		{
-			name: "nil nic",
-			nic:  nil,
-			arg:  down,
+			status: unknown,
 			want: NicState{
 				Desired: nil,
-				Actual:  down,
+				Actual:  unknown,
 			},
-			changed: true,
+			wantChanged: true,
 		},
 		{
-			name: "same state with same desired",
-			nic: &NicState{
-				Desired: &down,
-				Actual:  down,
-			},
-			arg: down,
-			want: NicState{
-				Desired: nil,
-				Actual:  down,
-			},
-			changed: true,
-		},
-		{
-			name: "same state with other desired",
-			nic: &NicState{
+			name: "desired is set, new state changed and does not match desired",
+			ns: &NicState{
 				Desired: &up,
-				Actual:  down,
+				Actual:  unknown,
 			},
-			arg: down,
+			status: down,
 			want: NicState{
 				Desired: &up,
 				Actual:  down,
 			},
-			changed: false,
+			wantChanged: true,
+		},
+		{
+			name: "desired is set, new state unchanged and does not match desired",
+			ns: &NicState{
+				Desired: &up,
+				Actual:  unknown,
+			},
+			status: unknown,
+			want: NicState{
+				Desired: &up,
+				Actual:  unknown,
+			},
+			wantChanged: false,
+		},
+		{
+			name: "desired is set, new state changed and matches desired",
+			ns: &NicState{
+				Desired: &up,
+				Actual:  down,
+			},
+			status: up,
+			want: NicState{
+				Desired: &up,
+				Actual:  up,
+			},
+			wantChanged: true,
+		},
+		{
+			name: "desired is set, new state unchanged and matches desired",
+			ns: &NicState{
+				Desired: &up,
+				Actual:  up,
+			},
+			status: up,
+			want: NicState{
+				Desired: &up,
+				Actual:  up,
+			},
+			wantChanged: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := tt.nic.SetState(tt.arg)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NicState.SetState() got = %+v, want %+v", got, tt.want)
+			got, changed := tt.ns.SetState(tt.status)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("NicState.SetState() diff = %s", diff)
 			}
-			if got1 != tt.changed {
-				t.Errorf("NicState.SetState() got1 = %v, want %v", got1, tt.changed)
+			if changed != tt.wantChanged {
+				t.Errorf("NicState.SetState() got1 = %v, want %v", changed, tt.wantChanged)
 			}
 		})
 	}

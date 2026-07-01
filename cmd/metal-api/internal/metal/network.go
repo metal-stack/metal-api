@@ -73,62 +73,18 @@ type SwitchBGPPortState struct {
 
 // SetState updates the NicState with the given SwitchPortStatus. It returns
 // a new NicState and a bool indicating if the state was changed.
-//
-// If the given status matches the current Actual state, it checks if Desired
-// is set and matches too. If so, Desired is set to nil since the desired
-// state has been reached.
-//
-// If the given status differs from the current Actual state, Desired is left
-// unchanged if it differs from the new state so the desired state is still tracked.
-// The Actual state is updated to the given status.
-//
-// This allows tracking both the desired and actual states, while clearing
-// Desired once the desired state is achieved.
-func (ns *NicState) SetState(s SwitchPortStatus) (NicState, bool) {
+func (ns *NicState) SetState(status SwitchPortStatus) (NicState, bool) {
 	if ns == nil {
 		return NicState{
-			Actual:  s,
+			Actual:  status,
 			Desired: nil,
 		}, true
 	}
-	if ns.Actual == s {
-		if ns.Desired != nil {
-			if *ns.Desired == s {
-				// we now have the desired state, so set the desired state to nil
-				return NicState{
-					Actual:  s,
-					Desired: nil,
-				}, true
-			} else {
-				// we already have the reported state, but the desired one is different
-				// so nothing changed
-				return *ns, false
-			}
-		}
-		// nothing changed
-		return *ns, false
-	}
-	// we got another state as we had before
-	if ns.Desired != nil {
-		if *ns.Desired == s {
-			// we now have the desired state, so set the desired state to nil
-			return NicState{
-				Actual:  s,
-				Desired: nil,
-			}, true
-		} else {
-			// a new state was reported, but the desired one is different
-			// so we have to update the state but keep the desired state
-			return NicState{
-				Actual:  s,
-				Desired: ns.Desired,
-			}, true
-		}
-	}
+	changed := ns.Actual != status
 	return NicState{
-		Actual:  s,
-		Desired: nil,
-	}, true
+		Actual:  status,
+		Desired: ns.Desired,
+	}, changed
 }
 
 // WantState sets the desired state for the NIC. It returns a new NicState
