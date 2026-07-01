@@ -486,7 +486,7 @@ var (
 			Name:        "IPAM Network",
 			Description: "description IPAM",
 		},
-		Prefixes:        prefixesIPAM,
+		Prefixes: prefixesIPAM,
 	}
 
 	// IPs
@@ -592,12 +592,6 @@ var (
 					Nic: metal.Nic{
 						Name:       "swp2",
 						MacAddress: metal.MacAddress("21:11:11:11:11:11"),
-					},
-					MachineID: "1",
-				},
-				metal.Connection{
-					Nic: metal.Nic{
-						MacAddress: metal.MacAddress("11:11:11:11:11:22"),
 					},
 					MachineID: "1",
 				},

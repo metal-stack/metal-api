@@ -23,6 +23,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func TestRegisterSwitch(t *testing.T) {
@@ -1748,7 +1749,7 @@ func TestToggleSwitch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testdata.Switch1.ID, result.ID)
 	require.Equal(t, testdata.Switch1.Name, *result.Name)
-	require.Equal(t, v1.SwitchPortStatusDown, result.Nics[0].Actual)
+	require.Equal(t, v1.SwitchPortStatusDown, pointer.SafeDeref(result.Nics[0].AdminStatus))
 	require.Equal(t, v1.SwitchPortStatusUnknown, result.Connections[0].Nic.Actual)
 }
 
