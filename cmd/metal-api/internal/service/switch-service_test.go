@@ -1777,12 +1777,14 @@ func TestToggleSwitchNicWithoutMachine(t *testing.T) {
 
 	resp := w.Result()
 	defer resp.Body.Close()
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode, w.Body.String())
-	var result httperrors.HTTPErrorResponse
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.SwitchResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
-	require.Equal(t, result.Message, fmt.Sprintf("switch %q does not have a connected machine at port %q", testdata.Switch1.ID, testdata.Switch1.Nics[1].Name))
+	require.Equal(t, testdata.Switch1.ID, result.ID)
+	require.Equal(t, testdata.Switch1.Name, *result.Name)
+	require.Equal(t, v1.SwitchPortStatusDown, pointer.SafeDeref(result.Nics[1].AdminStatus))
 }
 
 func Test_adjustMachineNics(t *testing.T) {
