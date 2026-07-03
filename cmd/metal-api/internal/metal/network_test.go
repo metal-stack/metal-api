@@ -156,7 +156,7 @@ func TestNicState_WantState(t *testing.T) {
 				Desired: &down,
 				Actual:  down,
 			},
-			changed: false,
+			changed: true,
 		},
 		{
 			name: "current desired is nil, new desired differs from current actual",
