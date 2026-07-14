@@ -20,6 +20,7 @@ func TestMachine_HasMAC(t *testing.T) {
 					ID:          "5",
 				},
 				RackID:      "1",
+				RoomID:      "1",
 				PartitionID: "1",
 				SizeID:      "1",
 				Allocation:  nil,

@@ -32,6 +32,7 @@ func TestSwitchMigrateIntegration(t *testing.T) {
 
 	testPartitionID := "test-partition"
 	testRackID := "test-rack"
+	testRoomID := "test-room"
 
 	cumulus1 := metal.Switch{
 		Base: metal.Base{
@@ -46,6 +47,7 @@ func TestSwitchMigrateIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 
@@ -62,6 +64,7 @@ func TestSwitchMigrateIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 
@@ -71,6 +74,7 @@ func TestSwitchMigrateIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		Hardware: metal.MachineHardware{
 			Nics: []metal.Nic{
 				{
@@ -109,6 +113,7 @@ func TestSwitchMigrateIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
 	}
 
@@ -159,6 +164,7 @@ func TestSwitchMigrateIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
 	}
 
@@ -218,6 +224,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 
 	testPartitionID := "test-partition"
 	testRackID := "test-rack"
+	testRoomID := "test-room"
 
 	cumulus1 := metal.Switch{
 		Base: metal.Base{
@@ -232,6 +239,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 
@@ -248,6 +256,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 
@@ -257,6 +266,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		Hardware: metal.MachineHardware{
 			Nics: []metal.Nic{
 				{
@@ -295,6 +305,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 
@@ -345,6 +356,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
 	}
 
@@ -395,6 +407,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
 	}
 
@@ -410,6 +423,7 @@ func TestSwitchReplaceIntegration(t *testing.T) {
 		},
 		PartitionID: testPartitionID,
 		RackID:      testRackID,
+		RoomID:      testRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
 	}
 
@@ -572,6 +586,7 @@ func (ts *testService) registerSwitch(sw metal.Switch, isNewId bool) {
 		PartitionID: sw.PartitionID,
 		SwitchBase: v1.SwitchBase{
 			RackID: sw.RackID,
+			RoomID: sw.RoomID,
 			OS: &v1.SwitchOS{
 				Vendor: sw.OS.Vendor,
 			},

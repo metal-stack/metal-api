@@ -247,13 +247,13 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 				RackID: new("b"),
 			},
 			mock: []*metal.Machine{
-				{Base: metal.Base{ID: "1"}, RackID: "a"},
-				{Base: metal.Base{ID: "2"}, RackID: "b"},
-				{Base: metal.Base{ID: "3"}, RackID: "b"},
+				{Base: metal.Base{ID: "1"}, RackID: "a", RoomID: "room-a"},
+				{Base: metal.Base{ID: "2"}, RackID: "b", RoomID: "room-a"},
+				{Base: metal.Base{ID: "3"}, RackID: "b", RoomID: "room-a"},
 			},
 			want: []*metal.Machine{
-				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, RackID: "b"}),
-				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, RackID: "b"}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, RackID: "b", RoomID: "room-a"}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, RackID: "b", RoomID: "room-a"}),
 			},
 			wantErr: nil,
 		},
@@ -1085,6 +1085,7 @@ func Test_FindWaitingMachine_RackSpreadingDistribution(t *testing.T) {
 			Waiting:      true,
 			PreAllocated: false,
 			RackID:       fiveRacks(i),
+			RoomID:       "room-a",
 		})
 		require.NoError(t, err)
 

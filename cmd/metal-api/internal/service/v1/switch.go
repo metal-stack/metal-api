@@ -24,6 +24,7 @@ const (
 
 type SwitchBase struct {
 	RackID         string    `json:"rack_id" modelDescription:"A switch that can register at the api." description:"the id of the rack in which this switch is located"`
+	RoomID         string    `json:"room_id" description:"the id of the room in which this switch is located" optional:"true"`
 	Mode           string    `json:"mode" description:"the mode the switch currently has" optional:"true"`
 	OS             *SwitchOS `json:"os" description:"the operating system the switch currently has" optional:"true"`
 	ManagementIP   string    `json:"management_ip" description:"the ip address of the management interface of the switch" optional:"true"`
@@ -173,6 +174,7 @@ func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partiti
 		},
 		SwitchBase: SwitchBase{
 			RackID:         s.RackID,
+			RoomID:         s.RoomID,
 			Mode:           string(s.Mode),
 			OS:             os,
 			ManagementIP:   s.ManagementIP,
@@ -266,6 +268,7 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		},
 		PartitionID:        r.PartitionID,
 		RackID:             r.RackID,
+		RoomID:             r.RoomID,
 		MachineConnections: make(metal.ConnectionMap),
 		Nics:               nics,
 		OS:                 os,
