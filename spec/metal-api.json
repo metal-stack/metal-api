@@ -5503,7 +5503,6 @@
       },
       "required": [
         "actual",
-        "admin_status",
         "identifier",
         "mac",
         "name"
