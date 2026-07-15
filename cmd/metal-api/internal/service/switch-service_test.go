@@ -148,11 +148,22 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 		RackID:      "1",
 		RoomID:      oldRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+		Nics: metal.Nics{
+			{
+				Name:       "swp1",
+				MacAddress: "aa:aa:aa:aa:aa:01",
+			},
+			{
+				Name:       "swp2",
+				MacAddress: "aa:aa:aa:aa:aa:02",
+			},
+		},
 		MachineConnections: metal.ConnectionMap{
 			"machine-1": metal.Connections{
 				{
 					Nic: metal.Nic{
-						Name: "swp1",
+						Name:       "swp1",
+						MacAddress: "aa:aa:aa:aa:aa:01",
 					},
 					MachineID: "machine-1",
 				},
@@ -160,7 +171,8 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 			"machine-2": metal.Connections{
 				{
 					Nic: metal.Nic{
-						Name: "swp2",
+						Name:       "swp2",
+						MacAddress: "aa:aa:aa:aa:aa:02",
 					},
 					MachineID: "machine-2",
 				},
@@ -196,6 +208,16 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
 				ID: switchID,
+			},
+		},
+		Nics: v1.SwitchNics{
+			{
+				Name:       "swp1",
+				MacAddress: "aa:aa:aa:aa:aa:01",
+			},
+			{
+				Name:       "swp2",
+				MacAddress: "aa:aa:aa:aa:aa:02",
 			},
 		},
 		PartitionID: "1",
