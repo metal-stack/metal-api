@@ -27,6 +27,7 @@ var (
 		},
 		PartitionID: "1",
 		RackID:      "1",
+		RoomID:      "1",
 		Nics:        testNics,
 		MachineConnections: ConnectionMap{
 			"1": Connections{
@@ -68,6 +69,7 @@ func TestSwitch_ConnectMachine_ForTestData(t *testing.T) {
 						ID:          "5",
 					},
 					RackID:      "1",
+					RoomID:      "1",
 					PartitionID: "1",
 					SizeID:      "1",
 					Allocation:  nil,

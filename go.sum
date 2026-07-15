@@ -259,6 +259,8 @@ github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e/go.mod h1:C1wdFJiN
 github.com/mailru/easyjson v0.7.6/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
 github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
+github.com/metal-stack/api v0.1.7 h1:sOngiC7vuErxgaAGLXDUuzigV3ZXQ7zTG5Mvjqhn2O0=
+github.com/metal-stack/api v0.1.7/go.mod h1:+WrGqA7QpQ2O60vakm3tjDbo70Q4c92pdco4R5MRcL8=
 github.com/metal-stack/go-ipam v1.15.1 h1:lpW0tioHx0V4udAtpqY06LZ8odkGd0aoATjWCdiLtCk=
 github.com/metal-stack/go-ipam v1.15.1/go.mod h1:CbkULx+ZsB8/lmDYaFX3jN5J2SeeSHMQzGJnYYPNfGg=
 github.com/metal-stack/masterdata-api v0.12.0 h1:8EZmf/A+GMVpShYvYDJ3YmPoK0MmqsWtzef9y1wRRwo=

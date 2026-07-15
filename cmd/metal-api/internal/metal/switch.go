@@ -16,6 +16,7 @@ type Switch struct {
 	MachineConnections ConnectionMap `rethinkdb:"machineconnections" json:"machineconnections"`
 	PartitionID        string        `rethinkdb:"partitionid" json:"partitionid"`
 	RackID             string        `rethinkdb:"rackid" json:"rackid"`
+	RoomID             string        `rethinkdb:"roomid" json:"roomid"`
 	Mode               SwitchMode    `rethinkdb:"mode" json:"mode"`
 	OS                 *SwitchOS     `rethinkdb:"os" json:"os"`
 	ManagementIP       string        `rethinkdb:"management_ip" json:"management_ip"`
