@@ -373,7 +373,7 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 }
 
 // toggleSwitchPort handles a request to toggle the state of a port on a switch. It reads the request body, finds the switch, updates its NIC state if needed, and returns the updated switch on success.
-// If the given port is not found or the given status is not concrete, a 400 error is returned. Another requirement is that there must be a machine connected to the port.
+// If the given port is not found or the given status is not concrete, a 400 error is returned.
 func (r *switchResource) toggleSwitchPort(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchPortToggleRequest
 	err := request.ReadEntity(&requestPayload)
@@ -381,6 +381,7 @@ func (r *switchResource) toggleSwitchPort(request *restful.Request, response *re
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+	r.log.Debug("toggle switch port", "request", requestPayload)
 
 	desired := metal.SwitchPortStatus(requestPayload.Status)
 
@@ -420,22 +421,6 @@ func (r *switchResource) toggleSwitchPort(request *restful.Request, response *re
 	}
 	if !found {
 		r.sendError(request, response, httperrors.NotFound(fmt.Errorf("the nic %q does not exist in this switch", requestPayload.NicName)))
-		return
-	}
-
-	// now check if there is something connected at the given nic.
-	machineConnection := false
-
-	for _, mcs := range newSwitch.MachineConnections {
-		for _, mc := range mcs {
-			if strings.EqualFold(mc.Nic.Name, requestPayload.NicName) {
-				machineConnection = true
-				break
-			}
-		}
-	}
-	if !machineConnection {
-		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("switch %q does not have a connected machine at port %q", id, requestPayload.NicName)))
 		return
 	}
 
@@ -1032,7 +1017,10 @@ func (r *switchResource) makeSwitchResponse(s *metal.Switch) (*v1.SwitchResponse
 	if err != nil {
 		return nil, err
 	}
-	cons := r.makeSwitchCons(s)
+	cons, err := r.makeSwitchCons(s)
+	if err != nil {
+		return nil, err
+	}
 
 	return v1.NewSwitchResponse(s, ss, p, nics, cons), nil
 }
@@ -1205,10 +1193,9 @@ func (r *switchResource) makeSwitchNics(s *metal.Switch, nws metal.NetworkMap, i
 			BGPPortState: n.BGPPortState,
 		}
 		if n.State != nil {
+			nic.Actual = v1.SwitchPortStatus(n.State.Actual)
 			if n.State.Desired != nil {
-				nic.Actual = v1.SwitchPortStatus(*n.State.Desired)
-			} else {
-				nic.Actual = v1.SwitchPortStatus(n.State.Actual)
+				nic.AdminStatus = new(v1.SwitchPortStatus(*n.State.Desired))
 			}
 		}
 		nics = append(nics, nic)
@@ -1221,38 +1208,36 @@ func (r *switchResource) makeSwitchNics(s *metal.Switch, nws metal.NetworkMap, i
 	return nics, nil
 }
 
-func (r *switchResource) makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
+func (r *switchResource) makeSwitchCons(s *metal.Switch) ([]v1.SwitchConnection, error) {
 	cons := []v1.SwitchConnection{}
 
 	nicMap := s.Nics.ByName()
 
 	for _, metalConnections := range s.MachineConnections {
 		for _, mc := range metalConnections {
-			// The connection state is set to the state of the NIC in the database.
-			// This state is not necessarily the actual state of the port on the switch.
-			// When the port is toggled, the connection state in the DB is updated after
-			// the real switch port changed state.
-			// So if a client queries the current switch state, it will see the desired
-			// state in the global NIC state, but the actual state of the port in the
-			// connection map.
-			n := nicMap[mc.Nic.Name]
-			state := metal.SwitchPortStatusUnknown
-			var bps *metal.SwitchBGPPortState
-			if n != nil && n.State != nil {
-				state = n.State.Actual
-			}
-			if n != nil && n.BGPPortState != nil {
-				bps = n.BGPPortState
+			n, ok := nicMap[mc.Nic.Name]
+			if !ok || n == nil {
+				return nil, fmt.Errorf("nic %s is connected to machine %s but could not be found on the switch %s", mc.Nic.Name, mc.MachineID, s.ID)
 			}
 
 			nic := v1.SwitchNic{
-				MacAddress:   string(mc.Nic.MacAddress),
-				Name:         mc.Nic.Name,
-				Identifier:   mc.Nic.Identifier,
-				Vrf:          mc.Nic.Vrf,
-				Actual:       v1.SwitchPortStatus(state),
-				BGPPortState: bps,
+				MacAddress: string(mc.Nic.MacAddress),
+				Name:       mc.Nic.Name,
+				Identifier: mc.Nic.Identifier,
+				Vrf:        mc.Nic.Vrf,
+				Actual:     v1.SwitchPortStatusUnknown,
 			}
+
+			if n.BGPPortState != nil {
+				nic.BGPPortState = n.BGPPortState
+			}
+			if n.State != nil {
+				nic.Actual = v1.SwitchPortStatus(n.State.Actual)
+				if n.State.Desired != nil {
+					nic.AdminStatus = new(v1.SwitchPortStatus(*n.State.Desired))
+				}
+			}
+
 			con := v1.SwitchConnection{
 				Nic:       nic,
 				MachineID: mc.MachineID,
@@ -1265,7 +1250,7 @@ func (r *switchResource) makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 		return cons[i].MachineID < cons[j].MachineID
 	})
 
-	return cons
+	return cons, nil
 }
 
 func (r *switchResource) findSwitchReferencedEntities(s *metal.Switch) (*metal.Partition, metal.NetworkMap, metal.IPsMap, metal.Machines, *metal.SwitchStatus, error) {
@@ -1329,7 +1314,10 @@ func (r *switchResource) makeSwitchResponseList(ss metal.Switches) ([]*v1.Switch
 		if err != nil {
 			return nil, err
 		}
-		cons := r.makeSwitchCons(&sw)
+		cons, err := r.makeSwitchCons(&sw)
+		if err != nil {
+			return nil, err
+		}
 		ss, err := r.ds.GetSwitchStatus(sw.ID)
 		if err != nil && !metal.IsNotFound(err) {
 			return nil, err

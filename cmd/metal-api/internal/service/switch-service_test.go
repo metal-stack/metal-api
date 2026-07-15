@@ -24,6 +24,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func TestRegisterSwitch(t *testing.T) {
@@ -147,11 +148,22 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 		RackID:      "1",
 		RoomID:      oldRoomID,
 		OS:          &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+		Nics: metal.Nics{
+			{
+				Name:       "swp1",
+				MacAddress: "aa:aa:aa:aa:aa:01",
+			},
+			{
+				Name:       "swp2",
+				MacAddress: "aa:aa:aa:aa:aa:02",
+			},
+		},
 		MachineConnections: metal.ConnectionMap{
 			"machine-1": metal.Connections{
 				{
 					Nic: metal.Nic{
-						Name: "swp1",
+						Name:       "swp1",
+						MacAddress: "aa:aa:aa:aa:aa:01",
 					},
 					MachineID: "machine-1",
 				},
@@ -159,7 +171,8 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 			"machine-2": metal.Connections{
 				{
 					Nic: metal.Nic{
-						Name: "swp2",
+						Name:       "swp2",
+						MacAddress: "aa:aa:aa:aa:aa:02",
 					},
 					MachineID: "machine-2",
 				},
@@ -195,6 +208,16 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
 				ID: switchID,
+			},
+		},
+		Nics: v1.SwitchNics{
+			{
+				Name:       "swp1",
+				MacAddress: "aa:aa:aa:aa:aa:01",
+			},
+			{
+				Name:       "swp2",
+				MacAddress: "aa:aa:aa:aa:aa:02",
 			},
 		},
 		PartitionID: "1",
@@ -1868,7 +1891,7 @@ func TestToggleSwitch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testdata.Switch1.ID, result.ID)
 	require.Equal(t, testdata.Switch1.Name, *result.Name)
-	require.Equal(t, v1.SwitchPortStatusDown, result.Nics[0].Actual)
+	require.Equal(t, v1.SwitchPortStatusDown, pointer.SafeDeref(result.Nics[0].AdminStatus))
 	require.Equal(t, v1.SwitchPortStatusUnknown, result.Connections[0].Nic.Actual)
 }
 
@@ -1896,12 +1919,14 @@ func TestToggleSwitchNicWithoutMachine(t *testing.T) {
 
 	resp := w.Result()
 	defer resp.Body.Close()
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode, w.Body.String())
-	var result httperrors.HTTPErrorResponse
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.SwitchResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
-	require.Equal(t, result.Message, fmt.Sprintf("switch %q does not have a connected machine at port %q", testdata.Switch1.ID, testdata.Switch1.Nics[1].Name))
+	require.Equal(t, testdata.Switch1.ID, result.ID)
+	require.Equal(t, testdata.Switch1.Name, *result.Name)
+	require.Equal(t, v1.SwitchPortStatusDown, pointer.SafeDeref(result.Nics[1].AdminStatus))
 }
 
 func Test_adjustMachineNics(t *testing.T) {

@@ -5468,6 +5468,14 @@
           ],
           "type": "string"
         },
+        "admin_status": {
+          "description": "the desired state of the nic",
+          "enum": [
+            "DOWN",
+            "UP"
+          ],
+          "type": "string"
+        },
         "bgp_port_state": {
           "$ref": "#/definitions/metal.SwitchBGPPortState",
           "description": "the current bgp port state"
