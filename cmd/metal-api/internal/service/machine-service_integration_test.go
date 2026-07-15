@@ -300,7 +300,7 @@ func BenchmarkMachineList(b *testing.B) {
 
 	b.ResetTimer()
 
-	for range b.N {
+	for b.Loop() {
 		var machines []v1.MachineResponse
 		code := webRequestGet(b, machineService, &testUserDirectory.admin, nil, "/v1/machine", &machines)
 
