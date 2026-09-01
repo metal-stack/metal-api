@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
@@ -555,10 +557,20 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 		for _, cap := range pc.ServerCapacities {
 			cap.RemainingReservations = cap.Reservations - cap.UsedReservations
+			slices.Sort(cap.FaultyMachines)
+			slices.Sort(cap.OtherMachines)
 		}
+
+		slices.SortFunc(pc.ServerCapacities, func(a, b *v1.ServerCapacity) int {
+			return strings.Compare(a.Size, b.Size)
+		})
 
 		res = append(res, *pc)
 	}
+
+	slices.SortFunc(res, func(a, b v1.PartitionCapacity) int {
+		return strings.Compare(a.ID, b.ID)
+	})
 
 	return res, nil
 }
