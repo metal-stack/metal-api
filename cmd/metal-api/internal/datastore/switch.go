@@ -173,11 +173,20 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 		}
 	}
 
-	if len(newSwitches) != 2 {
-		return fmt.Errorf("machine %v is not connected to exactly two switches, found connections to %d switches", m.ID, len(newSwitches))
+	if len(newSwitches) < 1 || len(newSwitches) > 2 {
+		return fmt.Errorf("machine %v must be connected to one or two switches, found connections to %d switches", m.ID, len(newSwitches))
 	}
 
 	s1 := newSwitches[0]
+
+	// a machine connected to a single switch has no twin to cross-check the connections against
+	if len(newSwitches) == 1 {
+		m.RackID = s1.RackID
+		m.PartitionID = s1.PartitionID
+		m.RoomID = s1.RoomID
+		return rs.UpdateSwitch(&oldSwitches[0], &newSwitches[0])
+	}
+
 	s2 := newSwitches[1]
 	cons1 := s1.MachineConnections[m.ID]
 	cons2 := s2.MachineConnections[m.ID]
