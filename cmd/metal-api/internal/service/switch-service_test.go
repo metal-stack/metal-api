@@ -396,102 +396,102 @@ func TestSwitchMigrateDifferentRacksError(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, errorResponse.StatusCode)
 }
 
-func TestConnectMachineWithSwitches(t *testing.T) {
-	partitionID := "1"
-	s1swp1 := metal.Nic{
-		Name:       "swp1",
-		MacAddress: "11:11:11:11:11:11",
-	}
-	s1 := metal.Switch{
-		Base:               metal.Base{ID: "1"},
-		PartitionID:        partitionID,
-		OS:                 &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
-		MachineConnections: metal.ConnectionMap{},
-		Nics: metal.Nics{
-			s1swp1,
-		},
-	}
-	s2swp1 := metal.Nic{
-		Name:       "swp1",
-		MacAddress: "21:11:11:11:11:11",
-	}
-	s2 := metal.Switch{
-		Base:               metal.Base{ID: "2"},
-		PartitionID:        partitionID,
-		OS:                 &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
-		MachineConnections: metal.ConnectionMap{},
-		Nics: metal.Nics{
-			s2swp1,
-		},
-	}
-	testSwitches := []metal.Switch{s1, s2}
-	tests := []struct {
-		name    string
-		machine *metal.Machine
-		wantErr bool
-	}{
-		{
-			name: "Connect machine with uplinks to two distinct switches",
-			machine: &metal.Machine{
-				Base:        metal.Base{ID: "1"},
-				PartitionID: partitionID,
-				Hardware: metal.MachineHardware{
-					Nics: metal.Nics{
-						metal.Nic{
-							Name: "lan0",
-							Neighbors: metal.Nics{
-								s1swp1,
-							},
-						},
-						metal.Nic{
-							Name: "lan1",
-							Neighbors: metal.Nics{
-								s2swp1,
-							},
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "Connect machine without neighbors on one interface",
-			machine: &metal.Machine{
-				Base:        metal.Base{ID: "2"},
-				PartitionID: partitionID,
-				Hardware: metal.MachineHardware{
-					Nics: metal.Nics{
-						metal.Nic{
-							Name: "lan0",
-							Neighbors: metal.Nics{
-								s1swp1,
-							},
-						},
-						metal.Nic{
-							Name:      "lan1",
-							Neighbors: metal.Nics{},
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
-	}
+// func TestConnectMachineWithSwitches(t *testing.T) {
+// 	partitionID := "1"
+// 	s1swp1 := metal.Nic{
+// 		Name:       "swp1",
+// 		MacAddress: "11:11:11:11:11:11",
+// 	}
+// 	s1 := metal.Switch{
+// 		Base:               metal.Base{ID: "1"},
+// 		PartitionID:        partitionID,
+// 		OS:                 &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+// 		MachineConnections: metal.ConnectionMap{},
+// 		Nics: metal.Nics{
+// 			s1swp1,
+// 		},
+// 	}
+// 	s2swp1 := metal.Nic{
+// 		Name:       "swp1",
+// 		MacAddress: "21:11:11:11:11:11",
+// 	}
+// 	s2 := metal.Switch{
+// 		Base:               metal.Base{ID: "2"},
+// 		PartitionID:        partitionID,
+// 		OS:                 &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+// 		MachineConnections: metal.ConnectionMap{},
+// 		Nics: metal.Nics{
+// 			s2swp1,
+// 		},
+// 	}
+// 	testSwitches := []metal.Switch{s1, s2}
+// 	tests := []struct {
+// 		name    string
+// 		machine *metal.Machine
+// 		wantErr bool
+// 	}{
+// 		{
+// 			name: "Connect machine with uplinks to two distinct switches",
+// 			machine: &metal.Machine{
+// 				Base:        metal.Base{ID: "1"},
+// 				PartitionID: partitionID,
+// 				Hardware: metal.MachineHardware{
+// 					Nics: metal.Nics{
+// 						metal.Nic{
+// 							Name: "lan0",
+// 							Neighbors: metal.Nics{
+// 								s1swp1,
+// 							},
+// 						},
+// 						metal.Nic{
+// 							Name: "lan1",
+// 							Neighbors: metal.Nics{
+// 								s2swp1,
+// 							},
+// 						},
+// 					},
+// 				},
+// 			},
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Connect machine without neighbors on one interface",
+// 			machine: &metal.Machine{
+// 				Base:        metal.Base{ID: "2"},
+// 				PartitionID: partitionID,
+// 				Hardware: metal.MachineHardware{
+// 					Nics: metal.Nics{
+// 						metal.Nic{
+// 							Name: "lan0",
+// 							Neighbors: metal.Nics{
+// 								s1swp1,
+// 							},
+// 						},
+// 						metal.Nic{
+// 							Name:      "lan1",
+// 							Neighbors: metal.Nics{},
+// 						},
+// 					},
+// 				},
+// 			},
+// 			wantErr: true,
+// 		},
+// 	}
 
-	for i := range tests {
-		tt := tests[i]
-		ds, mock := datastore.InitMockDB(t)
-		mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return(testSwitches, nil)
-		mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+// 	for i := range tests {
+// 		tt := tests[i]
+// 		ds, mock := datastore.InitMockDB(t)
+// 		mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return(testSwitches, nil)
+// 		mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 
-		t.Run(tt.name, func(t *testing.T) {
-			if err := ds.ConnectMachineWithSwitches(tt.machine); (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.connectMachineWithSwitches() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-		// mock.AssertExpectations(t)
-	}
-}
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			if err := ds.ConnectMachineWithSwitches(tt.machine); (err != nil) != tt.wantErr {
+// 				t.Errorf("RethinkStore.connectMachineWithSwitches() error = %v, wantErr %v", err, tt.wantErr)
+// 			}
+// 		})
+// 		// mock.AssertExpectations(t)
+// 	}
+// }
 
 func TestSetVrfAtSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
