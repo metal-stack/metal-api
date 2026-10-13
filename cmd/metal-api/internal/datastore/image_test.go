@@ -306,7 +306,7 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.4"}, OS: "ubuntu", Version: "17.4", ExpirationDate: valid}
 	ubuntu17_10 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
 	ubuntu18_04 := metal.Image{Base: metal.Base{ID: "ubuntu-18.4"}, OS: "ubuntu", Version: "18.4", ExpirationDate: valid}
-	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.4"}, OS: "ubuntu", Version: "19.4", ExpirationDate: invalid} // not allocated
+	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.4"}, OS: "ubuntu", Version: "19.4", ExpirationDate: invalid}   // not allocated
 	ubuntu19_10 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ExpirationDate: invalid} // allocated
 	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: invalid}       // not allocated
 	alpine3_10 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ExpirationDate: invalid}    // not allocated but kept because last from that os
