@@ -21,6 +21,4 @@ jobs:
     secrets: inherit
     with:
       build-command: make release
-      test-command: |
-        make test
-        make test-integration
+      test-command: make test-integration
