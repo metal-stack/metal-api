@@ -21,10 +21,8 @@ type auditResource struct {
 
 func NewAudit(log *slog.Logger, a auditing.Auditing) *restful.WebService {
 	ir := auditResource{
-		webResource: webResource{
-			log: log,
-		},
-		a: a,
+		log: log,
+		a:   a,
 	}
 
 	return ir.webService()

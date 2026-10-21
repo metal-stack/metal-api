@@ -34,10 +34,8 @@ type networkResource struct {
 // NewNetwork returns a webservice for network specific endpoints.
 func NewNetwork(log *slog.Logger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
 	r := networkResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log:    log,
+		ds:     ds,
 		ipamer: ipamer,
 		mdc:    mdc,
 	}
@@ -425,11 +423,9 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	}
 
 	nw := &metal.Network{
-		Base: metal.Base{
-			ID:          id,
-			Name:        name,
-			Description: description,
-		},
+		ID:                         id,
+		Name:                       name,
+		Description:                description,
 		Prefixes:                   prefixes,
 		DestinationPrefixes:        destPrefixes,
 		DefaultChildPrefixLength:   childPrefixLength,
@@ -622,10 +618,8 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	}
 
 	nwSpec := &metal.Network{
-		Base: metal.Base{
-			Name:        name,
-			Description: description,
-		},
+		Name:                name,
+		Description:         description,
 		PartitionID:         partition.ID,
 		ProjectID:           project.GetProject().GetMeta().GetId(),
 		Labels:              requestPayload.Labels,
@@ -711,10 +705,8 @@ func (r *networkResource) createChildNetwork(ctx context.Context, nwSpec *metal.
 	}
 
 	nw := &metal.Network{
-		Base: metal.Base{
-			Name:        nwSpec.Name,
-			Description: nwSpec.Description,
-		},
+		Name:                nwSpec.Name,
+		Description:         nwSpec.Description,
 		Prefixes:            childPrefixes,
 		DestinationPrefixes: nwSpec.DestinationPrefixes,
 		PartitionID:         parent.PartitionID,
@@ -1042,8 +1034,7 @@ func (r *networkResource) createChildPrefix(ctx context.Context, parentPrefixes 
 	for _, parentPrefix := range parentPrefixes.OfFamily(af) {
 		childPrefix, err := r.ipamer.AllocateChildPrefix(ctx, parentPrefix, childLength)
 		if err != nil {
-			var connectErr *connect.Error
-			if errors.As(err, &connectErr) {
+			if connectErr, ok := errors.AsType[*connect.Error](err); ok {
 				if connectErr.Code() == connect.CodeNotFound {
 					continue
 				}

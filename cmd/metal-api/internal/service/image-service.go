@@ -26,10 +26,8 @@ type imageResource struct {
 // NewImage returns a webservice for image specific endpoints.
 func NewImage(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	ir := imageResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log: log,
+		ds:  ds,
 	}
 
 	return ir.webService()
@@ -324,11 +322,9 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 	}
 
 	img := &metal.Image{
-		Base: metal.Base{
-			ID:          requestPayload.ID,
-			Name:        name,
-			Description: description,
-		},
+		ID:             requestPayload.ID,
+		Name:           name,
+		Description:    description,
 		URL:            requestPayload.URL,
 		Features:       features,
 		OS:             os,

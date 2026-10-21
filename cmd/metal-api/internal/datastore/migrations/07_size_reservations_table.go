@@ -53,11 +53,9 @@ func init() {
 			for _, old := range oldSizes {
 				for _, rv := range old.Reservations {
 					err = rs.CreateSizeReservation(&metal.SizeReservation{
-						Base: metal.Base{
-							ID:          "",
-							Name:        "",
-							Description: rv.Description,
-						},
+						ID:           "",
+						Name:         "",
+						Description:  rv.Description,
 						SizeID:       old.ID,
 						Amount:       rv.Amount,
 						ProjectID:    rv.ProjectID,

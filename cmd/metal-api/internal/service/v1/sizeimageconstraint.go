@@ -36,23 +36,17 @@ func NewSizeImageConstraint(s SizeImageConstraintCreateRequest) *metal.SizeImage
 		description = *s.Common.Describable.Description
 	}
 	return &metal.SizeImageConstraint{
-		Base: metal.Base{
-			ID:          s.ID,
-			Name:        name,
-			Description: description,
-		},
-		Images: s.Images,
+		ID:          s.ID,
+		Name:        name,
+		Description: description,
+		Images:      s.Images,
 	}
 }
 
 func NewSizeImageConstraintResponse(s *metal.SizeImageConstraint) *SizeImageConstraintResponse {
 	return &SizeImageConstraintResponse{
-		Common: Common{
-			Identifiable: Identifiable{ID: s.ID},
-			Describable:  Describable{Name: &s.Name, Description: &s.Description},
-		},
-		SizeImageConstraintBase: SizeImageConstraintBase{
-			Images: s.Images,
-		},
+		ID:   s.ID,
+		Name: &s.Name, Description: &s.Description,
+		Images: s.Images,
 	}
 }

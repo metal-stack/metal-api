@@ -28,10 +28,8 @@ type sizeResource struct {
 // NewSize returns a webservice for size specific endpoints.
 func NewSize(log *slog.Logger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
 	r := sizeResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log: log,
+		ds:  ds,
 		mdc: mdc,
 	}
 	return r.webService()
@@ -337,11 +335,9 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 	}
 
 	s := &metal.Size{
-		Base: metal.Base{
-			ID:          requestPayload.ID,
-			Name:        name,
-			Description: description,
-		},
+		ID:          requestPayload.ID,
+		Name:        name,
+		Description: description,
 		Constraints: constraints,
 		Labels:      labels,
 	}
@@ -546,11 +542,9 @@ func (r *sizeResource) createSizeReservation(request *restful.Request, response 
 	}
 
 	rv := &metal.SizeReservation{
-		Base: metal.Base{
-			ID:          requestPayload.ID,
-			Name:        pointer.SafeDeref(requestPayload.Name),
-			Description: pointer.SafeDeref(requestPayload.Description),
-		},
+		ID:           requestPayload.ID,
+		Name:         pointer.SafeDeref(requestPayload.Name),
+		Description:  pointer.SafeDeref(requestPayload.Description),
 		SizeID:       requestPayload.SizeID,
 		Amount:       requestPayload.Amount,
 		ProjectID:    requestPayload.ProjectID,
@@ -717,10 +711,8 @@ func (r *sizeResource) sizeReservationsUsage(request *restful.Request, response 
 			allocations := len(machinesByProjectID[reservation.ProjectID].WithPartition(partitionID).WithSize(reservation.SizeID))
 
 			result = append(result, &v1.SizeReservationUsageResponse{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{ID: reservation.ID},
-					Describable:  v1.Describable{Name: &reservation.Name, Description: &reservation.Description},
-				},
+				ID:   reservation.ID,
+				Name: &reservation.Name, Description: &reservation.Description,
 				SizeID:             reservation.SizeID,
 				PartitionID:        partitionID,
 				ProjectID:          reservation.ProjectID,

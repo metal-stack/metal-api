@@ -134,8 +134,7 @@ func (i *ipam) ReleaseIP(ctx context.Context, ip metal.IP) error {
 		PrefixCidr: ip.ParentPrefixCidr,
 		Ip:         ip.IPAddress,
 	})
-	var connectErr *connect.Error
-	if errors.As(err, &connectErr) {
+	if connectErr, ok := errors.AsType[*connect.Error](err); ok {
 		if connectErr.Code() == connect.CodeNotFound {
 			return metal.NotFound("ip not found")
 		}

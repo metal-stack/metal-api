@@ -533,13 +533,11 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 	}
 
 	hardware = MachineHardware{
-		MachineHardwareBase: MachineHardwareBase{
-			Memory:    m.Hardware.Memory,
-			Disks:     disks,
-			MetalCPUs: cpus,
-			MetalGPUs: gpus,
-		},
-		Nics: nics,
+		Memory:    m.Hardware.Memory,
+		Disks:     disks,
+		MetalCPUs: cpus,
+		MetalGPUs: gpus,
+		Nics:      nics,
 	}
 
 	var allocation *MachineAllocation
@@ -669,45 +667,35 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 	}
 
 	return &MachineResponse{
-		Common: Common{
-			Identifiable: Identifiable{
-				ID: m.ID,
-			},
-			Describable: Describable{
-				Name:        &m.Name,
-				Description: &m.Description,
-			},
+		ID:          m.ID,
+		Name:        &m.Name,
+		Description: &m.Description,
+		Partition:   NewPartitionResponse(p),
+		Size:        NewSizeResponse(s),
+		Allocation:  allocation,
+		RackID:      m.RackID,
+		RoomID:      m.RoomID,
+		Hardware:    hardware,
+		BIOS: MachineBIOS{
+			Version: m.BIOS.Version,
+			Vendor:  m.BIOS.Vendor,
+			Date:    m.BIOS.Date,
 		},
-		MachineBase: MachineBase{
-			Partition:  NewPartitionResponse(p),
-			Size:       NewSizeResponse(s),
-			Allocation: allocation,
-			RackID:     m.RackID,
-			RoomID:     m.RoomID,
-			Hardware:   hardware,
-			BIOS: MachineBIOS{
-				Version: m.BIOS.Version,
-				Vendor:  m.BIOS.Vendor,
-				Date:    m.BIOS.Date,
-			},
-			State: MachineState{
-				Value:              stateValue,
-				Description:        m.State.Description,
-				Issuer:             m.State.Issuer,
-				MetalHammerVersion: m.State.MetalHammerVersion,
-			},
-			LEDState: ChassisIdentifyLEDState{
-				Value:       string(m.LEDState.Value),
-				Description: m.LEDState.Description,
-			},
-			Liveliness:               liveliness,
-			RecentProvisioningEvents: *NewMachineRecentProvisioningEvents(ec),
-			Tags:                     tags,
+		State: MachineState{
+			Value:              stateValue,
+			Description:        m.State.Description,
+			Issuer:             m.State.Issuer,
+			MetalHammerVersion: m.State.MetalHammerVersion,
 		},
-		Timestamps: Timestamps{
-			Created: m.Created,
-			Changed: m.Changed,
+		LEDState: ChassisIdentifyLEDState{
+			Value:       string(m.LEDState.Value),
+			Description: m.LEDState.Description,
 		},
+		Liveliness:               liveliness,
+		RecentProvisioningEvents: *NewMachineRecentProvisioningEvents(ec),
+		Tags:                     tags,
+		Created:                  m.Created,
+		Changed:                  m.Changed,
 	}
 }
 

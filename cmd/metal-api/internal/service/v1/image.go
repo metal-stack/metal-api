@@ -52,24 +52,14 @@ func NewImageResponse(img *metal.Image) *ImageResponse {
 		}
 	}
 	return &ImageResponse{
-		Common: Common{
-			Identifiable: Identifiable{
-				ID: img.ID,
-			},
-			Describable: Describable{
-				Name:        &img.Name,
-				Description: &img.Description,
-			},
-		},
-		ImageBase: ImageBase{
-			URL:            &img.URL,
-			Features:       features,
-			ExpirationDate: img.ExpirationDate,
-			Classification: string(img.Classification),
-		},
-		Timestamps: Timestamps{
-			Created: img.Created,
-			Changed: img.Changed,
-		},
+		ID:             img.ID,
+		Name:           &img.Name,
+		Description:    &img.Description,
+		URL:            &img.URL,
+		Features:       features,
+		ExpirationDate: img.ExpirationDate,
+		Classification: string(img.Classification),
+		Created:        img.Created,
+		Changed:        img.Changed,
 	}
 }

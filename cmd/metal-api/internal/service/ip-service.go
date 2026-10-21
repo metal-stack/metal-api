@@ -39,10 +39,8 @@ type ipResource struct {
 // NewIP returns a webservice for ip specific endpoints.
 func NewIP(log *slog.Logger, ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) (*restful.WebService, error) {
 	ir := ipResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log:    log,
+		ds:     ds,
 		ipamer: ipamer,
 		mdc:    mdc,
 	}
@@ -450,8 +448,7 @@ func allocateSpecificIP(ctx context.Context, parent *metal.Network, specificIP s
 		}
 
 		ipAddress, err = ipamer.AllocateSpecificIP(ctx, prefix, specificIP)
-		var connectErr *connect.Error
-		if errors.As(err, &connectErr) {
+		if connectErr, ok := errors.AsType[*connect.Error](err); ok {
 			if connectErr.Code() == connect.CodeAlreadyExists {
 				return "", "", metal.Conflict("ip already allocated")
 			}
@@ -477,8 +474,7 @@ func allocateRandomIP(ctx context.Context, parent *metal.Network, ipamer ipam.IP
 	for _, prefix := range parent.Prefixes.OfFamily(addressfamily) {
 		ipAddress, err = ipamer.AllocateIP(ctx, prefix)
 		if err != nil {
-			var connectErr *connect.Error
-			if errors.As(err, &connectErr) {
+			if connectErr, ok := errors.AsType[*connect.Error](err); ok {
 				if connectErr.Code() == connect.CodeNotFound {
 					continue
 				}

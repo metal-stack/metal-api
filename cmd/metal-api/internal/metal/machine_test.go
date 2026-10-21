@@ -14,11 +14,9 @@ func TestMachine_HasMAC(t *testing.T) {
 		{
 			name: "Test 1",
 			d: &Machine{
-				Base: Base{
-					Name:        "1-core/100 B",
-					Description: "a machine with 1 core(s) and 100 B of RAM",
-					ID:          "5",
-				},
+				Name:        "1-core/100 B",
+				Description: "a machine with 1 core(s) and 100 B of RAM",
+				ID:          "5",
 				RackID:      "1",
 				RoomID:      "1",
 				PartitionID: "1",
@@ -55,7 +53,7 @@ func TestMachine_HasMAC(t *testing.T) {
 		{
 			name: "Test 2",
 			d: &Machine{
-				Base:        Base{ID: "1"},
+				ID:          "1",
 				PartitionID: "1",
 				SizeID:      "1",
 				Allocation: &MachineAllocation{

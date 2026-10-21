@@ -48,23 +48,15 @@ func NewIPResponse(ip *metal.IP) *IPResponse {
 		tags = []string{}
 	}
 	return &IPResponse{
-		Describable: Describable{
-			Name:        &ip.Name,
-			Description: &ip.Description,
-		},
-		IPBase: IPBase{
-			NetworkID: ip.NetworkID,
-			ProjectID: ip.ProjectID,
-			Type:      ip.Type,
-			Tags:      tags,
-		},
-		IPIdentifiable: IPIdentifiable{
-			IPAddress:      ip.IPAddress,
-			AllocationUUID: ip.AllocationUUID,
-		},
-		Timestamps: Timestamps{
-			Created: ip.Created,
-			Changed: ip.Changed,
-		},
+		Name:           &ip.Name,
+		Description:    &ip.Description,
+		NetworkID:      ip.NetworkID,
+		ProjectID:      ip.ProjectID,
+		Type:           ip.Type,
+		Tags:           tags,
+		IPAddress:      ip.IPAddress,
+		AllocationUUID: ip.AllocationUUID,
+		Created:        ip.Created,
+		Changed:        ip.Changed,
 	}
 }

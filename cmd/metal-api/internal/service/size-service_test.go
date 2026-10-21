@@ -231,15 +231,9 @@ func TestCreateSize(t *testing.T) {
 	container := restful.NewContainer().Add(sizeservice)
 
 	createRequest := v1.SizeCreateRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: testdata.Sz1.ID,
-			},
-			Describable: v1.Describable{
-				Name:        &testdata.Sz1.Name,
-				Description: &testdata.Sz1.Description,
-			},
-		},
+		ID:          testdata.Sz1.ID,
+		Name:        &testdata.Sz1.Name,
+		Description: &testdata.Sz1.Description,
 		SizeConstraints: []v1.SizeConstraint{
 			{
 				Type: metal.CoreConstraint,
@@ -291,15 +285,9 @@ func TestUpdateSize(t *testing.T) {
 	minCores := uint64(8)
 	maxCores := uint64(16)
 	updateRequest := v1.SizeUpdateRequest{
-		Common: v1.Common{
-			Describable: v1.Describable{
-				Name:        &testdata.Sz2.Name,
-				Description: &testdata.Sz2.Description,
-			},
-			Identifiable: v1.Identifiable{
-				ID: testdata.Sz1.ID,
-			},
-		},
+		Name:        &testdata.Sz2.Name,
+		Description: &testdata.Sz2.Description,
+		ID:          testdata.Sz1.ID,
 		SizeConstraints: &[]v1.SizeConstraint{
 			{
 				Type: metal.CoreConstraint,
@@ -350,9 +338,7 @@ func Test_ListSizeReservationsUsage(t *testing.T) {
 			dbMockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.SizeReservations{
 					{
-						Base: metal.Base{
-							ID: "1",
-						},
+						ID:           "1",
 						SizeID:       "1",
 						Amount:       3,
 						PartitionIDs: []string{"a"},
@@ -361,9 +347,7 @@ func Test_ListSizeReservationsUsage(t *testing.T) {
 				}, nil)
 				mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return(metal.Machines{
 					{
-						Base: metal.Base{
-							ID: "1",
-						},
+						ID:          "1",
 						SizeID:      "1",
 						PartitionID: "a",
 						Allocation: &metal.MachineAllocation{
@@ -374,15 +358,9 @@ func Test_ListSizeReservationsUsage(t *testing.T) {
 			},
 			want: []*v1.SizeReservationUsageResponse{
 				{
-					Common: v1.Common{
-						Identifiable: v1.Identifiable{
-							ID: "1",
-						},
-						Describable: v1.Describable{
-							Name:        new(""),
-							Description: new(""),
-						},
-					},
+					ID:                 "1",
+					Name:               new(""),
+					Description:        new(""),
 					SizeID:             "1",
 					PartitionID:        "a",
 					ProjectID:          "p1",
@@ -431,7 +409,7 @@ func Test_ListSizeReservations(t *testing.T) {
 			dbMockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("sizereservation")).Return(metal.SizeReservations{
 					{
-						Base:         metal.Base{ID: "1"},
+						ID:           "1",
 						SizeID:       "1",
 						Amount:       3,
 						PartitionIDs: []string{"a"},
@@ -443,10 +421,8 @@ func Test_ListSizeReservations(t *testing.T) {
 			},
 			want: []*v1.SizeReservationResponse{
 				{
-					Common: v1.Common{
-						Identifiable: v1.Identifiable{ID: "1"},
-						Describable:  v1.Describable{Name: new(""), Description: new("")},
-					},
+					ID:   "1",
+					Name: new(""), Description: new(""),
 					SizeID:       "1",
 					PartitionIDs: []string{"a"},
 					ProjectID:    "p1",
@@ -499,9 +475,7 @@ func Test_FindSizeReservationsUsage(t *testing.T) {
 			dbMockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("sizereservation").Filter(r.MockAnything()).Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.SizeReservations{
 					{
-						Base: metal.Base{
-							ID: "1",
-						},
+						ID:           "1",
 						SizeID:       "1",
 						Amount:       3,
 						PartitionIDs: []string{"a"},
@@ -511,15 +485,9 @@ func Test_FindSizeReservationsUsage(t *testing.T) {
 			},
 			want: []*v1.SizeReservationResponse{
 				{
-					Common: v1.Common{
-						Identifiable: v1.Identifiable{
-							ID: "1",
-						},
-						Describable: v1.Describable{
-							Name:        new(""),
-							Description: new(""),
-						},
-					},
+					ID:           "1",
+					Name:         new(""),
+					Description:  new(""),
 					SizeID:       "1",
 					PartitionIDs: []string{"a"},
 					ProjectID:    "p1",
@@ -567,9 +535,7 @@ func Test_GetSizeReservationsUsage(t *testing.T) {
 			id:   "1",
 			dbMockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("sizereservation").Get("1")).Return(metal.SizeReservation{
-					Base: metal.Base{
-						ID: "1",
-					},
+					ID:           "1",
 					SizeID:       "1",
 					Amount:       3,
 					PartitionIDs: []string{"a"},
@@ -577,15 +543,9 @@ func Test_GetSizeReservationsUsage(t *testing.T) {
 				}, nil)
 			},
 			want: &v1.SizeReservationResponse{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{
-						ID: "1",
-					},
-					Describable: v1.Describable{
-						Name:        new(""),
-						Description: new(""),
-					},
-				},
+				ID:           "1",
+				Name:         new(""),
+				Description:  new(""),
 				SizeID:       "1",
 				PartitionIDs: []string{"a"},
 				ProjectID:    "p1",
@@ -632,9 +592,7 @@ func Test_DeleteSizeReservationsUsage(t *testing.T) {
 			id:   "1",
 			dbMockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("sizereservation").Get("1")).Return(metal.SizeReservation{
-					Base: metal.Base{
-						ID: "1",
-					},
+					ID:           "1",
 					SizeID:       "1",
 					Amount:       3,
 					PartitionIDs: []string{"a"},
@@ -644,15 +602,9 @@ func Test_DeleteSizeReservationsUsage(t *testing.T) {
 				mock.On(r.DB("mockdb").Table("sizereservation").Get("1").Delete()).Return(testdata.EmptyResult, nil)
 			},
 			want: &v1.SizeReservationResponse{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{
-						ID: "1",
-					},
-					Describable: v1.Describable{
-						Name:        new(""),
-						Description: new(""),
-					},
-				},
+				ID:           "1",
+				Name:         new(""),
+				Description:  new(""),
 				SizeID:       "1",
 				PartitionIDs: []string{"a"},
 				ProjectID:    "p1",
@@ -697,14 +649,8 @@ func Test_CreateSizeReservationsUsage(t *testing.T) {
 		{
 			name: "create reservation",
 			req: &v1.SizeReservationCreateRequest{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{
-						ID: "1",
-					},
-					Describable: v1.Describable{
-						Description: new("a description"),
-					},
-				},
+				ID:           "1",
+				Description:  new("a description"),
 				SizeID:       "1",
 				PartitionIDs: []string{"a"},
 				ProjectID:    "p1",
@@ -714,23 +660,17 @@ func Test_CreateSizeReservationsUsage(t *testing.T) {
 				},
 			},
 			dbMockFn: func(mock *r.Mock) {
-				mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Size{Base: metal.Base{ID: "1"}}, nil)
-				mock.On(r.DB("mockdb").Table("partition")).Return(metal.Partitions{{Base: metal.Base{ID: "a"}}}, nil)
+				mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Size{ID: "1"}, nil)
+				mock.On(r.DB("mockdb").Table("partition")).Return(metal.Partitions{{ID: "a"}}, nil)
 				mock.On(r.DB("mockdb").Table("sizereservation").Insert(r.MockAnything())).Return(testdata.EmptyResult, nil)
 			},
 			projectMockFn: func(mock *testifymock.Mock) {
 				mock.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "p1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{Meta: &mdmv1.Meta{Id: "p1"}}}, nil)
 			},
 			want: &v1.SizeReservationResponse{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{
-						ID: "1",
-					},
-					Describable: v1.Describable{
-						Name:        new(""),
-						Description: new("a description"),
-					},
-				},
+				ID:           "1",
+				Name:         new(""),
+				Description:  new("a description"),
 				SizeID:       "1",
 				PartitionIDs: []string{"a"},
 				ProjectID:    "p1",
@@ -778,33 +718,25 @@ func Test_UpdateSizeReservationsUsage(t *testing.T) {
 		{
 			name: "update reservation",
 			req: &v1.SizeReservationUpdateRequest{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{ID: "1"},
-					Describable:  v1.Describable{Description: new("b description")},
-				},
+				ID:           "1",
+				Description:  new("b description"),
 				PartitionIDs: []string{"b"},
 				Amount:       new(4),
 				Labels:       map[string]string{"c": "d"},
 			},
 			dbMockFn: func(mock *r.Mock) {
-				mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Size{Base: metal.Base{ID: "1"}}, nil)
-				mock.On(r.DB("mockdb").Table("sizereservation").Get("1")).Return(metal.SizeReservation{Base: metal.Base{ID: "1"}, SizeID: "1", ProjectID: "p1"}, nil)
-				mock.On(r.DB("mockdb").Table("partition")).Return(metal.Partitions{{Base: metal.Base{ID: "b"}}}, nil)
+				mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Size{ID: "1"}, nil)
+				mock.On(r.DB("mockdb").Table("sizereservation").Get("1")).Return(metal.SizeReservation{ID: "1", SizeID: "1", ProjectID: "p1"}, nil)
+				mock.On(r.DB("mockdb").Table("partition")).Return(metal.Partitions{{ID: "b"}}, nil)
 				mock.On(r.DB("mockdb").Table("sizereservation").Get("1").Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 			},
 			projectMockFn: func(mock *testifymock.Mock) {
 				mock.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "p1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{Meta: &mdmv1.Meta{Id: "p1"}}}, nil)
 			},
 			want: &v1.SizeReservationResponse{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{
-						ID: "1",
-					},
-					Describable: v1.Describable{
-						Name:        new(""),
-						Description: new("b description"),
-					},
-				},
+				ID:           "1",
+				Name:         new(""),
+				Description:  new("b description"),
 				SizeID:       "1",
 				PartitionIDs: []string{"b"},
 				ProjectID:    "p1",

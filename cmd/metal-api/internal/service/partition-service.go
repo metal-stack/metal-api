@@ -32,10 +32,8 @@ type partitionResource struct {
 // NewPartition returns a webservice for partition specific endpoints.
 func NewPartition(log *slog.Logger, ds *datastore.RethinkStore, tc TopicCreator) *restful.WebService {
 	r := partitionResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log:          log,
+		ds:           ds,
 		topicCreator: tc,
 	}
 
@@ -225,11 +223,9 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 	}
 
 	p := &metal.Partition{
-		Base: metal.Base{
-			ID:          requestPayload.ID,
-			Name:        name,
-			Description: description,
-		},
+		ID:                 requestPayload.ID,
+		Name:               name,
+		Description:        description,
 		Labels:             labels,
 		MgmtServiceAddress: mgmtServiceAddress,
 		BootConfiguration: metal.BootConfiguration{
@@ -469,15 +465,9 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		pc, ok := pcs[m.PartitionID]
 		if !ok {
 			pc = &v1.PartitionCapacity{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{
-						ID: p.ID,
-					},
-					Describable: v1.Describable{
-						Name:        &p.Name,
-						Description: &p.Description,
-					},
-				},
+				ID:               p.ID,
+				Name:             &p.Name,
+				Description:      &p.Description,
 				ServerCapacities: v1.ServerCapacities{},
 			}
 		}

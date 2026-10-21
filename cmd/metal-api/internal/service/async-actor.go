@@ -220,8 +220,7 @@ func (a *asyncActor) releaseIP(ip metal.IP) error {
 	ctx := context.Background()
 	err = a.ReleaseIP(ctx, ip)
 	if err != nil {
-		var connectErr *connect.Error
-		if errors.As(err, &connectErr) {
+		if connectErr, ok := errors.AsType[*connect.Error](err); ok {
 			if connectErr.Code() == connect.CodeNotFound {
 				return nil
 			}

@@ -113,28 +113,20 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 	}
 
 	return &SizeResponse{
-		Common: Common{
-			Identifiable: Identifiable{
-				ID: s.ID,
-			},
-			Describable: Describable{
-				Name:        &s.Name,
-				Description: &s.Description,
-			},
-		},
+		ID:              s.ID,
+		Name:            &s.Name,
+		Description:     &s.Description,
 		SizeConstraints: constraints,
-		Timestamps: Timestamps{
-			Created: s.Created,
-			Changed: s.Changed,
-		},
-		Labels: labels,
+		Created:         s.Created,
+		Changed:         s.Changed,
+		Labels:          labels,
 	}
 }
 
 func NewSizeReservationResponse(rv *metal.SizeReservation) *SizeReservationResponse {
 	return &SizeReservationResponse{
-		Common:       Common{Identifiable: Identifiable{ID: rv.ID}, Describable: Describable{Name: &rv.Name, Description: &rv.Description}},
-		Timestamps:   Timestamps{Created: rv.Created, Changed: rv.Changed},
+		ID: rv.ID, Name: &rv.Name, Description: &rv.Description,
+		Created: rv.Created, Changed: rv.Changed,
 		SizeID:       rv.SizeID,
 		PartitionIDs: rv.PartitionIDs,
 		ProjectID:    rv.ProjectID,

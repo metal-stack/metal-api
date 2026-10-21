@@ -48,9 +48,7 @@ func (rs *RethinkStore) ProvisioningEventForMachine(ctx context.Context, log *sl
 
 	if ec == nil {
 		ec = &metal.ProvisioningEventContainer{
-			Base: metal.Base{
-				ID: machineID,
-			},
+			ID:         machineID,
 			Liveliness: metal.MachineLivelinessAlive,
 		}
 	}

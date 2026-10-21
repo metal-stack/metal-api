@@ -24,9 +24,7 @@ type tenantResource struct {
 // NewTenant returns a webservice for tenant specific endpoints.
 func NewTenant(log *slog.Logger, mdc mdm.Client) *restful.WebService {
 	r := tenantResource{
-		webResource: webResource{
-			log: log,
-		},
+		log: log,
 		mdc: mdc,
 	}
 	return r.webService()

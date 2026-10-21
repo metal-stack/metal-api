@@ -51,10 +51,8 @@ func NewFirewall(
 	headscaleClient *headscale.HeadscaleClient,
 ) (*restful.WebService, error) {
 	r := firewallResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log:             log,
+		ds:              ds,
 		Publisher:       pub,
 		ipamer:          ipamer,
 		mdc:             mdc,

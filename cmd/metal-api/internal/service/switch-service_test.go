@@ -37,19 +37,11 @@ func TestRegisterSwitch(t *testing.T) {
 
 	name := "switch999"
 	createRequest := v1.SwitchRegisterRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: "switch999",
-			},
-			Describable: v1.Describable{
-				Name: &name,
-			},
-		},
+		ID:          "switch999",
+		Name:        &name,
 		PartitionID: "1",
-		SwitchBase: v1.SwitchBase{
-			RackID: "1",
-			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
-		},
+		RackID:      "1",
+		OS:          &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
@@ -83,16 +75,10 @@ func TestRegisterExistingSwitch(t *testing.T) {
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: testdata.Switch2.ID,
-			},
-		},
+		ID:          testdata.Switch2.ID,
 		PartitionID: testdata.Switch2.PartitionID,
-		SwitchBase: v1.SwitchBase{
-			RackID: testdata.Switch2.RackID,
-			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
-		},
+		RackID:      testdata.Switch2.RackID,
+		OS:          &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
@@ -129,21 +115,19 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 	switchID := "switch-room-test"
 
 	machine1 := &metal.Machine{
-		Base:   metal.Base{ID: "machine-1"},
+		ID:     "machine-1",
 		Tags:   []string{"tag1=value1", tag.MachineRoom + "=" + oldRoomID},
 		RoomID: oldRoomID,
 	}
 	machine2 := &metal.Machine{
-		Base:   metal.Base{ID: "machine-2"},
+		ID:     "machine-2",
 		Tags:   []string{"tag2=value2", tag.MachineRoom + "=" + oldRoomID},
 		RoomID: oldRoomID,
 	}
 
 	// Create existing switch with old room ID and machine connections
 	existingSwitch := &metal.Switch{
-		Base: metal.Base{
-			ID: switchID,
-		},
+		ID:          switchID,
 		PartitionID: "1",
 		RackID:      "1",
 		RoomID:      oldRoomID,
@@ -182,9 +166,7 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 
 	// Create partition for the switch
 	partition := &metal.Partition{
-		Base: metal.Base{
-			ID: "1",
-		},
+		ID: "1",
 	}
 
 	// Setup mock expectations
@@ -205,11 +187,7 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 
 	// Register the switch with a new room ID
 	createRequest := v1.SwitchRegisterRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: switchID,
-			},
-		},
+		ID: switchID,
 		Nics: v1.SwitchNics{
 			{
 				Name:       "swp1",
@@ -221,11 +199,9 @@ func TestRegisterExistingSwitchWithRoomChange(t *testing.T) {
 			},
 		},
 		PartitionID: "1",
-		SwitchBase: v1.SwitchBase{
-			RackID: "1",
-			RoomID: newRoomID,
-			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
-		},
+		RackID:      "1",
+		RoomID:      newRoomID,
+		OS:          &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
@@ -269,17 +245,11 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: testdata.Switch1.ID,
-			},
-		},
+		ID:          testdata.Switch1.ID,
 		Nics:        v1.SwitchNics{},
 		PartitionID: testdata.Switch1.PartitionID,
-		SwitchBase: v1.SwitchBase{
-			RackID: testdata.Switch1.RackID,
-			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
-		},
+		RackID:      testdata.Switch1.RackID,
+		OS:          &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
@@ -300,16 +270,10 @@ func TestReplaceSwitch(t *testing.T) {
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: testdata.Switch2.ID,
-			},
-		},
+		ID:          testdata.Switch2.ID,
 		PartitionID: testdata.Switch2.PartitionID,
-		SwitchBase: v1.SwitchBase{
-			RackID: testdata.Switch2.RackID,
-			OS:     &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
-		},
+		RackID:      testdata.Switch2.RackID,
+		OS:          &v1.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
@@ -403,7 +367,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 		MacAddress: "11:11:11:11:11:11",
 	}
 	s1 := metal.Switch{
-		Base:               metal.Base{ID: "1"},
+		ID:                 "1",
 		PartitionID:        partitionID,
 		OS:                 &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		MachineConnections: metal.ConnectionMap{},
@@ -416,7 +380,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 		MacAddress: "21:11:11:11:11:11",
 	}
 	s2 := metal.Switch{
-		Base:               metal.Base{ID: "2"},
+		ID:                 "2",
 		PartitionID:        partitionID,
 		OS:                 &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 		MachineConnections: metal.ConnectionMap{},
@@ -433,7 +397,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 		{
 			name: "Connect machine with uplinks to two distinct switches",
 			machine: &metal.Machine{
-				Base:        metal.Base{ID: "1"},
+				ID:          "1",
 				PartitionID: partitionID,
 				Hardware: metal.MachineHardware{
 					Nics: metal.Nics{
@@ -457,7 +421,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 		{
 			name: "Connect machine without neighbors on one interface",
 			machine: &metal.Machine{
-				Base:        metal.Base{ID: "2"},
+				ID:          "2",
 				PartitionID: partitionID,
 				Hardware: metal.MachineHardware{
 					Nics: metal.Nics{
@@ -521,7 +485,7 @@ func TestSetVrfAtSwitch(t *testing.T) {
 
 	vrf := "123"
 	m := &metal.Machine{
-		Base:        metal.Base{ID: "1"},
+		ID:          "1",
 		PartitionID: "1",
 	}
 	switches, err := ds.SetVrfAtSwitches(m, vrf)
@@ -733,7 +697,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything())).Return(testdata.Partition1PrivateSuperNetwork, nil)
 
-			r := switchResource{webResource: webResource{ds: ds, log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))}}
+			r := switchResource{ds: ds, log: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))}
 
 			got, _ := r.makeBGPFilterMachine(tt.args.machine, tt.args.nws, tt.args.ipsMap)
 
@@ -801,13 +765,13 @@ func TestMakeSwitchNics(t *testing.T) {
 				},
 				machines: metal.Machines{
 					metal.Machine{
-						Base: metal.Base{ID: "m1"},
+						ID: "m1",
 						Allocation: &metal.MachineAllocation{
 							Project: "project",
 						},
 					},
 					metal.Machine{
-						Base: metal.Base{ID: "fw1"},
+						ID: "fw1",
 						Allocation: &metal.MachineAllocation{
 							Project: "p",
 							Role:    metal.RoleFirewall,
@@ -1685,17 +1649,9 @@ func TestUpdateSwitch(t *testing.T) {
 
 	desc := "test"
 	updateRequest := v1.SwitchUpdateRequest{
-		Common: v1.Common{
-			Describable: v1.Describable{
-				Description: &desc,
-			},
-			Identifiable: v1.Identifiable{
-				ID: testdata.Switch1.ID,
-			},
-		},
-		SwitchBase: v1.SwitchBase{
-			Mode: string(metal.SwitchReplace),
-		},
+		Description: &desc,
+		ID:          testdata.Switch1.ID,
+		Mode:        string(metal.SwitchReplace),
 	}
 	js, err := json.Marshal(updateRequest)
 	require.NoError(t, err)
@@ -2124,9 +2080,7 @@ func Test_SwitchDelete(t *testing.T) {
 			name: "delete switch",
 			mockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
-					Base: metal.Base{
-						ID: "switch-1",
-					},
+					ID: "switch-1",
 				}, nil)
 				mock.On(r.DB("mockdb").Table("switch").Get("switch-1").Delete()).Return(testdata.EmptyResult, nil)
 				mock.On(r.DB("mockdb").Table("switchstatus").Get("switch-1")).Return(nil, nil)
@@ -2134,15 +2088,9 @@ func Test_SwitchDelete(t *testing.T) {
 				mock.On(r.DB("mockdb").Table("network")).Return(nil, nil)
 			},
 			want: &v1.SwitchResponse{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{
-						ID: "switch-1",
-					},
-					Describable: v1.Describable{
-						Name:        new(""),
-						Description: new(""),
-					},
-				},
+				ID:          "switch-1",
+				Name:        new(""),
+				Description: new(""),
 				Nics:        v1.SwitchNics{},
 				Connections: []v1.SwitchConnection{},
 			},
@@ -2152,9 +2100,7 @@ func Test_SwitchDelete(t *testing.T) {
 			name: "delete switch does not work due to machine connections",
 			mockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
-					Base: metal.Base{
-						ID: "switch-1",
-					},
+					ID: "switch-1",
 					MachineConnections: metal.ConnectionMap{
 						"port-a": metal.Connections{},
 					},
@@ -2171,9 +2117,7 @@ func Test_SwitchDelete(t *testing.T) {
 			name: "delete switch with force",
 			mockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("switch").Get("switch-1")).Return(&metal.Switch{
-					Base: metal.Base{
-						ID: "switch-1",
-					},
+					ID: "switch-1",
 					MachineConnections: metal.ConnectionMap{
 						"port-a": metal.Connections{},
 					},
@@ -2185,15 +2129,9 @@ func Test_SwitchDelete(t *testing.T) {
 			},
 			force: true,
 			want: &v1.SwitchResponse{
-				Common: v1.Common{
-					Identifiable: v1.Identifiable{
-						ID: "switch-1",
-					},
-					Describable: v1.Describable{
-						Name:        new(""),
-						Description: new(""),
-					},
-				},
+				ID:          "switch-1",
+				Name:        new(""),
+				Description: new(""),
 				Nics:        v1.SwitchNics{},
 				Connections: []v1.SwitchConnection{},
 			},

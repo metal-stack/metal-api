@@ -110,39 +110,27 @@ func NewNetworkResponse(network *metal.Network, consumption *NetworkConsumption)
 	}
 
 	response := &NetworkResponse{
-		Common: Common{
-			Identifiable: Identifiable{
-				ID: network.ID,
-			},
-			Describable: Describable{
-				Name:        &network.Name,
-				Description: &network.Description,
-			},
-		},
-		NetworkBase: NetworkBase{
-			PartitionID: &network.PartitionID,
-			ProjectID:   &network.ProjectID,
-			Labels:      labels,
-			Shared:      &network.Shared,
-		},
-		NetworkImmutable: NetworkImmutable{
-			Prefixes:                   network.Prefixes.String(),
-			DestinationPrefixes:        network.DestinationPrefixes.String(),
-			DefaultChildPrefixLength:   network.DefaultChildPrefixLength,
-			Nat:                        network.Nat,
-			PrivateSuper:               network.PrivateSuper,
-			Underlay:                   network.Underlay,
-			Vrf:                        &network.Vrf,
-			ParentNetworkID:            parentNetworkID,
-			AdditionalAnnouncableCIDRs: network.AdditionalAnnouncableCIDRs,
-			NetworkType:                network.NetworkType,
-			NATType:                    network.NATType,
-		},
-		Consumption: *consumption,
-		Timestamps: Timestamps{
-			Created: network.Created,
-			Changed: network.Changed,
-		},
+		ID:                         network.ID,
+		Name:                       &network.Name,
+		Description:                &network.Description,
+		PartitionID:                &network.PartitionID,
+		ProjectID:                  &network.ProjectID,
+		Labels:                     labels,
+		Shared:                     &network.Shared,
+		Prefixes:                   network.Prefixes.String(),
+		DestinationPrefixes:        network.DestinationPrefixes.String(),
+		DefaultChildPrefixLength:   network.DefaultChildPrefixLength,
+		Nat:                        network.Nat,
+		PrivateSuper:               network.PrivateSuper,
+		Underlay:                   network.Underlay,
+		Vrf:                        &network.Vrf,
+		ParentNetworkID:            parentNetworkID,
+		AdditionalAnnouncableCIDRs: network.AdditionalAnnouncableCIDRs,
+		NetworkType:                network.NetworkType,
+		NATType:                    network.NATType,
+		Consumption:                *consumption,
+		Created:                    network.Created,
+		Changed:                    network.Changed,
 	}
 
 	if consumption.IPv4 != nil {

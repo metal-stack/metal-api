@@ -22,10 +22,8 @@ type filesystemResource struct {
 // NewFilesystemLayout returns a webservice for filesystem specific endpoints.
 func NewFilesystemLayout(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	r := filesystemResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log: log,
+		ds:  ds,
 	}
 	return r.webService()
 }

@@ -48,7 +48,7 @@ func TestNSQ_WaitForPublisher(t *testing.T) {
 func TestNSQ_WaitForTopicsCreated(t *testing.T) {
 	topic := metal.NSQTopic{Name: "gopher"}
 	partition := metal.Partition{
-		Base: metal.Base{ID: "partition-id"},
+		ID: "partition-id",
 	}
 	publisher := NopPublisher{
 		T:     t,

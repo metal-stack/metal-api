@@ -8,25 +8,19 @@ import (
 func TestImages_ByID(t *testing.T) {
 	testImages := []Image{
 		{
-			Base: Base{
-				ID:          "1",
-				Name:        "Image 1",
-				Description: "description 1",
-			},
+			ID:          "1",
+			Name:        "Image 1",
+			Description: "description 1",
 		},
 		{
-			Base: Base{
-				ID:          "2",
-				Name:        "Image 2",
-				Description: "description 2",
-			},
+			ID:          "2",
+			Name:        "Image 2",
+			Description: "description 2",
 		},
 		{
-			Base: Base{
-				ID:          "3",
-				Name:        "Image 3",
-				Description: "description 3",
-			},
+			ID:          "3",
+			Name:        "Image 3",
+			Description: "description 3",
 		},
 	}
 
