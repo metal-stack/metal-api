@@ -164,33 +164,23 @@ func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partiti
 	}
 
 	return &SwitchResponse{
-		Common: Common{
-			Identifiable: Identifiable{
-				ID: s.ID,
-			},
-			Describable: Describable{
-				Name:        &s.Name,
-				Description: &s.Description,
-			},
-		},
-		SwitchBase: SwitchBase{
-			RackID:         s.RackID,
-			RoomID:         s.RoomID,
-			Mode:           string(s.Mode),
-			OS:             os,
-			ManagementIP:   s.ManagementIP,
-			ManagementUser: s.ManagementUser,
-			ConsoleCommand: s.ConsoleCommand,
-		},
-		Nics:          nics,
-		Partition:     partition,
-		Connections:   cons,
-		LastSync:      snr.LastSync,
-		LastSyncError: snr.LastSyncError,
-		Timestamps: Timestamps{
-			Created: s.Created,
-			Changed: s.Changed,
-		},
+		ID:             s.ID,
+		Name:           &s.Name,
+		Description:    &s.Description,
+		RackID:         s.RackID,
+		RoomID:         s.RoomID,
+		Mode:           string(s.Mode),
+		OS:             os,
+		ManagementIP:   s.ManagementIP,
+		ManagementUser: s.ManagementUser,
+		ConsoleCommand: s.ConsoleCommand,
+		Nics:           nics,
+		Partition:      partition,
+		Connections:    cons,
+		LastSync:       snr.LastSync,
+		LastSyncError:  snr.LastSyncError,
+		Created:        s.Created,
+		Changed:        s.Changed,
 	}
 }
 
@@ -217,15 +207,9 @@ func NewSwitchNotifyResponse(s *metal.SwitchStatus) *SwitchNotifyResponse {
 	}
 
 	return &SwitchNotifyResponse{
-		Common: Common{
-			Identifiable: Identifiable{
-				ID: s.ID,
-			},
-			Describable: Describable{
-				Name:        &s.Name,
-				Description: &s.Description,
-			},
-		},
+		ID:            s.ID,
+		Name:          &s.Name,
+		Description:   &s.Description,
 		LastSync:      lastSync,
 		LastSyncError: lastSyncError,
 	}
@@ -262,11 +246,9 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 	}
 
 	return &metal.Switch{
-		Base: metal.Base{
-			ID:          r.ID,
-			Name:        name,
-			Description: description,
-		},
+		ID:                 r.ID,
+		Name:               name,
+		Description:        description,
 		PartitionID:        r.PartitionID,
 		RackID:             r.RackID,
 		RoomID:             r.RoomID,

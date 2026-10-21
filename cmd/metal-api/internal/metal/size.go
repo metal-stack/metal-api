@@ -70,10 +70,8 @@ func (sz Sizes) ByID() SizeMap {
 // UnknownSize is the size to use, when someone requires a size we do not know.
 func UnknownSize() *Size {
 	return &Size{
-		Base: Base{
-			ID:   "unknown",
-			Name: "unknown",
-		},
+		ID:   "unknown",
+		Name: "unknown",
 	}
 }
 

@@ -163,9 +163,7 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 		lvs = append(lvs, lv)
 	}
 	fl := &metal.FilesystemLayout{
-		Base: metal.Base{
-			ID: f.ID,
-		},
+		ID:             f.ID,
 		Filesystems:    fss,
 		Disks:          ds,
 		Raid:           rs,
@@ -253,25 +251,17 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 		lvs = append(lvs, lv)
 	}
 	flr := &FilesystemLayoutResponse{
-		Common: Common{
-			Identifiable: Identifiable{
-				ID: f.ID,
-			},
-			Describable: Describable{
-				Name:        &f.Name,
-				Description: &f.Description,
-			},
-		},
-		FilesystemLayoutBase: FilesystemLayoutBase{
-			Filesystems:    fss,
-			Disks:          ds,
-			Raid:           rs,
-			VolumeGroups:   vgs,
-			LogicalVolumes: lvs,
-			Constraints: FilesystemLayoutConstraints{
-				Sizes:  f.Constraints.Sizes,
-				Images: f.Constraints.Images,
-			},
+		ID:             f.ID,
+		Name:           &f.Name,
+		Description:    &f.Description,
+		Filesystems:    fss,
+		Disks:          ds,
+		Raid:           rs,
+		VolumeGroups:   vgs,
+		LogicalVolumes: lvs,
+		Constraints: FilesystemLayoutConstraints{
+			Sizes:  f.Constraints.Sizes,
+			Images: f.Constraints.Images,
 		},
 	}
 	return flr

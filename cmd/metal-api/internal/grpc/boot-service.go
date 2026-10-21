@@ -205,9 +205,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 	if m == nil {
 		// machine is not in the database, create it
 		m = &metal.Machine{
-			Base: metal.Base{
-				ID: req.Uuid,
-			},
+			ID:         req.Uuid,
 			Allocation: nil,
 			SizeID:     size.ID,
 			Hardware:   machineHardware,
@@ -259,7 +257,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 
 	if ec == nil {
 		err = b.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
-			Base:       metal.Base{ID: m.ID},
+			ID:         m.ID,
 			Liveliness: metal.MachineLivelinessAlive,
 		},
 		)

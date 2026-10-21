@@ -16,22 +16,22 @@ import (
 
 func Test_getMostRecentImageFor(t *testing.T) {
 	valid := time.Now().Add(time.Hour)
-	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
-	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.4"}, OS: "ubuntu", Version: "14.4", ExpirationDate: valid}
-	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.4"}, OS: "ubuntu", Version: "17.4", ExpirationDate: valid}
-	ubuntu17_10 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
-	ubuntu18_04 := metal.Image{Base: metal.Base{ID: "ubuntu-18.4"}, OS: "ubuntu", Version: "18.4", ExpirationDate: valid}
-	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.4"}, OS: "ubuntu", Version: "19.4", ExpirationDate: valid}
-	ubuntu19_10 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ExpirationDate: valid}
-	ubuntu20_04_20200401 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200401"}, OS: "ubuntu", Version: "20.4.20200401", ExpirationDate: valid}
-	ubuntu20_04_20200501 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200501"}, OS: "ubuntu", Version: "20.4.20200501", ExpirationDate: valid}
-	ubuntu20_04_20200502 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200502"}, OS: "ubuntu", Version: "20.4.20200502", ExpirationDate: valid}
-	ubuntu20_04_20200603 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200603"}, OS: "ubuntu", Version: "20.4.20200603", ExpirationDate: valid}
+	ubuntu14_1 := metal.Image{ID: "ubuntu-14.1", OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
+	ubuntu14_04 := metal.Image{ID: "ubuntu-14.4", OS: "ubuntu", Version: "14.4", ExpirationDate: valid}
+	ubuntu17_04 := metal.Image{ID: "ubuntu-17.4", OS: "ubuntu", Version: "17.4", ExpirationDate: valid}
+	ubuntu17_10 := metal.Image{ID: "ubuntu-17.10", OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
+	ubuntu18_04 := metal.Image{ID: "ubuntu-18.4", OS: "ubuntu", Version: "18.4", ExpirationDate: valid}
+	ubuntu19_04 := metal.Image{ID: "ubuntu-19.4", OS: "ubuntu", Version: "19.4", ExpirationDate: valid}
+	ubuntu19_10 := metal.Image{ID: "ubuntu-19.10", OS: "ubuntu", Version: "19.10", ExpirationDate: valid}
+	ubuntu20_04_20200401 := metal.Image{ID: "ubuntu-20.4.20200401", OS: "ubuntu", Version: "20.4.20200401", ExpirationDate: valid}
+	ubuntu20_04_20200501 := metal.Image{ID: "ubuntu-20.4.20200501", OS: "ubuntu", Version: "20.4.20200501", ExpirationDate: valid}
+	ubuntu20_04_20200502 := metal.Image{ID: "ubuntu-20.4.20200502", OS: "ubuntu", Version: "20.4.20200502", ExpirationDate: valid}
+	ubuntu20_04_20200603 := metal.Image{ID: "ubuntu-20.4.20200603", OS: "ubuntu", Version: "20.4.20200603", ExpirationDate: valid}
 
-	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: valid}
-	alpine3_9_20191012 := metal.Image{Base: metal.Base{ID: "alpine-3.9.20191012"}, OS: "alpine", Version: "3.9.20191012", ExpirationDate: valid}
-	alpine3_10 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ExpirationDate: valid}
-	alpine3_10_20191012 := metal.Image{Base: metal.Base{ID: "alpine-3.10.20191012"}, OS: "alpine", Version: "3.10.20191012", ExpirationDate: valid}
+	alpine3_9 := metal.Image{ID: "alpine-3.9", OS: "alpine", Version: "3.9", ExpirationDate: valid}
+	alpine3_9_20191012 := metal.Image{ID: "alpine-3.9.20191012", OS: "alpine", Version: "3.9.20191012", ExpirationDate: valid}
+	alpine3_10 := metal.Image{ID: "alpine-3.10", OS: "alpine", Version: "3.10", ExpirationDate: valid}
+	alpine3_10_20191012 := metal.Image{ID: "alpine-3.10.20191012", OS: "alpine", Version: "3.10.20191012", ExpirationDate: valid}
 	tests := []struct {
 		name    string
 		id      string
@@ -101,8 +101,8 @@ func Test_getMostRecentImageFor(t *testing.T) {
 
 func Test_getMostRecentImageForFirewall(t *testing.T) {
 	valid := time.Now().Add(time.Hour)
-	firewall2 := metal.Image{Base: metal.Base{ID: "firewall-2.0.20200331"}, OS: "firewall", Version: "2.0.20200331", ExpirationDate: valid}
-	firewallubuntu2 := metal.Image{Base: metal.Base{ID: "firewall-ubuntu-2.0.20200331"}, OS: "firewall-ubuntu", Version: "2.0.20200331", ExpirationDate: valid}
+	firewall2 := metal.Image{ID: "firewall-2.0.20200331", OS: "firewall", Version: "2.0.20200331", ExpirationDate: valid}
+	firewallubuntu2 := metal.Image{ID: "firewall-ubuntu-2.0.20200331", OS: "firewall-ubuntu", Version: "2.0.20200331", ExpirationDate: valid}
 	tests := []struct {
 		name    string
 		id      string
@@ -144,22 +144,22 @@ func Test_getMostRecentImageForFirewall(t *testing.T) {
 
 func Test_getImagesFor(t *testing.T) {
 	valid := time.Now().Add(time.Hour)
-	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
-	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.4"}, OS: "ubuntu", Version: "14.4", ExpirationDate: valid}
-	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.4"}, OS: "ubuntu", Version: "17.4", ExpirationDate: valid}
-	ubuntu17_10 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
-	ubuntu18_04 := metal.Image{Base: metal.Base{ID: "ubuntu-18.4"}, OS: "ubuntu", Version: "18.4", ExpirationDate: valid}
-	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.4"}, OS: "ubuntu", Version: "19.4", ExpirationDate: valid}
-	ubuntu19_10 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ExpirationDate: valid}
-	ubuntu20_04_20200401 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200401"}, OS: "ubuntu", Version: "20.4.20200401", ExpirationDate: valid}
-	ubuntu20_04_20200501 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200501"}, OS: "ubuntu", Version: "20.4.20200501", ExpirationDate: valid}
-	ubuntu20_04_20200502 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200502"}, OS: "ubuntu", Version: "20.4.20200502", ExpirationDate: valid}
-	ubuntu20_04_20200603 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200603"}, OS: "ubuntu", Version: "20.4.20200603", ExpirationDate: valid}
+	ubuntu14_1 := metal.Image{ID: "ubuntu-14.1", OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
+	ubuntu14_04 := metal.Image{ID: "ubuntu-14.4", OS: "ubuntu", Version: "14.4", ExpirationDate: valid}
+	ubuntu17_04 := metal.Image{ID: "ubuntu-17.4", OS: "ubuntu", Version: "17.4", ExpirationDate: valid}
+	ubuntu17_10 := metal.Image{ID: "ubuntu-17.10", OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
+	ubuntu18_04 := metal.Image{ID: "ubuntu-18.4", OS: "ubuntu", Version: "18.4", ExpirationDate: valid}
+	ubuntu19_04 := metal.Image{ID: "ubuntu-19.4", OS: "ubuntu", Version: "19.4", ExpirationDate: valid}
+	ubuntu19_10 := metal.Image{ID: "ubuntu-19.10", OS: "ubuntu", Version: "19.10", ExpirationDate: valid}
+	ubuntu20_04_20200401 := metal.Image{ID: "ubuntu-20.4.20200401", OS: "ubuntu", Version: "20.4.20200401", ExpirationDate: valid}
+	ubuntu20_04_20200501 := metal.Image{ID: "ubuntu-20.4.20200501", OS: "ubuntu", Version: "20.4.20200501", ExpirationDate: valid}
+	ubuntu20_04_20200502 := metal.Image{ID: "ubuntu-20.4.20200502", OS: "ubuntu", Version: "20.4.20200502", ExpirationDate: valid}
+	ubuntu20_04_20200603 := metal.Image{ID: "ubuntu-20.4.20200603", OS: "ubuntu", Version: "20.4.20200603", ExpirationDate: valid}
 
-	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: valid}
-	alpine3_9_20191012 := metal.Image{Base: metal.Base{ID: "alpine-3.9.20191012"}, OS: "alpine", Version: "3.9.20191012", ExpirationDate: valid}
-	alpine3_10 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ExpirationDate: valid}
-	alpine3_10_20191012 := metal.Image{Base: metal.Base{ID: "alpine-3.10.20191012"}, OS: "alpine", Version: "3.10.20191012", ExpirationDate: valid}
+	alpine3_9 := metal.Image{ID: "alpine-3.9", OS: "alpine", Version: "3.9", ExpirationDate: valid}
+	alpine3_9_20191012 := metal.Image{ID: "alpine-3.9.20191012", OS: "alpine", Version: "3.9.20191012", ExpirationDate: valid}
+	alpine3_10 := metal.Image{ID: "alpine-3.10", OS: "alpine", Version: "3.10", ExpirationDate: valid}
+	alpine3_10_20191012 := metal.Image{ID: "alpine-3.10.20191012", OS: "alpine", Version: "3.10.20191012", ExpirationDate: valid}
 	tests := []struct {
 		name    string
 		id      string
@@ -220,25 +220,25 @@ func Test_getImagesFor(t *testing.T) {
 }
 
 func Test_sortImages(t *testing.T) {
-	firewall2 := metal.Image{Base: metal.Base{ID: "firewall-2.0.20200331"}, OS: "firewall", Version: "2.0.20200331"}
-	firewallubuntu2 := metal.Image{Base: metal.Base{ID: "firewall-ubuntu-2.0.20200331"}, OS: "firewall-ubuntu", Version: "2.0.20200331"}
-	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1"}
-	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.4"}, OS: "ubuntu", Version: "14.4"}
-	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.4"}, OS: "ubuntu", Version: "17.4"}
-	ubuntu17_10 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10"}
-	ubuntu18_04 := metal.Image{Base: metal.Base{ID: "ubuntu-18.4"}, OS: "ubuntu", Version: "18.4"}
-	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.4"}, OS: "ubuntu", Version: "19.4"}
-	ubuntu19_10 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10"}
-	ubuntu20_04_20200401 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200401"}, OS: "ubuntu", Version: "20.4.20200401"}
-	ubuntu20_04_20200501 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200501"}, OS: "ubuntu", Version: "20.4.20200501"}
-	ubuntu20_04_20200502 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200502"}, OS: "ubuntu", Version: "20.4.20200502"}
-	ubuntu20_04_20200603 := metal.Image{Base: metal.Base{ID: "ubuntu-20.4.20200603"}, OS: "ubuntu", Version: "20.4.20200603"}
+	firewall2 := metal.Image{ID: "firewall-2.0.20200331", OS: "firewall", Version: "2.0.20200331"}
+	firewallubuntu2 := metal.Image{ID: "firewall-ubuntu-2.0.20200331", OS: "firewall-ubuntu", Version: "2.0.20200331"}
+	ubuntu14_1 := metal.Image{ID: "ubuntu-14.1", OS: "ubuntu", Version: "14.1"}
+	ubuntu14_04 := metal.Image{ID: "ubuntu-14.4", OS: "ubuntu", Version: "14.4"}
+	ubuntu17_04 := metal.Image{ID: "ubuntu-17.4", OS: "ubuntu", Version: "17.4"}
+	ubuntu17_10 := metal.Image{ID: "ubuntu-17.10", OS: "ubuntu", Version: "17.10"}
+	ubuntu18_04 := metal.Image{ID: "ubuntu-18.4", OS: "ubuntu", Version: "18.4"}
+	ubuntu19_04 := metal.Image{ID: "ubuntu-19.4", OS: "ubuntu", Version: "19.4"}
+	ubuntu19_10 := metal.Image{ID: "ubuntu-19.10", OS: "ubuntu", Version: "19.10"}
+	ubuntu20_04_20200401 := metal.Image{ID: "ubuntu-20.4.20200401", OS: "ubuntu", Version: "20.4.20200401"}
+	ubuntu20_04_20200501 := metal.Image{ID: "ubuntu-20.4.20200501", OS: "ubuntu", Version: "20.4.20200501"}
+	ubuntu20_04_20200502 := metal.Image{ID: "ubuntu-20.4.20200502", OS: "ubuntu", Version: "20.4.20200502"}
+	ubuntu20_04_20200603 := metal.Image{ID: "ubuntu-20.4.20200603", OS: "ubuntu", Version: "20.4.20200603"}
 
-	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9"}
-	alpine3_10 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10"}
+	alpine3_9 := metal.Image{ID: "alpine-3.9", OS: "alpine", Version: "3.9"}
+	alpine3_10 := metal.Image{ID: "alpine-3.10", OS: "alpine", Version: "3.10"}
 
-	debian17_04 := metal.Image{Base: metal.Base{ID: "debian-17.4"}, OS: "debian", Version: "17.4"}
-	debian17_10 := metal.Image{Base: metal.Base{ID: "debian-17.10"}, OS: "debian", Version: "17.10"}
+	debian17_04 := metal.Image{ID: "debian-17.4", OS: "debian", Version: "17.4"}
+	debian17_10 := metal.Image{ID: "debian-17.10", OS: "debian", Version: "17.10"}
 
 	tests := []struct {
 		name   string
@@ -301,15 +301,15 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 
 	invalid := time.Now().Add(time.Hour * -1)
 	valid := time.Now().Add(time.Hour)
-	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
-	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.4"}, OS: "ubuntu", Version: "14.4", ExpirationDate: valid}
-	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.4"}, OS: "ubuntu", Version: "17.4", ExpirationDate: valid}
-	ubuntu17_10 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
-	ubuntu18_04 := metal.Image{Base: metal.Base{ID: "ubuntu-18.4"}, OS: "ubuntu", Version: "18.4", ExpirationDate: valid}
-	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.4"}, OS: "ubuntu", Version: "19.4", ExpirationDate: invalid}   // not allocated
-	ubuntu19_10 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ExpirationDate: invalid} // allocated
-	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: invalid}       // not allocated
-	alpine3_10 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ExpirationDate: invalid}    // not allocated but kept because last from that os
+	ubuntu14_1 := metal.Image{ID: "ubuntu-14.1", OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
+	ubuntu14_04 := metal.Image{ID: "ubuntu-14.4", OS: "ubuntu", Version: "14.4", ExpirationDate: valid}
+	ubuntu17_04 := metal.Image{ID: "ubuntu-17.4", OS: "ubuntu", Version: "17.4", ExpirationDate: valid}
+	ubuntu17_10 := metal.Image{ID: "ubuntu-17.10", OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
+	ubuntu18_04 := metal.Image{ID: "ubuntu-18.4", OS: "ubuntu", Version: "18.4", ExpirationDate: valid}
+	ubuntu19_04 := metal.Image{ID: "ubuntu-19.4", OS: "ubuntu", Version: "19.4", ExpirationDate: invalid}   // not allocated
+	ubuntu19_10 := metal.Image{ID: "ubuntu-19.10", OS: "ubuntu", Version: "19.10", ExpirationDate: invalid} // allocated
+	alpine3_9 := metal.Image{ID: "alpine-3.9", OS: "alpine", Version: "3.9", ExpirationDate: invalid}       // not allocated
+	alpine3_10 := metal.Image{ID: "alpine-3.10", OS: "alpine", Version: "3.10", ExpirationDate: invalid}    // not allocated but kept because last from that os
 	tests := []struct {
 		name     string
 		images   metal.Images

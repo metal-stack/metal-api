@@ -114,16 +114,10 @@ func TestCreateImage(t *testing.T) {
 	log := slog.Default()
 
 	createRequest := v1.ImageCreateRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: testdata.Img1.ID,
-			},
-			Describable: v1.Describable{
-				Name:        &testdata.Img1.Name,
-				Description: &testdata.Img1.Description,
-			},
-		},
-		URL: testdata.Img1.URL,
+		ID:          testdata.Img1.ID,
+		Name:        &testdata.Img1.Name,
+		Description: &testdata.Img1.Description,
+		URL:         testdata.Img1.URL,
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
@@ -155,16 +149,10 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 	log := slog.Default()
 
 	createRequest := v1.ImageCreateRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: testdata.Img1.ID,
-			},
-			Describable: v1.Describable{
-				Name:        &testdata.Img1.Name,
-				Description: &testdata.Img1.Description,
-			},
-		},
-		URL: "http://this.domain.does.not.exist/",
+		ID:          testdata.Img1.ID,
+		Name:        &testdata.Img1.Name,
+		Description: &testdata.Img1.Description,
+		URL:         "http://this.domain.does.not.exist/",
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
@@ -212,15 +200,9 @@ func TestCreateImageWithClassification(t *testing.T) {
 	log := slog.Default()
 
 	createRequest := v1.ImageCreateRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: testdata.Img1.ID,
-			},
-			Describable: v1.Describable{
-				Name:        &testdata.Img1.Name,
-				Description: &testdata.Img1.Description,
-			},
-		},
+		ID:             testdata.Img1.ID,
+		Name:           &testdata.Img1.Name,
+		Description:    &testdata.Img1.Description,
 		URL:            testdata.Img1.URL,
 		Classification: &vc,
 	}
@@ -257,18 +239,10 @@ func TestUpdateImage(t *testing.T) {
 	container := restful.NewContainer().Add(imageservice)
 
 	updateRequest := v1.ImageUpdateRequest{
-		Common: v1.Common{
-			Describable: v1.Describable{
-				Name:        &testdata.Img2.Name,
-				Description: &testdata.Img2.Description,
-			},
-			Identifiable: v1.Identifiable{
-				ID: testdata.Img1.ID,
-			},
-		},
-		ImageBase: v1.ImageBase{
-			URL: &testdata.Img2.URL,
-		},
+		Name:        &testdata.Img2.Name,
+		Description: &testdata.Img2.Description,
+		ID:          testdata.Img1.ID,
+		URL:         &testdata.Img2.URL,
 	}
 	js, err := json.Marshal(updateRequest)
 	require.NoError(t, err)

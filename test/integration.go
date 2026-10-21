@@ -106,15 +106,13 @@ func StartNsqd(t *testing.T, log *slog.Logger) (testcontainers.Container, bus.Pu
 	ctx := context.Background()
 
 	c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "nsqio/nsq:v1.3.0",
-			ExposedPorts: []string{"4150/tcp", "4151/tcp"},
-			WaitingFor: wait.ForAll(
-				wait.ForListeningPort("4150/tcp"),
-				wait.ForListeningPort("4151/tcp"),
-			),
-			Cmd: []string{"nsqd"},
-		},
+		Image:        "nsqio/nsq:v1.3.0",
+		ExposedPorts: []string{"4150/tcp", "4151/tcp"},
+		WaitingFor: wait.ForAll(
+			wait.ForListeningPort("4150/tcp"),
+			wait.ForListeningPort("4151/tcp"),
+		),
+		Cmd:     []string{"nsqd"},
 		Started: true,
 		Logger:  testlog.TestLogger(t),
 	})

@@ -1121,64 +1121,48 @@ func run() error {
 
 func enrichSwaggerObject(swo *spec.Swagger) {
 	swo.Info = &spec.Info{
-		InfoProps: spec.InfoProps{
-			Title:       moduleName,
-			Description: "API to manage and control plane resources like machines, switches, operating system images, machine sizes, networks, IP addresses and more",
-			Contact: &spec.ContactInfo{
-				ContactInfoProps: spec.ContactInfoProps{
-					Name: "metal-stack",
-					URL:  "https://metal-stack.io",
-				},
-			},
-			License: &spec.License{
-				LicenseProps: spec.LicenseProps{
-					Name: "AGPL-3.0",
-					URL:  "https://www.gnu.org/licenses/agpl-3.0.de.html",
-				},
-			},
+		Title:       moduleName,
+		Description: "API to manage and control plane resources like machines, switches, operating system images, machine sizes, networks, IP addresses and more",
+		Contact: &spec.ContactInfo{
+			Name: "metal-stack",
+			URL:  "https://metal-stack.io",
+		},
+		License: &spec.License{
+			Name: "AGPL-3.0",
+			URL:  "https://www.gnu.org/licenses/agpl-3.0.de.html",
 		},
 	}
 	swo.Tags = []spec.Tag{
-		{TagProps: spec.TagProps{
+		{
 			Name:        "audit",
-			Description: "Managing audit entities",
-		}},
-		{TagProps: spec.TagProps{
+			Description: "Managing audit entities"},
+		{
 			Name:        "image",
-			Description: "Managing image entities",
-		}},
-		{TagProps: spec.TagProps{
+			Description: "Managing image entities"},
+		{
 			Name:        "network",
-			Description: "Managing network entities",
-		}},
-		{TagProps: spec.TagProps{
+			Description: "Managing network entities"},
+		{
 			Name:        "ip",
-			Description: "Managing ip entities",
-		}},
-		{TagProps: spec.TagProps{
+			Description: "Managing ip entities"},
+		{
 			Name:        "size",
-			Description: "Managing size entities",
-		}},
-		{TagProps: spec.TagProps{
+			Description: "Managing size entities"},
+		{
 			Name:        "machine",
-			Description: "Managing machine entities",
-		}},
-		{TagProps: spec.TagProps{
+			Description: "Managing machine entities"},
+		{
 			Name:        "partition",
-			Description: "Managing partition entities",
-		}},
-		{TagProps: spec.TagProps{
+			Description: "Managing partition entities"},
+		{
 			Name:        "project",
-			Description: "Managing project entities",
-		}},
-		{TagProps: spec.TagProps{
+			Description: "Managing project entities"},
+		{
 			Name:        "switch",
-			Description: "Managing switch entities",
-		}},
-		{TagProps: spec.TagProps{
+			Description: "Managing switch entities"},
+		{
 			Name:        "user",
-			Description: "Managing user entities",
-		}},
+			Description: "Managing user entities"},
 	}
 
 	hmacspec := spec.APIKeyAuth("Authorization", "header")

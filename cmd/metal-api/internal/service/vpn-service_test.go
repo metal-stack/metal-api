@@ -26,9 +26,7 @@ func Test_EvaluateVPNConnected(t *testing.T) {
 			mockFn: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("machine")).Return(metal.Machines{
 					{
-						Base: metal.Base{
-							ID: "toggle",
-						},
+						ID: "toggle",
 						Allocation: &metal.MachineAllocation{
 							Project: "p1",
 							VPN: &metal.MachineVPN{
@@ -37,9 +35,7 @@ func Test_EvaluateVPNConnected(t *testing.T) {
 						},
 					},
 					{
-						Base: metal.Base{
-							ID: "already-connected",
-						},
+						ID: "already-connected",
 						Allocation: &metal.MachineAllocation{
 							Project: "p2",
 							VPN: &metal.MachineVPN{
@@ -48,9 +44,7 @@ func Test_EvaluateVPNConnected(t *testing.T) {
 						},
 					},
 					{
-						Base: metal.Base{
-							ID: "no-vpn",
-						},
+						ID: "no-vpn",
 						Allocation: &metal.MachineAllocation{
 							Project: "p3",
 						},

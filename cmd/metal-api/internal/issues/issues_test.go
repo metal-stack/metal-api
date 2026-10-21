@@ -13,9 +13,7 @@ import (
 func TestFindIssues(t *testing.T) {
 	machineTemplate := func(id string) metal.Machine {
 		return metal.Machine{
-			Base: metal.Base{
-				ID: id,
-			},
+			ID:          id,
 			PartitionID: "a",
 			IPMI: metal.IPMI{
 				Address:     "1.2.3.4",
@@ -26,9 +24,7 @@ func TestFindIssues(t *testing.T) {
 	}
 	eventContainerTemplate := func(id string) metal.ProvisioningEventContainer {
 		return metal.ProvisioningEventContainer{
-			Base: metal.Base{
-				ID: id,
-			},
+			ID:         id,
 			Liveliness: metal.MachineLivelinessAlive,
 		}
 	}

@@ -45,9 +45,7 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 		// in a machine lifecycle
 		if m == nil {
 			m = &metal.Machine{
-				Base: metal.Base{
-					ID: machineID,
-				},
+				ID: machineID,
 			}
 			err = e.ds.CreateMachine(m)
 			if err != nil {

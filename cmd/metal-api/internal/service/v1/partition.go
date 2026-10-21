@@ -123,30 +123,20 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 	}
 
 	return &PartitionResponse{
-		Common: Common{
-			Identifiable: Identifiable{
-				ID: p.ID,
-			},
-			Describable: Describable{
-				Name:        &p.Name,
-				Description: &p.Description,
-			},
-		},
-		PartitionBase: PartitionBase{
-			MgmtServiceAddress: &p.MgmtServiceAddress,
-			DNSServers:         dnsServers,
-			NTPServers:         ntpServers,
-		},
+		ID:                 p.ID,
+		Name:               &p.Name,
+		Description:        &p.Description,
+		MgmtServiceAddress: &p.MgmtServiceAddress,
+		DNSServers:         dnsServers,
+		NTPServers:         ntpServers,
 		PartitionBootConfiguration: PartitionBootConfiguration{
 			ImageURL:    &p.BootConfiguration.ImageURL,
 			KernelURL:   &p.BootConfiguration.KernelURL,
 			CommandLine: &p.BootConfiguration.CommandLine,
 		},
-		Timestamps: Timestamps{
-			Created: p.Created,
-			Changed: p.Changed,
-		},
-		Labels: labels,
+		Created: p.Created,
+		Changed: p.Changed,
+		Labels:  labels,
 	}
 }
 

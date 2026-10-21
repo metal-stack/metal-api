@@ -23,10 +23,8 @@ type sizeImageConstraintResource struct {
 // NewSize returns a webservice for size specific endpoints.
 func NewSizeImageConstraint(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	r := sizeImageConstraintResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log: log,
+		ds:  ds,
 	}
 	return r.webService()
 }

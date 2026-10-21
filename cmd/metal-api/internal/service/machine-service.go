@@ -125,10 +125,8 @@ func NewMachine(
 	ipmiSuperUser metal.MachineIPMISuperUser,
 ) (*restful.WebService, error) {
 	r := machineResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log:             log,
+		ds:              ds,
 		Publisher:       pub,
 		ipamer:          ipamer,
 		mdc:             mdc,
@@ -659,7 +657,7 @@ func (r *machineResource) getMachineConsolePassword(request *restful.Request, re
 	}
 
 	resp := v1.MachineConsolePasswordResponse{
-		Common:          v1.Common{Identifiable: v1.Identifiable{ID: m.ID}, Describable: v1.Describable{Name: &m.Name, Description: &m.Description}},
+		ID: m.ID, Name: &m.Name, Description: &m.Description,
 		ConsolePassword: m.Allocation.ConsolePassword,
 	}
 
@@ -847,9 +845,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 			continue
 		}
 		m := &metal.Machine{
-			Base: metal.Base{
-				ID: uuid,
-			},
+			ID:          uuid,
 			PartitionID: p.ID,
 			IPMI: metal.IPMI{
 				Address:     report.BMCIp + ":" + defaultIPMIPort,
@@ -1289,9 +1285,7 @@ func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.Ret
 	rollbackOnError := func(err error) error {
 		if err != nil {
 			cleanupMachine := &metal.Machine{
-				Base: metal.Base{
-					ID: allocationSpec.UUID,
-				},
+				ID:         allocationSpec.UUID,
 				Allocation: alloc,
 			}
 			rollbackError := actor.machineNetworkReleaser(cleanupMachine)

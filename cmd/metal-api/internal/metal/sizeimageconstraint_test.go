@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	n1Medium          = Size{Base: Base{ID: "n1-medium-x86"}}
-	c1Xlarge          = Size{Base: Base{ID: "c1-xlarge-x86"}}
-	s1Xlarge          = Size{Base: Base{ID: "s1-xlarge-x86"}}
+	n1Medium          = Size{ID: "n1-medium-x86"}
+	c1Xlarge          = Size{ID: "c1-xlarge-x86"}
+	s1Xlarge          = Size{ID: "s1-xlarge-x86"}
 	newFirewall       = Image{OS: "firewall", Version: "2.0.20211101"}
 	oldFirewall       = Image{OS: "firewall", Version: "2.0.20201101"}
 	onlyMajorFirewall = Image{OS: "firewall", Version: "2"}
@@ -104,13 +104,13 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 			name: "new enough image",
 			scs: &SizeImageConstraints{
 				{
-					Base: Base{ID: n1Medium.ID},
+					ID: n1Medium.ID,
 					Images: map[string]string{
 						"firewall": ">= 2.0.20211001",
 					},
 				},
 				{
-					Base: Base{ID: c1Xlarge.ID},
+					ID: c1Xlarge.ID,
 					Images: map[string]string{
 						"firewall": ">= 2.0.20211001",
 					},
@@ -123,13 +123,13 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 			name: "only major version given",
 			scs: &SizeImageConstraints{
 				{
-					Base: Base{ID: n1Medium.ID},
+					ID: n1Medium.ID,
 					Images: map[string]string{
 						"firewall": ">= 2.0.20211001",
 					},
 				},
 				{
-					Base: Base{ID: c1Xlarge.ID},
+					ID: c1Xlarge.ID,
 					Images: map[string]string{
 						"firewall": ">= 2.0.20211001",
 					},
@@ -142,13 +142,13 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 			name: "no constraints for this image",
 			scs: &SizeImageConstraints{
 				{
-					Base: Base{ID: n1Medium.ID},
+					ID: n1Medium.ID,
 					Images: map[string]string{
 						"firewall": ">= 2.0.20211001",
 					},
 				},
 				{
-					Base: Base{ID: c1Xlarge.ID},
+					ID: c1Xlarge.ID,
 					Images: map[string]string{
 						"firewall": ">= 2.0.20211001",
 					},
@@ -161,13 +161,13 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 			name: "to old image",
 			scs: &SizeImageConstraints{
 				{
-					Base: Base{ID: n1Medium.ID},
+					ID: n1Medium.ID,
 					Images: map[string]string{
 						"firewall": ">= 2.0.20211001",
 					},
 				},
 				{
-					Base: Base{ID: c1Xlarge.ID},
+					ID: c1Xlarge.ID,
 					Images: map[string]string{
 						"firewall": ">= 2.0.20211001",
 					},
@@ -201,13 +201,13 @@ func TestSizeImageConstraints_Validate(t *testing.T) {
 			name: "valid",
 			scs: &SizeImageConstraints{
 				{
-					Base: Base{ID: n1Medium.ID},
+					ID: n1Medium.ID,
 					Images: map[string]string{
 						"firewall": ">= 2.0.20211001",
 					},
 				},
 				{
-					Base: Base{ID: c1Xlarge.ID},
+					ID: c1Xlarge.ID,
 					Images: map[string]string{
 						"debian": ">= 10.0",
 					},
@@ -219,7 +219,7 @@ func TestSizeImageConstraints_Validate(t *testing.T) {
 			name: "no wildcard os",
 			scs: &SizeImageConstraints{
 				{
-					Base: Base{ID: n1Medium.ID},
+					ID: n1Medium.ID,
 					Images: map[string]string{
 						"*": "",
 					},
@@ -231,7 +231,7 @@ func TestSizeImageConstraints_Validate(t *testing.T) {
 			name: "wildcard version is allowed",
 			scs: &SizeImageConstraints{
 				{
-					Base: Base{ID: n1Medium.ID},
+					ID: n1Medium.ID,
 					Images: map[string]string{
 						"debian": "*",
 					},
@@ -243,7 +243,7 @@ func TestSizeImageConstraints_Validate(t *testing.T) {
 			name: "invalid op",
 			scs: &SizeImageConstraints{
 				{
-					Base: Base{ID: n1Medium.ID},
+					ID: n1Medium.ID,
 					Images: map[string]string{
 						"debian": "% 2",
 					},
@@ -255,7 +255,7 @@ func TestSizeImageConstraints_Validate(t *testing.T) {
 			name: "invalid op and not separated by space",
 			scs: &SizeImageConstraints{
 				{
-					Base: Base{ID: n1Medium.ID},
+					ID: n1Medium.ID,
 					Images: map[string]string{
 						"debian": "%2",
 					},

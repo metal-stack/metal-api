@@ -31,10 +31,8 @@ type switchResource struct {
 // NewSwitch returns a webservice for switch specific endpoints.
 func NewSwitch(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	r := switchResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log: log,
+		ds:  ds,
 	}
 	return r.webService()
 }
@@ -272,7 +270,7 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		}
 
 		ss = &metal.SwitchStatus{
-			Base: metal.Base{ID: id},
+			ID: id,
 		}
 	}
 

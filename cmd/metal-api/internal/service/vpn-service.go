@@ -33,9 +33,7 @@ func NewVPN(
 	reasonMinLength uint,
 ) *restful.WebService {
 	r := vpnResource{
-		webResource: webResource{
-			log: log,
-		},
+		log:             log,
 		headscaleClient: headscaleClient,
 		reasonMinLength: reasonMinLength,
 	}

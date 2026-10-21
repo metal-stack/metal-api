@@ -22,9 +22,7 @@ var (
 
 	// Switches
 	switch1 = Switch{
-		Base: Base{
-			ID: "switch1",
-		},
+		ID:          "switch1",
 		PartitionID: "1",
 		RackID:      "1",
 		RoomID:      "1",
@@ -63,11 +61,9 @@ func TestSwitch_ConnectMachine_ForTestData(t *testing.T) {
 			s:    &switch1,
 			args: args{
 				Machine: &Machine{
-					Base: Base{
-						Name:        "1-core/100 B",
-						Description: "a machine with 1 core(s) and 100 B of RAM",
-						ID:          "5",
-					},
+					Name:        "1-core/100 B",
+					Description: "a machine with 1 core(s) and 100 B of RAM",
+					ID:          "5",
 					RackID:      "1",
 					RoomID:      "1",
 					PartitionID: "1",
@@ -114,9 +110,7 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 		{
 			name: "switch and machine are not connected",
 			s: &Switch{
-				Base: Base{
-					ID: "sw1",
-				},
+				ID: "sw1",
 				Nics: Nics{
 					{
 						MacAddress: "aa:aa:aa:aa:aa:aa",
@@ -137,9 +131,7 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 				},
 			},
 			machine: &Machine{
-				Base: Base{
-					ID: "m1",
-				},
+				ID: "m1",
 				Hardware: MachineHardware{
 					Nics: Nics{
 						{
@@ -171,9 +163,7 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 		{
 			name: "error when machine connection for the switch exists in the database but not physically",
 			s: &Switch{
-				Base: Base{
-					ID: "sw1",
-				},
+				ID: "sw1",
 				Nics: Nics{
 					{
 						MacAddress: "aa:aa:aa:aa:aa:aa",
@@ -194,9 +184,7 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 				},
 			},
 			machine: &Machine{
-				Base: Base{
-					ID: "m1",
-				},
+				ID: "m1",
 				Hardware: MachineHardware{
 					Nics: Nics{
 						{
@@ -226,9 +214,7 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 		{
 			name: "new connection replaces old ones for the same switch",
 			s: &Switch{
-				Base: Base{
-					ID: "sw1",
-				},
+				ID: "sw1",
 				Nics: Nics{
 					{
 						MacAddress: "bb:bb:bb:bb:bb:bb",
@@ -257,9 +243,7 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 				},
 			},
 			machine: &Machine{
-				Base: Base{
-					ID: "m1",
-				},
+				ID: "m1",
 				Hardware: MachineHardware{
 					Nics: Nics{
 						{
@@ -883,9 +867,7 @@ func TestSwitch_getPhysicalMachineConnection(t *testing.T) {
 		{
 			name: "machine is connected",
 			s: &Switch{
-				Base: Base{
-					Name: "leaf01",
-				},
+				Name: "leaf01",
 				Nics: Nics{
 					{
 						MacAddress: "aa:aa:aa:aa:aa:aa",
@@ -895,9 +877,7 @@ func TestSwitch_getPhysicalMachineConnection(t *testing.T) {
 				},
 			},
 			machine: &Machine{
-				Base: Base{
-					ID: "m1",
-				},
+				ID: "m1",
 				Hardware: MachineHardware{
 					Nics: Nics{
 						{
@@ -925,9 +905,7 @@ func TestSwitch_getPhysicalMachineConnection(t *testing.T) {
 		{
 			name: "machine is not connected",
 			s: &Switch{
-				Base: Base{
-					Name: "leaf02",
-				},
+				Name: "leaf02",
 				Nics: Nics{
 					{
 						MacAddress: "aa:aa:aa:aa:aa:aa",
@@ -937,9 +915,7 @@ func TestSwitch_getPhysicalMachineConnection(t *testing.T) {
 				},
 			},
 			machine: &Machine{
-				Base: Base{
-					ID: "m1",
-				},
+				ID: "m1",
 				Hardware: MachineHardware{
 					Nics: Nics{
 						{

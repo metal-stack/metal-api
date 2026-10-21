@@ -21,9 +21,7 @@ type userResource struct {
 // NewUser returns a webservice for user specific endpoints.
 func NewUser(log *slog.Logger, userGetter security.UserGetter) *restful.WebService {
 	r := userResource{
-		webResource: webResource{
-			log: log,
-		},
+		log:        log,
 		userGetter: userGetter,
 	}
 	return r.webService()

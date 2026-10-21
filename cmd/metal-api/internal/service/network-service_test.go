@@ -169,9 +169,9 @@ func TestCreateNetwork(t *testing.T) {
 	destPrefixes := []string{"0.0.0.0/0"}
 	vrf := uint(10000)
 	createRequest := &v1.NetworkCreateRequest{
-		Describable:      v1.Describable{Name: &testdata.Nw1.Name},
-		NetworkBase:      v1.NetworkBase{PartitionID: &testdata.Nw1.PartitionID, ProjectID: &testdata.Nw1.ProjectID},
-		NetworkImmutable: v1.NetworkImmutable{Prefixes: prefixes, DestinationPrefixes: destPrefixes, Vrf: &vrf},
+		Name:        &testdata.Nw1.Name,
+		PartitionID: &testdata.Nw1.PartitionID, ProjectID: &testdata.Nw1.ProjectID,
+		Prefixes: prefixes, DestinationPrefixes: destPrefixes, Vrf: &vrf,
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)
@@ -207,10 +207,8 @@ func TestUpdateNetwork(t *testing.T) {
 
 	newName := "new"
 	updateRequest := &v1.NetworkUpdateRequest{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{ID: testdata.Nw1.GetID()},
-			Describable:  v1.Describable{Name: &newName},
-		},
+		ID:   testdata.Nw1.GetID(),
+		Name: &newName,
 	}
 	js, err := json.Marshal(updateRequest)
 	require.NoError(t, err)
@@ -407,13 +405,11 @@ func Test_networkResource_createNetwork(t *testing.T) {
 			container := restful.NewContainer().Add(networkservice)
 
 			createRequest := &v1.NetworkCreateRequest{
-				Describable: v1.Describable{Name: &tt.networkName},
-				NetworkBase: v1.NetworkBase{PartitionID: &tt.partitionID, ProjectID: &tt.projectID},
-				NetworkImmutable: v1.NetworkImmutable{
-					Prefixes:            tt.prefixes,
-					DestinationPrefixes: tt.destinationPrefixes,
-					Vrf:                 &tt.vrf, Nat: tt.nat, PrivateSuper: tt.privateSuper, Underlay: tt.underlay,
-				},
+				Name:        &tt.networkName,
+				PartitionID: &tt.partitionID, ProjectID: &tt.projectID,
+				Prefixes:            tt.prefixes,
+				DestinationPrefixes: tt.destinationPrefixes,
+				Vrf:                 &tt.vrf, Nat: tt.nat, PrivateSuper: tt.privateSuper, Underlay: tt.underlay,
 			}
 			if tt.childprefixlength != nil {
 				createRequest.DefaultChildPrefixLength = tt.childprefixlength
@@ -525,9 +521,9 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 		container := restful.NewContainer().Add(networkservice)
 
 		allocateRequest := &v1.NetworkAllocateRequest{
-			Describable: v1.Describable{Name: &tt.networkName},
-			NetworkBase: v1.NetworkBase{PartitionID: &tt.partitionID, ProjectID: &tt.projectID},
-			Length:      tt.childprefixlength,
+			Name:        &tt.networkName,
+			PartitionID: &tt.partitionID, ProjectID: &tt.projectID,
+			Length: tt.childprefixlength,
 		}
 
 		js, err := json.Marshal(allocateRequest)

@@ -33,10 +33,8 @@ type firmwareResource struct {
 // NewFirmware returns a webservice for firmware specific endpoints.
 func NewFirmware(log *slog.Logger, ds *datastore.RethinkStore, s3Client *s3server.Client) (*restful.WebService, error) {
 	r := firmwareResource{
-		webResource: webResource{
-			log: log,
-			ds:  ds,
-		},
+		log:      log,
+		ds:       ds,
 		s3Client: s3Client,
 	}
 	return r.webService(), nil
